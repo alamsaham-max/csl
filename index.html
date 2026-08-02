@@ -886,6 +886,8 @@ table.dt tr:hover td{ background:#F8F9FC; }
 const GOOGLE_CLIENT_ID = '139485005624-4m48e0eu7mttumvdutvlh302fv12ipub.apps.googleusercontent.com';
 const ALLOWED_EMAILS = [
   'slim.a.jayapura@gmail.com',
+  'irfan.dw30@gmail.com',
+  'jonathanmalvin23@gmail.com',
   // tambahkan email lain di sini, satu per baris, diakhiri koma
 ];
 
@@ -1490,6 +1492,84 @@ const quadrantLinesPlugin = {
   }
 };
 Chart.register(quadrantLinesPlugin);
+
+// ============================================================
+// PLUGIN — data label otomatis di setiap chart (angka langsung
+// tampil di atas/samping bar, titik, atau irisan doughnut/radar),
+// memakai format yang SAMA seperti tooltip/axis chart tsb supaya
+// tidak perlu setting manual per chart (otomatis %, desimal, dst).
+// Dilewati untuk scatter/bubble (dipakai kuadran Diagnostik/
+// Preskriptif) supaya diagramnya tidak penuh sesak.
+// ============================================================
+const dataLabelsPlugin = {
+  id: 'dataLabelsAuto',
+  afterDatasetsDraw(chart){
+    const skip = chart.config.type === 'scatter' || chart.config.type === 'bubble';
+    if(skip) return;
+    const opt = (chart.options.plugins && chart.options.plugins.dataLabelsAuto) || {};
+    if(opt.enabled === false) return;
+
+    const { ctx } = chart;
+    const indexAxisIsY = chart.options.indexAxis === 'y';
+    const valueScaleKey = indexAxisIsY ? 'x' : 'y';
+    const valueScale = chart.scales && chart.scales[valueScaleKey];
+    const tickCb = valueScale && valueScale.options && valueScale.options.ticks && typeof valueScale.options.ticks.callback === 'function'
+      ? valueScale.options.ticks.callback : null;
+
+    function fmt(v){
+      if(v == null || typeof v !== 'number' || isNaN(v)) return '';
+      if(opt.formatter) return opt.formatter(v);
+      if(tickCb){
+        try{ return String(tickCb.call(valueScale, v)); }catch(e){ /* fall through */ }
+      }
+      return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    }
+
+    ctx.save();
+    ctx.font = '700 10px Arial, sans-serif';
+    ctx.textBaseline = 'middle';
+
+    chart.data.datasets.forEach((dataset, di) => {
+      const meta = chart.getDatasetMeta(di);
+      if(meta.hidden || !meta.data) return;
+      const isDoughnutLike = ['doughnut','pie','polarArea'].includes(chart.config.type);
+      const isRadar = chart.config.type === 'radar';
+      const nDatasets = chart.data.datasets.filter(d=>true).length;
+
+      meta.data.forEach((el, i) => {
+        const raw = dataset.data[i];
+        if(raw == null) return;
+        const text = fmt(raw);
+        if(!text) return;
+        const pos = el.tooltipPosition ? el.tooltipPosition() : {x: el.x, y: el.y};
+
+        ctx.fillStyle = isDoughnutLike ? '#fff' : (dataset.borderColor || dataset.backgroundColor || '#3E362E');
+        if(Array.isArray(ctx.fillStyle)) ctx.fillStyle = '#3E362E';
+
+        if(isDoughnutLike){
+          ctx.textAlign = 'center';
+          ctx.fillText(text, pos.x, pos.y);
+        } else if(indexAxisIsY){
+          // horizontal bar: label right after bar end
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#3E362E';
+          ctx.fillText(text, pos.x + 6, pos.y);
+        } else if(isRadar){
+          ctx.textAlign = 'center';
+          ctx.fillText(text, pos.x, pos.y - 10);
+        } else {
+          // vertical bar / line: label above point, offset per-dataset to reduce overlap
+          ctx.textAlign = 'center';
+          const offset = 8 + (nDatasets > 1 ? (di * 0) : 0);
+          ctx.fillStyle = '#3E362E';
+          ctx.fillText(text, pos.x, pos.y - offset);
+        }
+      });
+    });
+    ctx.restore();
+  }
+};
+Chart.register(dataLabelsPlugin);
 
 function renderDiagnostikTab(f){
   document.getElementById('diagTag').textContent = (f.wilayah==='ALL'?'Semua Wilayah':f.wilayah) + ' · ' + (f.dealer==='ALL'?'Semua Dealer':f.dealer);
