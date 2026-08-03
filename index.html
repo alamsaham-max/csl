@@ -388,7 +388,8 @@ table.dt tr:hover td{ background:#F8F9FC; }
     <select id="fTipe">
       <option value="ALL">Semua Tipe</option>
       <option value="REGULER">Reguler (Dealer H123)</option>
-      <option value="AHASS">AHASS Mandiri (H23)</option>
+      <option value="WING">Wing</option>
+      <option value="AHASS">AHASS H23</option>
     </select>
   </div>
   <div class="alert-chip" id="alertChip">⚠ 0 item di bawah target</div>
@@ -521,11 +522,21 @@ table.dt tr:hover td{ background:#F8F9FC; }
     <div class="section-title"><span class="bar"></span><h2>🎯 Fokus Item — Status Pencapaian</h2><span class="tag">Item Bonus 2026 · dihitung dari data live saat ini</span></div>
     <div class="grid" id="ovFocusItemGrid" style="grid-template-columns:repeat(3,1fr);"></div>
 
+    <div class="section-title"><span class="bar"></span><h2>🎯 Fokus Item — Achievement per Dealer</h2></div>
+    <div class="card"><div style="overflow-x:auto; max-height:480px;"><table class="dt" id="ovFocusPerDealerTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>🎯 Fokus Item — Achievement per Wilayah</h2></div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovFocusPerAreaTable"></table></div></div>
+
     <div class="section-title"><span class="bar"></span><h2>Result CSL per Dealer</h2></div>
     <div class="card"><div style="overflow-x:auto; max-height:480px;"><table class="dt" id="ovPerDealerTable"></table></div></div>
 
     <div class="section-title"><span class="bar"></span><h2>Result CSL per Wilayah</h2></div>
     <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerAreaTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>Result CSL per Tipe / Channel</h2></div>
+    <div class="methodnote"><b>Klasifikasi Tipe/Channel:</b> Wing = ASTRA MOTOR TANAH HITAM &amp; ASTRA MOTOR SORONG 1 · Reguler (H123) = seluruh dealer H123 selain kedua dealer Wing tsb · AHASS H23 = dealer dengan nama diawali "AHASS".</div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerTipeTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: WILAYAH ========== -->
@@ -898,6 +909,8 @@ const ALLOWED_EMAILS = [
   'irfan.dw30@gmail.com',
   'jonathanmalvin23@gmail.com',
   'hc3papua@gmail.com',
+  'gamasitumeang@gmail.com',
+  'alviantanu@gmail.com',
   // tambahkan email lain di sini, satu per baris, diakhiri koma
 ];
 
@@ -969,7 +982,7 @@ function handleCredentialResponse(response){
 
 const RAW = {"dealers": {"AHASS Cenderawasih Motor 3": {"city": "Jayapura", "H1": null, "H2": [1.0, 0.933, 0.956, 1.0, 0.956, 0.978, 0.911, 1.0, 0.933, 0.956, 1.0, 0.911, 1.0, null, 0.911, 0.933, 0.956, 0.889, 0.978, 0.956, 0.956], "H3": [1.0, 0.943, 1.0, 0.971, 0.914, 0.914, 1.0, 1.0, 0.8, 1.0, 1.0, 0.971, 1.0]}, "AHASS Harkat Abadi Motor": {"city": "Timika", "H1": null, "H2": [0.96, 0.96, 0.96, 1.0, 0.96, 0.84, 0.96, 0.96, 0.96, 0.92, 1.0, 0.84, 0.96, null, 0.88, 0.92, 0.92, 0.84, 0.96, 0.96, 0.96], "H3": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, null, null, null, null, 1.0, 1.0]}, "AHASS Metro Motor": {"city": "Nabire", "H1": null, "H2": [0.95, 0.988, 0.963, 0.947, 0.95, 0.925, 0.875, 0.95, 0.975, 0.963, null, 0.95, 0.925, null, 0.887, 0.938, 0.938, 0.925, 0.988, 0.963, 0.975], "H3": [0.923, 0.969, 1.0, 0.954, 0.939, 0.923, 1.0, null, null, null, null, 1.0, 0.939]}, "AHASS Turbo Motor": {"city": "Jayapura", "H1": null, "H2": [1.0, 1.0, 1.0, null, 1.0, 1.0, 0.985, 1.0, 0.969, 0.969, null, 0.985, 1.0, null, 0.985, 1.0, 1.0, 0.985, 0.985, 0.985, 1.0], "H3": [0.964, 1.0, 1.0, 1.0, 0.982, 1.0, 0.982, 1.0, 1.0, 1.0, 1.0, 0.982, 1.0]}, "ASTRA MOTOR ENTROP": {"city": "Jayapura", "H1": [0.956, 0.926, 0.97, 0.956, 0.97, 0.941, 0.933, 0.867, 0.896, 1.0, 0.985, 0.911, 0.933, 0.926, 0.941, 0.993, 0.97, 0.963, 0.933, 0.933, 0.933, 0.926], "H2": [0.973, 0.987, 1.0, 1.0, 0.92, 0.973, 0.92, 0.973, 0.973, 0.973, 1.0, 0.973, 0.933, 0.96, 0.947, 0.933, 0.92, 0.933, 0.96, 0.973, 0.973], "H3": [0.969, 0.923, 0.954, 0.969, 0.969, 0.985, 0.954, 1.0, 1.0, 0.8, 1.0, 1.0, 0.969]}, "ASTRA MOTOR MANOKWARI": {"city": "Manokwari", "H1": [0.924, 0.952, 0.938, 0.938, 0.966, 0.966, 0.972, 0.92, 0.972, 0.933, 0.933, 0.966, 0.903, 0.924, 0.938, 0.924, 0.945, 0.979, 0.952, 0.945, 0.931, 0.938], "H2": [0.986, 0.957, 0.957, null, 0.95, 0.993, 0.979, 0.957, 0.943, 0.979, 1.0, 0.957, 0.957, 0.964, 0.936, 0.95, 0.986, 0.957, 0.957, 0.914, 0.964], "H3": [0.959, 0.945, 0.952, 0.952, 0.972, 0.959, 0.931, 0.933, 0.933, 0.867, 0.933, 0.966, 0.966]}, "ASTRA MOTOR MERAUKE": {"city": "Merauke", "H1": [0.957, 0.964, 0.914, 0.957, 0.971, 0.936, 0.907, 0.92, 0.943, 0.957, 0.929, 0.957, 0.979, 0.979, 0.979, 0.95, 0.929, 0.929, 0.95, 0.971, 0.936, 0.957], "H2": [0.968, 0.948, 0.948, 0.953, 0.961, 0.981, 0.987, 0.929, 0.948, 0.948, 0.973, 0.981, 0.961, 0.935, 0.968, 0.91, 0.974, 0.961, 0.948, 0.968, 0.929], "H3": [0.987, 0.953, 0.96, 0.96, 0.94, 0.973, 0.96, null, null, null, null, 0.94, 0.967]}, "ASTRA MOTOR NABIRE": {"city": "Nabire", "H1": [0.954, 0.939, 0.892, 0.908, 0.954, 0.954, 0.985, 1.0, 0.939, 0.92, 0.92, 0.985, 0.969, 1.0, 0.877, 0.923, 0.923, 0.923, 0.954, 0.954, 0.954, 0.954], "H2": [0.987, 0.96, 0.987, 1.0, 1.0, 0.987, 1.0, 0.973, 0.907, 0.96, 0.933, 0.987, 1.0, 0.933, 0.96, 0.987, 0.96, 0.96, 0.987, 0.987, 0.96], "H3": [1.0, 0.886, 0.971, 0.971, 1.0, 0.971, 0.971, 1.0, 0.9, 0.9, 1.0, 0.943, 0.943]}, "ASTRA MOTOR SORONG 1": {"city": "Sorong", "H1": [0.945, 0.952, 0.952, 0.952, 0.945, 0.952, 0.931, 1.0, 0.936, 0.929, 0.929, 0.952, 0.945, 0.938, 0.945, 0.938, 0.945, 0.929, 0.938, 0.938, 0.924, 0.945], "H2": [0.959, 0.945, 0.931, 0.96, 0.959, 0.91, 0.979, 0.972, 0.952, 0.952, 0.933, 0.924, 0.972, 0.938, 0.966, 0.931, 0.917, 0.966, 0.959, 0.945, 0.945], "H3": [0.936, 0.964, 0.95, 0.936, 0.95, 0.957, 0.943, 0.9, 1.0, 1.0, 1.0, 0.95, 0.964]}, "ASTRA MOTOR SORONG 2": {"city": "Sorong", "H1": [0.938, 0.917, 0.924, 0.959, 0.959, 0.945, 0.931, 0.95, 0.924, 0.936, 0.936, 0.931, 0.945, 0.959, 0.966, 0.952, 0.945, 0.945, 0.931, 0.945, 0.945, 0.91], "H2": [0.924, 0.924, 0.897, 0.933, 0.952, 0.945, 0.945, 0.938, 0.924, 0.959, 0.96, 0.945, 0.952, 0.938, 0.945, 0.924, 0.931, 0.966, 0.952, 0.924, 0.931], "H3": [0.963, 0.963, 0.926, 0.97, 0.948, 0.948, 0.941, 0.9, 0.85, 1.0, 1.0, 0.978, 0.948]}, "ASTRA MOTOR TANAH HITAM": {"city": "Jayapura", "H1": [0.947, 0.953, 0.927, 0.913, 0.933, 0.933, 0.953, 0.943, 0.983, 0.922, 0.911, 0.967, 0.947, 0.933, 0.933, 0.913, 0.913, 0.878, 0.94, 0.933, 0.987, 0.987], "H2": [0.893, 0.907, 0.9, 0.946, 0.943, 0.936, 0.914, 0.929, 0.936, 0.907, 0.927, 0.95, 0.914, 0.936, 0.9, 0.943, 0.879, 0.921, 0.907, 0.893, 0.943], "H3": [0.933, 0.967, 0.967, 0.953, 0.947, 0.94, 0.973, 0.875, 0.975, 0.95, 0.925, 0.927, 0.912]}, "ASTRA MOTOR TIMIKA": {"city": "Timika", "H1": [1.0, 0.971, 0.943, 0.943, 0.914, 1.0, 1.0, 1.0, 0.971, 0.933, 0.9, 0.943, 0.914, 0.971, 0.971, 1.0, 0.943, 0.971, 0.886, 0.914, 1.0, 1.0], "H2": [1.0, 1.0, 1.0, 1.0, 0.933, 0.956, 1.0, 1.0, 0.956, 1.0, 0.911, 0.911, 1.0, 1.0, 1.0, 0.933, 0.867, 0.933, 1.0, 0.978, 0.933], "H3": [1.0, 0.867, 1.0, 1.0, 1.0, 1.0, 1.0, null, null, null, null, 1.0, 0.933]}, "CV FAJAR BARU JAYAPURA": {"city": "Jayapura", "H1": [0.933, 0.913, 0.953, 0.94, 0.947, 0.973, 0.933, 0.867, 0.953, 0.914, 0.952, 0.913, 0.92, 0.933, 0.927, 0.953, 0.96, 0.927, 0.933, 0.933, 0.947, 0.907], "H2": [0.918, 0.941, 0.977, 0.96, 0.988, 0.977, 0.941, 0.953, 0.953, 0.965, 0.98, 0.977, 0.929, 0.918, 0.988, 0.965, 0.953, 0.953, 0.953, 0.941, 0.965], "H3": [0.965, 0.941, 0.965, 0.977, 0.977, 0.965, 0.965, 0.9, 1.0, 1.0, 0.8, 0.977, 0.975]}, "CV FAJAR BARU TIMIKA": {"city": "Timika", "H1": [1.0, 0.943, 0.971, 0.914, 0.871, 0.9, 0.9, 0.85, 0.986, 1.0, 1.0, 0.943, 1.0, 0.971, 1.0, 0.957, 0.929, 0.914, 0.971, 0.971, 1.0, 1.0], "H2": [1.0, 0.867, 0.85, 0.967, 0.967, 1.0, 1.0, 0.983, 0.883, 0.967, 0.967, 1.0, 1.0, 0.933, 0.9, 0.983, 0.983, 1.0, 1.0, 0.9, 0.9], "H3": [1.0, 1.0, 0.911, 0.933, 0.956, 1.0, 1.0, null, null, null, null, 1.0, 0.978]}, "CV SINAR PAGI NABIRE": {"city": "Nabire", "H1": [1.0, 0.985, 1.0, 1.0, 0.923, 0.923, 0.846, 0.9, 0.939, 1.0, 1.0, 0.969, 0.985, 1.0, 1.0, 1.0, 0.985, 0.939, 0.908, 0.862, 0.939, 0.954], "H2": [1.0, 1.0, 1.0, null, 1.0, 0.967, 0.983, 0.967, 0.983, 0.933, 1.0, 0.95, 0.967, 0.933, 0.983, 0.967, 0.967, 1.0, 1.0, 0.967, 1.0], "H3": [0.983, 0.933, 0.967, 0.967, 0.983, 1.0, 0.983, 1.0, 1.0, 0.8, 0.8, 0.917, 0.95]}}, "n": {"CV SINAR PAGI NABIRE": {"H1": 13, "H2": 12, "H3": 12}, "CV FAJAR BARU TIMIKA": {"H1": 14, "H2": 12, "H3": 9}, "CV FAJAR BARU JAYAPURA": {"H1": 30, "H2": 17, "H3": 17}, "ASTRA MOTOR ENTROP": {"H1": 27, "H2": 15, "H3": 13}, "ASTRA MOTOR TANAH HITAM": {"H1": 30, "H2": 28, "H3": 30}, "ASTRA MOTOR MANOKWARI": {"H1": 29, "H2": 28, "H3": 29}, "ASTRA MOTOR SORONG 1": {"H1": 29, "H2": 29, "H3": 28}, "ASTRA MOTOR TIMIKA": {"H1": 7, "H2": 9, "H3": 3}, "ASTRA MOTOR NABIRE": {"H1": 13, "H2": 15, "H3": 7}, "ASTRA MOTOR MERAUKE": {"H1": 28, "H2": 31, "H3": 30}, "ASTRA MOTOR SORONG 2": {"H1": 29, "H2": 29, "H3": 27}, "AHASS Turbo Motor": {"H2": 13, "H3": 11}, "AHASS Harkat Abadi Motor": {"H2": 5, "H3": 4}, "AHASS Metro Motor": {"H2": 16, "H3": 13}, "AHASS Cenderawasih Motor 3": {"H2": 9, "H3": 7}}, "cnt": {"CV SINAR PAGI NABIRE": {"H1": [13, 13, 13, 13, 13, 13, 13, 2, 13, 1, 1, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13], "H2": [12, 12, 12, 0, 12, 12, 12, 12, 12, 12, 3, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12], "H3": [12, 12, 12, 12, 12, 12, 12, 1, 1, 1, 1, 12, 12]}, "CV FAJAR BARU TIMIKA": {"H1": [14, 14, 14, 14, 14, 14, 14, 4, 14, 10, 10, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], "H2": [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12], "H3": [9, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 9, 9]}, "CV FAJAR BARU JAYAPURA": {"H1": [30, 30, 30, 30, 30, 30, 30, 6, 30, 21, 21, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30], "H2": [17, 17, 17, 10, 17, 17, 17, 17, 17, 17, 10, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17], "H3": [17, 17, 17, 17, 17, 17, 17, 2, 2, 2, 2, 17, 16]}, "ASTRA MOTOR ENTROP": {"H1": [27, 27, 27, 27, 27, 27, 27, 3, 27, 13, 13, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27], "H2": [15, 15, 15, 7, 15, 15, 15, 15, 15, 15, 4, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15], "H3": [13, 13, 13, 13, 13, 13, 13, 1, 1, 1, 1, 13, 13]}, "ASTRA MOTOR TANAH HITAM": {"H1": [30, 30, 30, 30, 30, 30, 30, 7, 23, 18, 18, 30, 30, 30, 30, 30, 30, 23, 30, 30, 30, 30], "H2": [28, 28, 28, 11, 28, 28, 28, 28, 28, 28, 11, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28], "H3": [30, 30, 30, 30, 30, 30, 30, 8, 8, 8, 8, 30, 25]}, "ASTRA MOTOR MANOKWARI": {"H1": [29, 29, 29, 29, 29, 29, 29, 5, 29, 9, 9, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29], "H2": [28, 28, 28, 0, 28, 28, 28, 28, 28, 28, 1, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28], "H3": [29, 29, 29, 29, 29, 29, 29, 3, 3, 3, 3, 29, 29]}, "ASTRA MOTOR SORONG 1": {"H1": [29, 29, 29, 29, 29, 29, 29, 1, 28, 17, 17, 29, 29, 29, 29, 29, 29, 28, 29, 29, 29, 29], "H2": [29, 29, 29, 5, 29, 29, 29, 29, 29, 29, 3, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29], "H3": [28, 28, 28, 28, 28, 28, 28, 2, 2, 2, 2, 28, 28]}, "ASTRA MOTOR TIMIKA": {"H1": [7, 7, 7, 7, 7, 7, 7, 2, 7, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7], "H2": [9, 9, 9, 6, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], "H3": [3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 3, 3]}, "ASTRA MOTOR NABIRE": {"H1": [13, 13, 13, 13, 13, 13, 13, 4, 13, 5, 5, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13], "H2": [15, 15, 15, 1, 15, 15, 15, 15, 15, 15, 3, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15], "H3": [7, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 7, 7]}, "ASTRA MOTOR MERAUKE": {"H1": [28, 28, 28, 28, 28, 28, 28, 5, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28], "H2": [31, 31, 31, 30, 31, 31, 31, 31, 31, 31, 30, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31], "H3": [30, 30, 30, 30, 30, 30, 30, 0, 0, 0, 0, 30, 30]}, "ASTRA MOTOR SORONG 2": {"H1": [29, 29, 29, 29, 29, 29, 29, 4, 29, 25, 25, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29], "H2": [29, 29, 29, 3, 29, 29, 29, 29, 29, 29, 5, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29], "H3": [27, 27, 27, 27, 27, 27, 27, 4, 4, 4, 4, 27, 27]}, "AHASS Turbo Motor": {"H2": [13, 13, 13, 0, 13, 13, 13, 13, 13, 13, 0, 13, 13, 0, 13, 13, 13, 13, 13, 13, 13], "H3": [11, 11, 11, 11, 11, 11, 11, 2, 2, 2, 2, 11, 11]}, "AHASS Harkat Abadi Motor": {"H2": [5, 5, 5, 3, 5, 5, 5, 5, 5, 5, 4, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5], "H3": [4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4, 4]}, "AHASS Metro Motor": {"H2": [16, 16, 16, 15, 16, 16, 16, 16, 16, 16, 0, 16, 16, 0, 16, 16, 16, 16, 16, 16, 16], "H3": [13, 13, 13, 13, 13, 13, 13, 0, 0, 0, 0, 13, 13]}, "AHASS Cenderawasih Motor 3": {"H2": [9, 9, 9, 2, 9, 9, 9, 9, 9, 9, 2, 9, 9, 0, 9, 9, 9, 9, 9, 9, 9], "H3": [7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 7, 3]}}, "labels": {"H1": ["Ease of finding and contacting", "Parking Assistance", "Cleanliness and neatness", "Product information clearly displayed", "Salesperson explained features and suggested appropriate product", "Explanation of payment scheme", "Explanation of Sales People about accessories and apparel", "Sales people explanation about community activities", "Explanation about location AHASS, service schedule, sales warranty & facilities", "Ease of providing required documents and payment process", "Similarity of the price offered by the price list", "Responsiveness of cashier officer", "Timeliness of delivery as promised", "Motorcycle delivered in the same type and color", "Motorcycle delivered clean and Complete", "Motorcycle delivered with quality promised", "Delivery man's ability to explain the manual books", "Deliveryman give appreciation to Customer", "Completeness of vehicle registration (STNK)", "Ease of taking STNK", "Hospitality & courtesy of dealership officers", "Appearance of dealership officers"], "H2": ["Ease of finding AHASS", "Parking Assistance", "Convenience of operating hours", "Ease of getting much information by phone", "Front desk officer appearance", "Hospitality of front desk officer", "Cleanliness and neatness of the AHASS", "Assortment of services provided", "Customer get reminder via text/phone about service schedule", "Waiting room facilities", "Customer get Booking Service reminder as appointed", "AHASS attendant's ability to explain the problems", "Accuracy of the problems analysis by AHASS attendant", "Explanation of Sales People about accessories", "Waiting time from coming to the AHASS till served", "Queuing system", "Waiting time from registered till get into the PIT service", "Waiting time from the PIT service till done", "The quality of the work performed by mechanic", "Fairness of charges by the quality of the work", "Explanation of actual work, detailed charges & warranty"], "H3": ["Ease of finding parts shop", "Convenience of operating hours", "Responsiveness of salesperson", "Hospitality and courtesy of salesperson", "Appearance of salesperson", "Product knowledge of salesperson", "Availability of spare parts", "Estimation of arrival time of part", "Ease of ways and requirements to order the spare parts", "Information about the progress of ordered spare parts", "Accuracy of estimated waiting time vs arrival of spare parts", "Quality of spare parts", "Similarity of the parts price with the price list"]}, "targets": {"H1": [0.945, 0.936, 0.937, 0.931, 0.941, 0.937, 0.923, 0.904, 0.935, 0.938, 0.929, 0.936, 0.937, 0.943, 0.937, 0.939, 0.931, 0.926, 0.927, 0.928, 0.94, 0.935], "H2": [0.94, 0.936, 0.93, 0.951, 0.936, 0.938, 0.938, 0.938, 0.926, 0.931, 0.952, 0.937, 0.938, 0.928, 0.93, 0.931, 0.925, 0.929, 0.936, 0.928, 0.934], "H3": [0.948, 0.939, 0.94, 0.942, 0.938, 0.941, 0.939, 0.897, 0.923, 0.923, 0.919, 0.942, 0.942]}, "z11": {"H1": [0.947, 0.937, 0.938, 0.933, 0.942, 0.94, 0.926, 0.909, 0.937, 0.94, 0.93, 0.94, 0.94, 0.948, 0.941, 0.942, 0.936, 0.931, 0.929, 0.932, 0.943, 0.939], "H2": [0.94, 0.937, 0.931, 0.952, 0.935, 0.939, 0.939, 0.939, 0.928, 0.93, 0.953, 0.939, 0.938, 0.929, 0.933, 0.931, 0.931, 0.933, 0.936, 0.927, 0.934], "H3": [0.951, 0.941, 0.945, 0.945, 0.94, 0.945, 0.944, 0.92, 0.933, 0.933, 0.933, 0.948, 0.947]}};
 
-const WING_DEALERS = []; // tidak ada penanda WING pada data mentah ini
+const WING_DEALERS = ["ASTRA MOTOR TANAH HITAM", "ASTRA MOTOR SORONG 1"]; // klasifikasi resmi dari user
 const AREA_LIST = ["Jayapura","Sorong","Manokwari","Merauke","Timika","Nabire"];
 const ALL_DEALERS = Object.keys(RAW.dealers);
 const COLORS = { red:"#C8102E", navy:"#0B2545", navy3:"#1B3A6B", gold:"#B8860B", green:"#1E8E5A", grey:"#5B6472" };
@@ -1025,10 +1038,11 @@ const ISLAND_LABELS = [
 
 function isWing(d){ return WING_DEALERS.includes(d); }
 function isAhass(d){ return d.toUpperCase().startsWith('AHASS'); }
-function isReguler(d){ return !isAhass(d); }
+function isReguler(d){ return !isAhass(d) && !isWing(d); }
 function matchesTipe(d, tipe){
   if(tipe==='ALL') return true;
   if(tipe==='AHASS') return isAhass(d);
+  if(tipe==='WING') return isWing(d);
   if(tipe==='REGULER') return isReguler(d);
   return true;
 }
@@ -1290,14 +1304,93 @@ function renderOverview(f){
   ].map(t=>`<li>${t}</li>`).join('');
 
   renderOvFocusItems(f);
+  renderOvFocusPerDealer(f);
+  renderOvFocusPerArea(f);
   renderOvPerDealerTable(f);
   renderOvPerAreaTable(f);
+  renderOvPerTipeTable(f);
 }
 
 function ovCell(v, t){
   if(v==null || t==null) return '<td>-</td>';
   const ok = v >= t;
   return `<td><b style="color:${ok?'#1E8E5A':'#C8102E'};">${pct(v)}</b></td>`;
+}
+
+function getFocusBonusList(){
+  const list = [];
+  ['H1','H2','H3'].forEach(layer=>{
+    const key = layer.toLowerCase();
+    const bizAttrs = BIZ_UPDATE_DATA[key].attrs;
+    (FOCUS_BONUS_2026[key]||[]).forEach(name=>{
+      const idx = bizAttrs.indexOf(name);
+      if(idx !== -1) list.push({ layer, idx, name, short: `[${layer}] ` + (name.length>30 ? name.slice(0,28)+'…' : name) });
+    });
+  });
+  return list;
+}
+
+function renderOvFocusPerDealer(f){
+  const tbl = document.getElementById('ovFocusPerDealerTable');
+  const dealerSet = getDealerSet(f.wilayah, 'ALL', f.tipe);
+  const focusList = getFocusBonusList();
+  const header = `<tr><th>Dealer</th>${focusList.map(fi=>`<th>${fi.short}</th>`).join('')}<th>Total Tercapai</th></tr>`;
+  const rows = dealerSet.map(d=>{
+    let count = 0, applicable = 0;
+    const cells = focusList.map(fi=>{
+      const arr = RAW.dealers[d][fi.layer];
+      const val = arr ? arr[fi.idx] : null;
+      const tgt = RAW.targets[fi.layer][fi.idx];
+      if(val == null) return '<td>-</td>';
+      applicable++;
+      const ok = val >= tgt;
+      if(ok) count++;
+      return `<td><b style="color:${ok?'#1E8E5A':'#C8102E'};">${pct(val)}</b></td>`;
+    }).join('');
+    return `<tr><td>${d}</td>${cells}<td><b>${count}/${applicable}</b></td></tr>`;
+  });
+  tbl.innerHTML = header + rows.join('');
+}
+
+function renderOvFocusPerArea(f){
+  const tbl = document.getElementById('ovFocusPerAreaTable');
+  const focusList = getFocusBonusList();
+  const header = `<tr><th>Wilayah</th>${focusList.map(fi=>`<th>${fi.short}</th>`).join('')}<th>Total Tercapai</th></tr>`;
+  const rows = AREA_LIST.map(w=>{
+    const dealerSet = getDealerSet(w, 'ALL', f.tipe);
+    let count = 0, applicable = 0;
+    const cells = focusList.map(fi=>{
+      const vals = getAttrsForScope(fi.layer, dealerSet);
+      const val = vals[fi.idx];
+      const tgt = RAW.targets[fi.layer][fi.idx];
+      if(val == null) return '<td>-</td>';
+      applicable++;
+      const ok = val >= tgt;
+      if(ok) count++;
+      return `<td><b style="color:${ok?'#1E8E5A':'#C8102E'};">${pct(val)}</b></td>`;
+    }).join('');
+    return `<tr><td>${w}</td>${cells}<td><b>${count}/${applicable}</b></td></tr>`;
+  });
+  tbl.innerHTML = header + rows.join('');
+}
+
+function renderOvPerTipeTable(f){
+  const tbl = document.getElementById('ovPerTipeTable');
+  const tipes = [
+    {key:'ALL', label:'Semua Tipe'},
+    {key:'REGULER', label:'Reguler (Dealer H123)'},
+    {key:'WING', label:'Wing'},
+    {key:'AHASS', label:'AHASS H23'},
+  ];
+  const tgt1=getTargetMean('H1'), tgt2=getTargetMean('H2'), tgt3=getTargetMean('H3'), tgt123=targetH123();
+  tbl.innerHTML = `<tr><th>Tipe / Channel</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
+    tipes.map(t=>{
+      const h1 = overallSimpleLayer('H1', f.wilayah, 'ALL', t.key);
+      const h2 = overallSimpleLayer('H2', f.wilayah, 'ALL', t.key);
+      const h3 = overallSimpleLayer('H3', f.wilayah, 'ALL', t.key);
+      const h123 = overallH123(f.wilayah, 'ALL', t.key);
+      return `<tr><td>${t.label}</td>${ovCell(h1,tgt1)}${ovCell(h2,tgt2)}${ovCell(h3,tgt3)}${ovCell(h123,tgt123)}</tr>`;
+    }).join('');
 }
 
 function renderOvFocusItems(f){
