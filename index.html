@@ -565,7 +565,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
     <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerAreaTable"></table></div></div>
 
     <div class="section-title"><span class="bar"></span><h2>Result CSL per Tipe / Channel</h2></div>
-    <div class="methodnote"><b>Klasifikasi Tipe/Channel:</b> Wing = ASTRA MOTOR TANAH HITAM &amp; ASTRA MOTOR SORONG 1 · Reguler (H123) = seluruh dealer H123 selain kedua dealer Wing tsb · AHASS H23 = dealer dengan nama diawali "AHASS".</div>
+    <div class="methodnote"><b>Klasifikasi Tipe/Channel:</b> Wing = ASTRA MOTOR TANAH HITAM &amp; ASTRA MOTOR SORONG 1 · Reguler (H123) = seluruh dealer H123 selain kedua dealer Wing tsb · AHASS H23 = dealer dengan nama diawali "AHASS". <b>Target per tipe berbeda-beda</b> (bukan target rata-rata umum) — Wing: H1 94,4%/H2 94,7%/H3 94,1%/H123 94,4% · Reguler: H1 93,9%/H2 95,2%/H3 95,5%/H123 94,9% · AHASS H23: H2 95,1%/H3 95,2%/H123 95,2%.</div>
     <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerTipeTable"></table></div></div>
   </section>
 
@@ -1482,6 +1482,13 @@ function renderOvFocusPerArea(f){
   tbl.innerHTML = header + rows.join('');
 }
 
+// Target resmi per Tipe/Channel (berbeda dari target rata-rata umum) — diberikan langsung oleh user.
+const TIPE_TARGETS = {
+  WING:    { H1: 0.944, H2: 0.947, H3: 0.941, H123: 0.944 },
+  REGULER: { H1: 0.939, H2: 0.952, H3: 0.955, H123: 0.949 },
+  AHASS:   { H2: 0.951, H3: 0.952, H123: 0.952 }, // H1 tidak berlaku untuk AHASS (tidak jual motor)
+};
+
 function renderOvPerTipeTable(f){
   const tbl = document.getElementById('ovPerTipeTable');
   const tipes = [
@@ -1490,14 +1497,16 @@ function renderOvPerTipeTable(f){
     {key:'WING', label:'Wing'},
     {key:'AHASS', label:'AHASS H23'},
   ];
-  const tgt1=getTargetMean('H1'), tgt2=getTargetMean('H2'), tgt3=getTargetMean('H3'), tgt123=targetH123();
+  const tgtDefault = { H1:getTargetMean('H1'), H2:getTargetMean('H2'), H3:getTargetMean('H3'), H123:targetH123() };
   tbl.innerHTML = `<tr><th>Tipe / Channel</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
     tipes.map(t=>{
+      const tgt = TIPE_TARGETS[t.key] || tgtDefault;
       const h1 = overallSimpleLayer('H1', f.wilayah, 'ALL', t.key);
       const h2 = overallSimpleLayer('H2', f.wilayah, 'ALL', t.key);
       const h3 = overallSimpleLayer('H3', f.wilayah, 'ALL', t.key);
       const h123 = overallH123(f.wilayah, 'ALL', t.key);
-      return `<tr><td>${t.label}</td>${ovCell(h1,tgt1)}${ovCell(h2,tgt2)}${ovCell(h3,tgt3)}${ovCell(h123,tgt123)}</tr>`;
+      const h1cell = (t.key==='AHASS') ? '<td>-</td>' : ovCell(h1, tgt.H1!=null?tgt.H1:tgtDefault.H1);
+      return `<tr><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
     }).join('');
 }
 
