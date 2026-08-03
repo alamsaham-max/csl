@@ -2888,6 +2888,14 @@ function gradeCellVsTarget(actual, target){
   return `<td style="background:${ok?'#E9F7EF':'#FDEBEE'};">${gradeTxt(actual)}</td>`;
 }
 
+function normName(s){ return (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,''); }
+const NOS_DATA_BY_NAME = {};
+NOS_DATA.forEach(d => { NOS_DATA_BY_NAME[normName(d.name)] = d; });
+function get2026Actual(historyName){
+  const match = NOS_DATA_BY_NAME[normName(historyName)];
+  return match ? match.finalResult : null;
+}
+
 function renderNosHistory(){
   // Chart: distribusi grade per tahun (2023/2024/2025 aktual)
   const years = [{key:'a2023',label:'2023'},{key:'a2024',label:'2024'},{key:'a2025',label:'2025'}];
@@ -2907,20 +2915,25 @@ function renderNosHistory(){
       scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{stepSize:2}} } }
   });
 
-  // Tabel histori per dealer
+  // Tabel histori per dealer — hanya angka aktual per tahun + Target 2026 (tahun berjalan)
   const tbl = document.getElementById('nosHistoryTable');
-  tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>2023</th><th>T 2024</th><th>2024</th><th>T 2025</th><th>2025</th><th>T 2026</th></tr>` +
-    NOS_HISTORY.map(d=>`
+  tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>2023</th><th>2024</th><th>2025</th><th>2026 (Aktual)</th><th>Target 2026</th></tr>` +
+    NOS_HISTORY.map(d=>{
+      const actual2026 = get2026Actual(d.name);
+      const cell2026 = actual2026
+        ? gradeCellVsTarget(actual2026, d.t2026)
+        : `<td style="color:var(--grey); font-style:italic;">Belum Audit</td>`;
+      return `
       <tr>
         <td>${d.name}</td>
         <td>${d.channel}</td>
         <td>${gradeTxt(d.a2023)}</td>
-        <td>${gradeTxt(d.t2024)}</td>
-        ${gradeCellVsTarget(d.a2024, d.t2024)}
-        <td>${gradeTxt(d.t2025)}</td>
-        ${gradeCellVsTarget(d.a2025, d.t2025)}
+        <td>${gradeTxt(d.a2024)}</td>
+        <td>${gradeTxt(d.a2025)}</td>
+        ${cell2026}
         <td>${gradeTxt(d.t2026)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 }
 
 function nosGradeBadge(grade){
@@ -2977,18 +2990,32 @@ function renderNosTab(){
       scales:{ x:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
   });
 
-  // Tabel detail per dealer
+  // Tabel detail per dealer — termasuk breakdown Premises/Process/People
+  // (dirata-ratakan dari H1 & H23 kalau dealer punya keduanya, atau H23 saja untuk AHASS mandiri)
+  function nosAspectAvg(d, aspect){
+    const vals = [];
+    if(d.h1) vals.push(d.h1[aspect].num);
+    if(d.h23) vals.push(d.h23[aspect].num);
+    if(!vals.length) return null;
+    return vals.reduce((a,b)=>a+b,0)/vals.length;
+  }
   const tbl = document.getElementById('nosDetailTable');
-  tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>Result %</th><th>Result Grade</th><th>Mandatory %</th><th>Final Grade</th></tr>` +
-    [...NOS_DATA].sort((a,b)=>b.resultPct-a.resultPct).map(d=>`
+  tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>Premises</th><th>Process</th><th>People</th><th>Result %</th><th>Result Grade</th><th>Mandatory %</th><th>Final Grade</th></tr>` +
+    [...NOS_DATA].sort((a,b)=>b.resultPct-a.resultPct).map(d=>{
+      const prem = nosAspectAvg(d,'premises'), proc = nosAspectAvg(d,'process'), ppl = nosAspectAvg(d,'people');
+      return `
       <tr>
         <td>${d.name}</td>
         <td>${d.channel}</td>
+        <td>${prem!=null?(prem*100).toFixed(1)+'%':'-'}</td>
+        <td>${proc!=null?(proc*100).toFixed(1)+'%':'-'}</td>
+        <td>${ppl!=null?(ppl*100).toFixed(1)+'%':'-'}</td>
         <td><b>${(d.resultPct*100).toFixed(1)}%</b></td>
         <td>${nosGradeBadge(d.resultGrade)}</td>
         <td>${(d.mandatoryPct*100).toFixed(0)}%</td>
         <td>${nosGradeBadge(d.finalResult)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
   // Breakdown Premises/Process/People — H1 (hanya dealer yang punya data h1)
   const h1Dealers = NOS_DATA.filter(d=>d.h1);
