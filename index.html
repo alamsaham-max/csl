@@ -889,6 +889,7 @@ const ALLOWED_EMAILS = [
   'irfan.dw30@gmail.com',
   'jonathanmalvin23@gmail.com',
   'hc3papua@gmail.com',
+  'gamasitumeang@gmail.com',
   'irjayadi90@gmail.com',
   // tambahkan email lain di sini, satu per baris, diakhiri koma
 ];
@@ -1539,8 +1540,10 @@ const dataLabelsPlugin = {
       const nDatasets = chart.data.datasets.filter(d=>true).length;
 
       meta.data.forEach((el, i) => {
-        const raw = dataset.data[i];
+        let raw = dataset.data[i];
         if(raw == null) return;
+        if(typeof raw === 'string' && raw.trim() !== '' && !isNaN(Number(raw))) raw = Number(raw);
+        if(typeof raw !== 'number' || isNaN(raw)) return;
         const text = fmt(raw);
         if(!text) return;
         const pos = el.tooltipPosition ? el.tooltipPosition() : {x: el.x, y: el.y};
@@ -2267,6 +2270,13 @@ const BIZ_UPDATE_DATA = {
   },
 };
 
+// ---- Item Fokus Bonus 2026 (daftar resmi, dikurasi manual — bukan hasil hitung otomatis) ----
+const FOCUS_BONUS_2026 = {
+  h1: ["Salesperson explained features and suggested appropriate product", "Ease of taking STNK"],
+  h2: ["Cleanliness and neatness of the AHASS", "The length of waiting time from coming to the AHASS till to be served"],
+  h3: ["Estimation of arrival time of part", "Information about the progress of ordered spare parts", "The accuracy of the estimated waiting time with the arrival of spare parts"],
+};
+
 function bizBoxHtml(attr, valText, achieved, accentColor){
   const bg = achieved ? '#E9F7EF' : '#FDEBEE';
   const border = achieved ? '#8FD1A8' : '#F0AEB8';
@@ -2289,15 +2299,21 @@ function renderBizPanel(key){
   const high3 = [...rows].sort((a,b)=>b.ach-a.ach).slice(0,3);
   const low3 = [...rows].sort((a,b)=>a.ach-b.ach).slice(0,3);
   const belowTarget = rows.filter(r=>r.gap < -0.001).sort((a,b)=>a.gap-b.gap);
-  const margin3 = [...rows].sort((a,b)=>a.gap-b.gap).slice(0,3); // smallest positive margin = paling rawan
+  const margin3 = [...rows].sort((a,b)=>a.gap-b.gap).slice(0,3); // smallest positive margin = paling rawan (narasi saja)
   const decreaseYoy = rows.filter(r=>r.yoy < -0.001).sort((a,b)=>a.yoy-b.yoy);
   const growth3 = [...rows].sort((a,b)=>b.yoy-a.yoy).slice(0,3);
+
+  // Item Fokus Bonus 2026 — daftar resmi dikurasi manual, bukan hasil hitung otomatis
+  const focusBonusNames = FOCUS_BONUS_2026[key] || [];
+  const focusBonusRows = focusBonusNames.map(name => rows.find(r => r.attr === name)).filter(Boolean);
 
   const chartId = `bizChart_${key}`;
 
   const highHtml = high3.map(r=>bizBoxHtml(r.attr, r.ach.toFixed(1)+'%', r.gap>=0, d.color)).join('');
   const lowHtml = low3.map(r=>bizBoxHtml(r.attr, r.ach.toFixed(1)+'%', r.gap>=0, d.color)).join('');
-  const focusHtml = margin3.map(r=>bizBoxHtml(r.attr, r.ach.toFixed(1)+'%', r.gap>=0, d.color)).join('');
+  const focusHtml = focusBonusRows.length
+    ? focusBonusRows.map(r=>bizBoxHtml(r.attr, r.ach.toFixed(1)+'%', r.gap>=0, d.color)).join('')
+    : bizEmptyBox('Tidak ada item fokus bonus untuk layer ini');
 
   const growthHtml = growth3.map(r=>bizBoxHtml(r.attr, (r.yoy>=0?'+':'')+r.yoy.toFixed(1)+'% vs LY', r.yoy>=0, d.color)).join('');
   const decreaseHtml = decreaseYoy.length
@@ -2320,11 +2336,13 @@ function renderBizPanel(key){
     decreaseYoy.length
       ? `<b>${decreaseYoy.length} atribut menurun</b> dibanding LY, terbesar pada "${decreaseYoy[0].attr}" (${decreaseYoy[0].yoy.toFixed(1)}%).`
       : `<b>Tidak ada satu pun atribut yang menurun</b> dibanding FY2025 — seluruh ${rows.length} atribut tumbuh atau stabil.`,
-    `Pertumbuhan YoY tertinggi: <b>${growth3.map(r=>r.attr+' ('+ (r.yoy>=0?'+':'') +r.yoy.toFixed(1)+'%)').join(', ')}</b>.`,
     `Item paling rawan (selisih tertipis dari target, berisiko turun di bawah target bila performa sedikit menurun): <b>${margin3.map(r=>r.attr).join(', ')}</b>.`,
   ];
 
   const focusDevBullets = [
+    focusBonusRows.length
+      ? `<b>Item Fokus Bonus 2026</b> untuk layer ${d.label}: <b>${focusBonusRows.map(r=>r.attr).join(', ')}</b> — pantau khusus karena terkait skema insentif.`
+      : `Tidak ada Item Fokus Bonus 2026 yang ditetapkan untuk layer ${d.label}.`,
     `Pantau ketat item dengan selisih tertipis dari target (<b>${margin3[0].attr}</b>, gap hanya ${margin3[0].gap.toFixed(1)}%) agar tidak tergelincir di bawah target pada periode berikutnya.`,
     `Perkuat pelatihan/SOP pada item dengan skor absolut terendah (<b>${low3[0].attr}</b>) meski saat ini masih di atas target — ruang perbaikan masih ada dibanding item lain.`,
     belowTarget.length
@@ -2355,7 +2373,7 @@ function renderBizPanel(key){
         <span class="bu-rowlabel">TOP 3 DECREASE (VS LY FY2025)</span>
         <div class="bu-boxrow">${decreaseHtml}</div>
 
-        <span class="bu-rowlabel">FOCUS ITEM</span>
+        <span class="bu-rowlabel">FOCUS ITEM (BONUS 2026)</span>
         <div class="bu-boxrow">${focusHtml}</div>
 
         <span class="bu-rowlabel">ITEM BELUM CAPAI TARGET</span>
@@ -2375,10 +2393,36 @@ function renderBizPanel(key){
   </div>`;
 }
 
+function renderFocusBonusChartSection(){
+  const combined = [];
+  ['h1','h2','h3'].forEach(key=>{
+    const d = BIZ_UPDATE_DATA[key];
+    (FOCUS_BONUS_2026[key]||[]).forEach(name=>{
+      const i = d.attrs.indexOf(name);
+      if(i === -1) return;
+      combined.push({
+        label: `[${key.toUpperCase()}] ${name}`,
+        target: d.target[i], ach: d.ach[i], color: d.color,
+        achieved: d.ach[i] >= d.target[i],
+      });
+    });
+  });
+
+  return `
+  <div class="section-title" style="margin-top:6px;"><span class="bar"></span><h2>🎯 Item Fokus Bonus 2026</h2><span class="tag">Daftar resmi — dikurasi manual, terkait skema insentif</span></div>
+  <div class="methodnote">7 atribut prioritas (2 di H1, 2 di H2, 3 di H3) yang ditetapkan sebagai item fokus untuk perhitungan bonus 2026 — bukan hasil kalkulasi otomatis dashboard, melainkan daftar resmi dari manajemen.</div>
+  <div class="card">
+    <div class="bu-chartwrap" style="height:300px;"><canvas id="focusBonusChart"></canvas></div>
+    <div class="bu-boxrow" style="grid-template-columns:repeat(4,1fr); margin-top:16px;">
+      ${combined.map(r=>bizBoxHtml(r.label, r.ach.toFixed(1)+'%', r.achieved, r.color)).join('')}
+    </div>
+  </div>`;
+}
+
 function renderBizUpdateTab(){
   const container = document.getElementById('bizupdateContainer');
   if(container.dataset.rendered === '1') return; // static data, render once
-  container.innerHTML = ['h1','h2','h3'].map(renderBizPanel).join('');
+  container.innerHTML = ['h1','h2','h3'].map(renderBizPanel).join('') + renderFocusBonusChartSection();
   container.dataset.rendered = '1';
 
   ['h1','h2','h3'].forEach(key=>{
@@ -2404,6 +2448,36 @@ function renderBizUpdateTab(){
         }
       }
     });
+  });
+
+  // ---- chart gabungan Item Fokus Bonus 2026 ----
+  const combined = [];
+  ['h1','h2','h3'].forEach(key=>{
+    const d = BIZ_UPDATE_DATA[key];
+    (FOCUS_BONUS_2026[key]||[]).forEach(name=>{
+      const i = d.attrs.indexOf(name);
+      if(i === -1) return;
+      combined.push({ label: `[${key.toUpperCase()}] ${name}`, target: d.target[i], ach: d.ach[i], color: d.color });
+    });
+  });
+  destroyChart('focusBonusChart');
+  charts.focusBonusChart = new Chart(document.getElementById('focusBonusChart'), {
+    type:'bar',
+    data:{
+      labels: combined.map(r=> r.label.length>50 ? r.label.slice(0,48)+'…' : r.label),
+      datasets:[
+        { label:'Target', data: combined.map(r=>r.target), backgroundColor:'#C9D3E4', borderRadius:4, maxBarThickness:14 },
+        { label:'Ach.', data: combined.map(r=>r.ach), backgroundColor: combined.map(r=>r.color), borderRadius:4, maxBarThickness:14 },
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
+      scales:{
+        x:{ min:88, max:98, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'} },
+        y:{ grid:{display:false}, ticks:{font:{size:10}} }
+      }
+    }
   });
 }
 
