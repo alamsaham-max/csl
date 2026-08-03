@@ -125,7 +125,7 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; }
 .filterbar{ background:var(--card); border-bottom:1px solid var(--line); padding:14px 28px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
 
 /* ---- Business Update / CSL Mapping Fokus Development ---- */
-.bu-panel{ border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:28px; background:var(--card); }
+.bu-panel{ border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:28px; background:var(--card); position:relative; }
 .bu-header{ padding:14px 22px; font-size:16px; font-weight:900; letter-spacing:0.5px; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
 .bu-header .bu-idx{ font-size:12.5px; font-weight:700; background:rgba(255,255,255,0.18); padding:5px 12px; border-radius:20px; }
 .bu-body{ padding:18px 22px 22px; display:grid; grid-template-columns:1.5fr 1fr; gap:20px; }
@@ -172,7 +172,22 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; }
 .grid.thirds{ grid-template-columns:1fr 1fr 1fr; }
 @media(max-width:1000px){ .grid, .grid.thirds{ grid-template-columns:1fr; } }
 
-.card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:0 3px 12px rgba(20,30,60,0.06); }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:0 3px 12px rgba(20,30,60,0.06); position:relative; }
+.expand-btn{
+  position:absolute; top:14px; right:14px; width:28px; height:28px; border-radius:7px;
+  background:#fff; border:1.3px solid var(--line); color:var(--grey); cursor:pointer;
+  font-size:13px; display:flex; align-items:center; justify-content:center; z-index:6;
+  transition:all .15s;
+}
+.expand-btn:hover{ background:var(--navy); color:#fff; border-color:var(--navy); }
+#focusModal{ position:fixed; inset:0; z-index:99997; background:rgba(11,37,69,0.78); display:none; align-items:center; justify-content:center; padding:26px; }
+#focusModal.show{ display:flex; }
+.focus-modal-box{ background:#fff; border-radius:16px; padding:22px 26px; width:96%; height:92%; max-width:1500px; display:flex; flex-direction:column; position:relative; box-shadow:0 24px 70px rgba(0,0,0,0.4); }
+.focus-modal-title{ font-weight:800; font-size:15.5px; color:var(--navy); margin:0 34px 14px 0; }
+.focus-modal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:22px; cursor:pointer; color:var(--grey); line-height:1; }
+.focus-modal-close:hover{ color:var(--red-dark); }
+.focus-modal-body{ flex:1; overflow:auto; min-height:0; }
+.focus-modal-body table.dt{ font-size:13px; }
 .card h3{ font-size:13.5px; margin:0 0 3px; font-weight:800; color:var(--navy); }
 .card .cardsub{ font-size:11px; color:var(--grey); margin-bottom:10px; }
 .chart-wrap{ position:relative; height:290px; }
@@ -266,9 +281,24 @@ table.dt tr:hover td{ background:#F8F9FC; }
     <p>Astra Motor Papua — akses terbatas. Silakan masuk dengan akun Google yang sudah diberi izin.</p>
     <div class="gsi-wrap" id="gsiButtonContainer"></div>
     <div class="login-denied" id="loginDenied">
-      ⛔ Akun <b id="loginDeniedEmail"></b> belum diberi akses ke dashboard ini. Hubungi admin untuk didaftarkan.
+      ⛔ Akun <b id="loginDeniedEmail"></b> belum diberi akses ke dashboard ini.
+      <div id="requestAccessArea" style="margin-top:10px;">
+        <button id="requestAccessBtn" style="width:100%; padding:9px 14px; border:1.5px solid var(--red-dark); background:#fff; color:var(--red-dark); border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;">🔔 Minta Akses</button>
+      </div>
+      <div id="requestPendingBox" style="display:none; margin-top:10px; color:#8A6D00; background:#FFF7E0; border:1px solid #F3DE9A; border-radius:8px; padding:10px 12px;">
+        ⏳ Permintaan sudah terkirim, menunggu persetujuan admin. Halaman ini akan otomatis terbuka begitu disetujui — biarkan tab ini tetap terbuka, atau coba klik "Sign in" lagi nanti.
+      </div>
     </div>
     <div class="login-footnote">Login diverifikasi lewat Google Identity Services.</div>
+  </div>
+</div>
+
+<!-- ===== FOCUS MODE / EXPAND MODAL ===== -->
+<div id="focusModal">
+  <div class="focus-modal-box">
+    <button class="focus-modal-close" id="focusModalClose">✕</button>
+    <div class="focus-modal-title" id="focusModalTitle"></div>
+    <div class="focus-modal-body" id="focusModalBody"></div>
   </div>
 </div>
 
@@ -897,6 +927,13 @@ table.dt tr:hover td{ background:#F8F9FC; }
 // ============================================================
 // LOGIN GATE — Google Sign-In (Google Identity Services)
 // Hanya email yang ada di ALLOWED_EMAILS yang bisa masuk ke dashboard.
+// Kalau email TIDAK ada di daftar statis ini, dashboard mengecek LIVE
+// ke Apps Script (sheet "AccessControl") — kalau admin sudah approve
+// di sana, akses langsung diberikan tanpa perlu update kode/redeploy.
+// Kalau belum pernah request, tersedia tombol "Minta Akses" yang
+// otomatis menambah baris "pending" di sheet AccessControl; dashboard
+// lalu polling tiap 20 detik menunggu admin mengubahnya jadi "approved".
+//
 // Catatan jujur: karena file ini statis (tanpa server), verifikasi JWT
 // dilakukan di sisi browser (decode payload saja, tanpa verifikasi
 // signature kriptografis). Ini cukup untuk mencegah akses tidak sengaja/
@@ -909,10 +946,30 @@ const ALLOWED_EMAILS = [
   'irfan.dw30@gmail.com',
   'jonathanmalvin23@gmail.com',
   'hc3papua@gmail.com',
-  'gamasitumeang@gmail.com',
   'alviantanu@gmail.com',
+  'irjayadi90@gmail.com',
+  'gamasitumeang@gmail.com',
   // tambahkan email lain di sini, satu per baris, diakhiri koma
 ];
+const ACCESS_CONTROL_BASE_URL = 'https://script.google.com/macros/s/AKfycbz9XtSnDtTZbK-rkMVwNDTmnTw4tA3E1K1UJ_8u6ThxW_f22MtEnVYtAFKiKlFU1mfm/exec';
+
+let currentLoginProfile = null;
+let accessPollTimer = null;
+let __accessJsonpCounter = 0;
+
+function callAppsScriptAction(params){
+  return new Promise((resolve, reject)=>{
+    const cbName = '__csl_access_jsonp_' + (__accessJsonpCounter++) + '_' + Date.now();
+    const script = document.createElement('script');
+    const timeoutId = setTimeout(()=>{ cleanup(); reject(new Error('Timeout — Apps Script tidak merespons.')); }, 10000);
+    function cleanup(){ clearTimeout(timeoutId); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data){ cleanup(); resolve(data); };
+    const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k])).join('&');
+    script.src = ACCESS_CONTROL_BASE_URL + '?' + qs + '&callback=' + cbName;
+    script.onerror = ()=>{ cleanup(); reject(new Error('Gagal memuat script (jaringan/URL bermasalah).')); };
+    document.head.appendChild(script);
+  });
+}
 
 function decodeJwtPayload(token){
   try{
@@ -926,28 +983,82 @@ function decodeJwtPayload(token){
 
 function grantAccess(profile){
   try{ sessionStorage.setItem('csl_auth_user', JSON.stringify(profile)); }catch(e){}
+  if(accessPollTimer){ clearInterval(accessPollTimer); accessPollTimer = null; }
   document.getElementById('loginGate').style.display = 'none';
   document.querySelector('.app-shell').classList.add('authorized');
   const uEl = document.querySelector('.user-chip .uname');
   if(uEl) uEl.textContent = profile.name || profile.email;
 }
 
-function handleCredentialResponse(response){
+function startAccessPolling(profile){
+  if(accessPollTimer) return;
+  accessPollTimer = setInterval(async ()=>{
+    try{
+      const res = await callAppsScriptAction({ action:'checkAccess', email: profile.email });
+      if(res && res.status === 'approved'){
+        document.getElementById('loginDenied').classList.remove('show');
+        grantAccess(profile);
+      }
+    }catch(e){ /* diamkan, coba lagi di interval berikutnya */ }
+  }, 20000);
+}
+
+async function handleCredentialResponse(response){
   const payload = decodeJwtPayload(response.credential);
   const deniedBox = document.getElementById('loginDenied');
+  const reqArea = document.getElementById('requestAccessArea');
+  const pendingBox = document.getElementById('requestPendingBox');
+  reqArea.style.display = 'block';
+  pendingBox.style.display = 'none';
+
   if(!payload || !payload.email){
     deniedBox.classList.add('show');
     document.getElementById('loginDeniedEmail').textContent = '(gagal membaca akun)';
     return;
   }
-  if(ALLOWED_EMAILS.includes(payload.email.toLowerCase())){
+  const email = payload.email.toLowerCase();
+  const profile = { email: payload.email, name: payload.name, picture: payload.picture };
+  currentLoginProfile = profile;
+
+  if(ALLOWED_EMAILS.includes(email)){
     deniedBox.classList.remove('show');
-    grantAccess({ email: payload.email, name: payload.name, picture: payload.picture });
-  } else {
-    deniedBox.classList.add('show');
-    document.getElementById('loginDeniedEmail').textContent = payload.email;
+    grantAccess(profile);
+    return;
   }
+
+  // Tidak ada di daftar statis — cek live ke Apps Script, siapa tahu admin sudah approve permintaan sebelumnya
+  deniedBox.classList.add('show');
+  document.getElementById('loginDeniedEmail').textContent = payload.email;
+  try{
+    const res = await callAppsScriptAction({ action:'checkAccess', email: payload.email });
+    if(res && res.status === 'approved'){
+      deniedBox.classList.remove('show');
+      grantAccess(profile);
+    } else if(res && res.status === 'pending'){
+      reqArea.style.display = 'none';
+      pendingBox.style.display = 'block';
+      startAccessPolling(profile);
+    }
+    // status 'none'/'rejected'/lainnya -> biarkan tombol "Minta Akses" tampil
+  }catch(e){ /* kalau live-check gagal (offline dsb), tetap tampilkan tombol request access */ }
 }
+
+document.getElementById('requestAccessBtn').addEventListener('click', async ()=>{
+  if(!currentLoginProfile) return;
+  const btn = document.getElementById('requestAccessBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengirim...';
+  try{
+    await callAppsScriptAction({ action:'requestAccess', email: currentLoginProfile.email, name: currentLoginProfile.name || '' });
+    document.getElementById('requestAccessArea').style.display = 'none';
+    document.getElementById('requestPendingBox').style.display = 'block';
+    startAccessPolling(currentLoginProfile);
+  }catch(e){
+    btn.disabled = false;
+    btn.textContent = '🔔 Minta Akses';
+    alert('Gagal mengirim permintaan akses. Cek koneksi internet Anda dan coba lagi.');
+  }
+});
 
 (function initLoginGate(){
   // sudah login di sesi browser ini sebelumnya?
@@ -1724,10 +1835,12 @@ const dataLabelsPlugin = {
           ctx.textAlign = 'center';
           ctx.fillText(text, pos.x, pos.y - 10);
         } else {
-          // vertical bar / line: label above point, offset per-dataset to reduce overlap
+          // vertical bar / line: label above point, bertingkat per dataset supaya
+          // tidak saling tumpuk kalau nilainya berdekatan (grouped bar chart)
           ctx.textAlign = 'center';
-          const offset = 8 + (nDatasets > 1 ? (di * 0) : 0);
-          ctx.fillStyle = '#3E362E';
+          const offset = nDatasets > 1 ? (8 + di * 12) : 8;
+          const seriesColor = Array.isArray(dataset.backgroundColor) ? '#3E362E' : (dataset.backgroundColor || '#3E362E');
+          ctx.fillStyle = nDatasets > 1 ? seriesColor : '#3E362E';
           ctx.fillText(text, pos.x, pos.y - offset);
         }
       });
@@ -2718,7 +2831,85 @@ function renderAll(){
   const f = getFilters();
   renderAlertChip(f);
   TAB_RENDERERS[currentTab](f);
+  initFocusModeButtons();
 }
+
+// ============================================================
+// FOCUS MODE — tombol perbesar/expand di tiap chart & tabel.
+// Cara kerja: canvas/tabel dipindah sementara (reparent) ke dalam
+// modal lalu chart di-resize supaya mengisi ruang lebih besar;
+// saat ditutup, elemen dikembalikan persis ke posisi asalnya.
+// ============================================================
+let focusModeState = null;
+
+function initFocusModeButtons(){
+  document.querySelectorAll('#tab-'+currentTab+' .card, #tab-'+currentTab+' .bu-panel').forEach(card=>{
+    if(card.querySelector(':scope > .expand-btn')) return; // sudah ada tombolnya
+    const hasChart = card.querySelector('canvas');
+    const hasTable = card.querySelector('table.dt');
+    if(!hasChart && !hasTable) return;
+    const btn = document.createElement('button');
+    btn.className = 'expand-btn';
+    btn.title = 'Perbesar / Fokus mode';
+    btn.innerHTML = '⛶';
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); openFocusMode(card); });
+    card.appendChild(btn);
+  });
+}
+
+function openFocusMode(card){
+  const canvas = card.querySelector('canvas');
+  const table = card.querySelector('table.dt');
+  const titleEl = card.querySelector('h3');
+  document.getElementById('focusModalTitle').textContent = titleEl ? titleEl.textContent : 'Detail';
+  const body = document.getElementById('focusModalBody');
+  body.innerHTML = '';
+
+  if(canvas){
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'width:100%; height:100%; min-height:65vh;';
+    const originalNext = canvas.nextSibling;
+    const originalParent = canvas.parentElement;
+    wrap.appendChild(canvas);
+    body.appendChild(wrap);
+    focusModeState = { type:'chart', el:canvas, originalParent, originalNext, chartId: canvas.id };
+    document.getElementById('focusModal').classList.add('show');
+    requestAnimationFrame(()=>{
+      if(charts[canvas.id]) charts[canvas.id].resize();
+    });
+  } else if(table){
+    const originalNext = table.nextSibling;
+    const originalParent = table.parentElement;
+    body.appendChild(table);
+    focusModeState = { type:'table', el:table, originalParent, originalNext };
+    document.getElementById('focusModal').classList.add('show');
+  }
+}
+
+function closeFocusMode(){
+  if(focusModeState){
+    const { el, originalParent, originalNext, chartId } = focusModeState;
+    if(originalNext && originalNext.parentElement === originalParent){
+      originalParent.insertBefore(el, originalNext);
+    } else {
+      originalParent.appendChild(el);
+    }
+    if(chartId && charts[chartId]){
+      requestAnimationFrame(()=> charts[chartId].resize());
+    }
+  }
+  document.getElementById('focusModal').classList.remove('show');
+  document.getElementById('focusModalBody').innerHTML = '';
+  focusModeState = null;
+}
+document.getElementById('focusModalClose').addEventListener('click', closeFocusMode);
+document.getElementById('focusModal').addEventListener('click', (e)=>{
+  if(e.target.id === 'focusModal') closeFocusMode();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && document.getElementById('focusModal').classList.contains('show')) closeFocusMode();
+});
+
 
 // dealer dropdown population (grouped visually by city via label prefix)
 function refreshDealerDropdown(){
