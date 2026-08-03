@@ -517,6 +517,15 @@ table.dt tr:hover td{ background:#F8F9FC; }
         <ul class="ai-list" id="ovRecs"></ul>
       </div>
     </div>
+
+    <div class="section-title"><span class="bar"></span><h2>🎯 Fokus Item — Status Pencapaian</h2><span class="tag">Item Bonus 2026 · dihitung dari data live saat ini</span></div>
+    <div class="grid" id="ovFocusItemGrid" style="grid-template-columns:repeat(3,1fr);"></div>
+
+    <div class="section-title"><span class="bar"></span><h2>Result CSL per Dealer</h2></div>
+    <div class="card"><div style="overflow-x:auto; max-height:480px;"><table class="dt" id="ovPerDealerTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>Result CSL per Wilayah</h2></div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerAreaTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: WILAYAH ========== -->
@@ -889,8 +898,6 @@ const ALLOWED_EMAILS = [
   'irfan.dw30@gmail.com',
   'jonathanmalvin23@gmail.com',
   'hc3papua@gmail.com',
-  'gamasitumeang@gmail.com',
-  'irjayadi90@gmail.com',
   // tambahkan email lain di sini, satu per baris, diakhiri koma
 ];
 
@@ -1281,6 +1288,67 @@ function renderOverview(f){
     `<b>Mid Term — </b>Standarisasi reminder WhatsApp &amp; audit booking-to-service di dealer dengan gap H2 terbesar.`,
     `<b>Long Term — </b>Pantau %Index H123 gabungan tiap semester sebagai KPI utama Kepala Wilayah.`,
   ].map(t=>`<li>${t}</li>`).join('');
+
+  renderOvFocusItems(f);
+  renderOvPerDealerTable(f);
+  renderOvPerAreaTable(f);
+}
+
+function ovCell(v, t){
+  if(v==null || t==null) return '<td>-</td>';
+  const ok = v >= t;
+  return `<td><b style="color:${ok?'#1E8E5A':'#C8102E'};">${pct(v)}</b></td>`;
+}
+
+function renderOvFocusItems(f){
+  const grid = document.getElementById('ovFocusItemGrid');
+  const dealerSet = getDealerSet(f.wilayah, f.dealer, f.tipe);
+  grid.innerHTML = ['H1','H2','H3'].map(layer=>{
+    const key = layer.toLowerCase();
+    const names = FOCUS_BONUS_2026[key] || [];
+    const bizAttrs = BIZ_UPDATE_DATA[key].attrs; // nama lengkap resmi, urutannya sejajar posisi dengan RAW.labels
+    const liveVals = getAttrsForScope(layer, dealerSet);
+    const items = names.map(name=>{
+      const idx = bizAttrs.indexOf(name); // cari posisi berdasarkan nama lengkap resmi
+      if(idx === -1) return null;
+      const val = liveVals[idx]; // pakai posisi yang sama untuk ambil data live (RAW.labels beda kata tapi urutan sama)
+      const tgt = RAW.targets[layer][idx];
+      return { name, val, tgt, achieved: (val!=null && tgt!=null) ? val>=tgt : null };
+    }).filter(Boolean);
+    const achievedCount = items.filter(it=>it.achieved).length;
+    return `<div class="card">
+      <h3>Fokus Item ${layer}</h3>
+      <div class="cardsub">${achievedCount}/${items.length} tercapai — cakupan ${f.wilayah==='ALL'?'Z11':f.wilayah}${f.dealer!=='ALL'?' · '+f.dealer:''}</div>
+      ${items.map(it=>`
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:12px;">
+          <span>${it.name}</span>
+          <b style="white-space:nowrap; color:${it.achieved?'#1E8E5A':(it.achieved===false?'#C8102E':'var(--grey)')};">${it.val!=null?pct(it.val):'-'}</b>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderOvPerDealerTable(f){
+  const tbl = document.getElementById('ovPerDealerTable');
+  const dealerSet = getDealerSet(f.wilayah, 'ALL', f.tipe);
+  const tgt1=getTargetMean('H1'), tgt2=getTargetMean('H2'), tgt3=getTargetMean('H3'), tgt123=targetH123();
+  const rows = dealerSet.map(d=>({
+    d, city: RAW.dealers[d].city,
+    h1: overallForDealer(d,'H1'), h2: overallForDealer(d,'H2'), h3: overallForDealer(d,'H3'), h123: overallH123ForDealer(d),
+  })).sort((a,b)=> (b.h123||0) - (a.h123||0));
+  tbl.innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
+    rows.map(r=>`<tr><td>${r.d}</td><td>${r.city}</td>${ovCell(r.h1,tgt1)}${ovCell(r.h2,tgt2)}${ovCell(r.h3,tgt3)}${ovCell(r.h123,tgt123)}</tr>`).join('');
+}
+
+function renderOvPerAreaTable(f){
+  const tbl = document.getElementById('ovPerAreaTable');
+  const tgt1=getTargetMean('H1'), tgt2=getTargetMean('H2'), tgt3=getTargetMean('H3'), tgt123=targetH123();
+  const rows = AREA_LIST.map(w=>({
+    w,
+    h1: overallWilayah(w,'H1',f.tipe), h2: overallWilayah(w,'H2',f.tipe), h3: overallWilayah(w,'H3',f.tipe), h123: overallWilayah(w,'H123',f.tipe),
+  })).sort((a,b)=> (b.h123||0) - (a.h123||0));
+  tbl.innerHTML = `<tr><th>Wilayah</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
+    rows.map(r=>`<tr><td>${r.w}</td>${ovCell(r.h1,tgt1)}${ovCell(r.h2,tgt2)}${ovCell(r.h3,tgt3)}${ovCell(r.h123,tgt123)}</tr>`).join('');
 }
 function getTargetForOverview(layer){ return layer==='H123' ? targetH123() : getTargetMean(layer); }
 
@@ -2425,26 +2493,64 @@ function renderBizUpdateTab(){
   container.innerHTML = ['h1','h2','h3'].map(renderBizPanel).join('') + renderFocusBonusChartSection();
   container.dataset.rendered = '1';
 
+  const bizChartLabelsPlugin = {
+    id: 'bizChartLabels',
+    afterDatasetsDraw(chart){
+      const { ctx } = chart;
+      ctx.save();
+      ctx.font = '700 10px Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+      chart.data.datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di);
+        meta.data.forEach((el, i) => {
+          const v = ds.data[i];
+          if(v == null) return;
+          const pos = el.tooltipPosition();
+          const color = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : ds.backgroundColor;
+          ctx.fillStyle = color;
+          ctx.textAlign = 'left';
+          ctx.fillText(v.toFixed(1)+'%', pos.x + 5, pos.y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+
   ['h1','h2','h3'].forEach(key=>{
     const d = BIZ_UPDATE_DATA[key];
     const chartId = `bizChart_${key}`;
     destroyChart(chartId);
-    charts[chartId] = new Chart(document.getElementById(chartId), {
+    const canvas = document.getElementById(chartId);
+    // makin banyak atribut, makin tinggi area chart-nya, supaya label tiap baris tidak bertumpuk
+    const rowHeight = 26;
+    canvas.parentElement.style.height = Math.max(340, d.attrs.length * rowHeight) + 'px';
+    const achColors = d.ach.map((v,i)=> v >= d.target[i] ? COLORS.green : COLORS.red);
+    charts[chartId] = new Chart(canvas, {
       type:'bar',
+      plugins: [bizChartLabelsPlugin],
       data:{
-        labels: d.attrs.map(a=> a.length>38 ? a.slice(0,36)+'…' : a),
+        labels: d.attrs.map(a=> a.length>42 ? a.slice(0,40)+'…' : a),
         datasets:[
-          { label:'LY (FY2025)', data:d.achLY, backgroundColor:'#D8DEE8', borderRadius:4, maxBarThickness:9 },
-          { label:'Target', data:d.target, backgroundColor:'#C9D3E4', borderRadius:4, maxBarThickness:9 },
-          { label:'Ach.', data:d.ach, backgroundColor:d.color, borderRadius:4, maxBarThickness:9 },
+          { label:'Target', data:d.target, backgroundColor:'#2E6FBF', borderRadius:4, maxBarThickness:11 },
+          { label:'Ach.', data:d.ach, backgroundColor:achColors, borderRadius:4, maxBarThickness:11 },
         ]
       },
       options:{
         indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
+        plugins:{
+          dataLabelsAuto:{ enabled:false },
+          legend:{ display:true, position:'bottom', labels:{
+            boxWidth:9, font:{size:9.5},
+            generateLabels: () => [
+              { text:'Target', fillStyle:'#2E6FBF', strokeStyle:'#2E6FBF' },
+              { text:'Achieve (≥ Target)', fillStyle:COLORS.green, strokeStyle:COLORS.green },
+              { text:'Below Target', fillStyle:COLORS.red, strokeStyle:COLORS.red },
+            ]
+          } }
+        },
         scales:{
           x:{ min:88, max:98, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'} },
-          y:{ grid:{display:false}, ticks:{font:{size:9}} }
+          y:{ grid:{display:false}, ticks:{font:{size:9.5}} }
         }
       }
     });
@@ -2457,22 +2563,35 @@ function renderBizUpdateTab(){
     (FOCUS_BONUS_2026[key]||[]).forEach(name=>{
       const i = d.attrs.indexOf(name);
       if(i === -1) return;
-      combined.push({ label: `[${key.toUpperCase()}] ${name}`, target: d.target[i], ach: d.ach[i], color: d.color });
+      combined.push({ label: `[${key.toUpperCase()}] ${name}`, target: d.target[i], ach: d.ach[i] });
     });
   });
   destroyChart('focusBonusChart');
-  charts.focusBonusChart = new Chart(document.getElementById('focusBonusChart'), {
+  const focusBonusChartEl = document.getElementById('focusBonusChart');
+  focusBonusChartEl.parentElement.style.height = Math.max(300, combined.length * 34) + 'px';
+  charts.focusBonusChart = new Chart(focusBonusChartEl, {
     type:'bar',
+    plugins: [bizChartLabelsPlugin],
     data:{
       labels: combined.map(r=> r.label.length>50 ? r.label.slice(0,48)+'…' : r.label),
       datasets:[
-        { label:'Target', data: combined.map(r=>r.target), backgroundColor:'#C9D3E4', borderRadius:4, maxBarThickness:14 },
-        { label:'Ach.', data: combined.map(r=>r.ach), backgroundColor: combined.map(r=>r.color), borderRadius:4, maxBarThickness:14 },
+        { label:'Target', data: combined.map(r=>r.target), backgroundColor:'#2E6FBF', borderRadius:4, maxBarThickness:14 },
+        { label:'Ach.', data: combined.map(r=>r.ach), backgroundColor: combined.map(r=> r.ach>=r.target ? COLORS.green : COLORS.red), borderRadius:4, maxBarThickness:14 },
       ]
     },
     options:{
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
+      plugins:{
+        dataLabelsAuto:{ enabled:false },
+        legend:{ display:true, position:'bottom', labels:{
+          boxWidth:9, font:{size:9.5},
+          generateLabels: () => [
+            { text:'Target', fillStyle:'#2E6FBF', strokeStyle:'#2E6FBF' },
+            { text:'Achieve (≥ Target)', fillStyle:COLORS.green, strokeStyle:COLORS.green },
+            { text:'Below Target', fillStyle:COLORS.red, strokeStyle:COLORS.red },
+          ]
+        } }
+      },
       scales:{
         x:{ min:88, max:98, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'} },
         y:{ grid:{display:false}, ticks:{font:{size:10}} }
