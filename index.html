@@ -944,7 +944,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
   <!-- ========== TAB: ACHIEVEMENT NOS ========== -->
   <section class="tab-content" id="tab-nos">
-    <div class="section-title"><span class="bar"></span><h2>🏆 Achievement NOS 2026</h2><span class="tag">National Operational Standard · Fase 1</span></div>
+    <div class="section-title"><span class="bar"></span><h2>🏆 Achievement NOS 2026</h2><span class="tag">National Operational Standard</span><span class="tag" id="nosLiveStatus" style="background:var(--grey);">Snapshot 2026 (statis) · Fase 1</span></div>
     <div class="methodnote">
       <b>Tentang NOS:</b> Penilaian standar operasional dealer via kunjungan assessor, mencakup <b>H1 (Sales)</b> dan <b>H23 (Service+Part)</b>, masing-masing dinilai dari 3 aspek: <b>Premises, Process, People</b>. Grade akhir per dealer: 🏆 Platinum → 🥇 Gold → 🥈 Silver → 🥉 Bronze, mempertimbangkan skor keseluruhan (<i>Result</i>) dan kelengkapan item wajib (<i>Mandatory</i>).
       <br><b>Cakupan saat ini:</b> 18 dealer (10 Reguler H123, 2 Wing, 6 AHASS H23) — snapshot 2026. <b>Perbandingan tahun ke tahun belum tersedia</b> (data historis Z11 spesifik belum ada), akan ditambahkan begitu data FY sebelumnya tersedia.
@@ -2923,6 +2923,81 @@ function gradeCellVsTarget(actual, target){
   return `<td style="background:${ok?'#E9F7EF':'#FDEBEE'};">${gradeTxt(actual)}</td>`;
 }
 
+// ============================================================
+// NOS — LIVE DATA (opsional). Kalau berhasil fetch dari Apps Script
+// (sheet "Wing"/"Reguler H123"/"Reguler H23"/"Riwayat NOS" dengan
+// format persis sama seperti file REKAP SAMPING), NOS_DATA & NOS_HISTORY
+// di atas otomatis diganti isinya. Kalau gagal (belum disetup / offline),
+// dashboard tetap jalan pakai snapshot statis di atas — tidak pernah error.
+// ============================================================
+const NOS_LIVE_KEY = 'z11papua';
+let nosLiveFetchStarted = false;
+let nosLiveStatus = { live: false, updatedAt: null };
+
+function mergeWingDuplicates(dealers){
+  const order = {Platinum:4, Gold:3, Silver:2, Bronze:1};
+  const seen = {};
+  const result = [];
+  dealers.forEach(d=>{
+    const key = d.channel + '||' + normName(d.name);
+    if(seen[key]){
+      const ex = seen[key];
+      ['resultPct','mandatoryPct'].forEach(f=>{
+        if(d[f]!=null && ex[f]!=null) ex[f] = (ex[f]+d[f])/2;
+        else if(d[f]!=null && ex[f]==null) ex[f] = d[f];
+      });
+      if((order[d.resultGrade]||0) > (order[ex.resultGrade]||0)) ex.resultGrade = d.resultGrade;
+      if((order[d.finalResult]||0) > (order[ex.finalResult]||0)) ex.finalResult = d.finalResult;
+      if((order[d.finalMandatory]||0) > (order[ex.finalMandatory]||0)) ex.finalMandatory = d.finalMandatory;
+    } else {
+      seen[key] = d;
+      result.push(d);
+    }
+  });
+  return result;
+}
+
+function rebuildNosDataByName(){
+  Object.keys(NOS_DATA_BY_NAME).forEach(k=> delete NOS_DATA_BY_NAME[k]);
+  NOS_DATA.forEach(d=>{ NOS_DATA_BY_NAME[normName(d.name)] = d; });
+}
+
+async function loadNosLiveData(){
+  try{
+    const resData = await callAppsScriptAction({ key: NOS_LIVE_KEY, action: 'nosData' });
+    if(resData && resData.dealers && resData.dealers.length){
+      const merged = mergeWingDuplicates(resData.dealers);
+      NOS_DATA.length = 0;
+      merged.forEach(d=>NOS_DATA.push(d));
+      nosLiveStatus.live = true;
+      nosLiveStatus.updatedAt = resData.updatedAt || new Date().toISOString();
+    }
+    const resHist = await callAppsScriptAction({ key: NOS_LIVE_KEY, action: 'nosHistory' });
+    if(resHist && resHist.history && resHist.history.length){
+      NOS_HISTORY.length = 0;
+      resHist.history.forEach(h=>NOS_HISTORY.push(h));
+    }
+  }catch(e){
+    // gagal (Apps Script belum disetup untuk NOS, atau offline) — tetap pakai data statis
+    nosLiveStatus.live = false;
+  }
+}
+
+function ensureNosLiveData(){
+  if(nosLiveFetchStarted) return;
+  nosLiveFetchStarted = true;
+  loadNosLiveData().then(()=>{
+    rebuildNosDataByName();
+    const el = document.getElementById('nosLiveStatus');
+    if(el){
+      el.textContent = nosLiveStatus.live
+        ? '🟢 Live · diperbarui ' + new Date(nosLiveStatus.updatedAt).toLocaleString('id-ID', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+        : 'Snapshot 2026 (statis) · Fase 1';
+    }
+    if(currentTab === 'nos') renderNosTab();
+  });
+}
+
 function normName(s){ return (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,''); }
 const NOS_DATA_BY_NAME = {};
 NOS_DATA.forEach(d => { NOS_DATA_BY_NAME[normName(d.name)] = d; });
@@ -2979,6 +3054,7 @@ function nosGradeBadge(grade){
 }
 
 function renderNosTab(){
+  ensureNosLiveData();
   // KPI: jumlah dealer per Final Grade
   const gradeCounts = {Platinum:0, Gold:0, Silver:0, Bronze:0};
   NOS_DATA.forEach(d=>{ if(d.finalResult) gradeCounts[d.finalResult] = (gradeCounts[d.finalResult]||0)+1; });
