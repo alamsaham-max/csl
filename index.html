@@ -132,8 +132,11 @@ nav.tabs button.active .nav-icon{ opacity:1; }
 .home-card .hc-title{ font-size:18px; font-weight:800; margin-top:10px; line-height:1.2; }
 .home-card .hc-sub{ font-size:11.5px; opacity:0.85; margin-top:4px; }
 
-main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; }
+main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; position:relative; }
 .tab-content{ display:none; }
+.period-gate-overlay{ position:absolute; top:0; left:0; right:0; bottom:0; z-index:50; background:rgba(255,255,255,0.97); display:flex; align-items:center; justify-content:center; text-align:center; border-radius:12px; min-height:400px; }
+.period-gate-box{ padding:20px; }
+.period-month-disclaimer{ background:#FFF7E6; border:1px solid #F0D896; color:#7A5B00; font-size:12px; font-weight:600; padding:9px 14px; border-radius:8px; margin-bottom:14px; }
 .tab-content.active{ display:block; animation:fadeIn .2s; }
 @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
 
@@ -493,6 +496,21 @@ table.dt tr:hover td{ background:#F8F9FC; }
 </div>
 
 <main>
+
+<div id="periodGateOverlay" class="period-gate-overlay" style="display:none;">
+  <div class="period-gate-box">
+    <div style="font-size:34px; margin-bottom:8px;">📅</div>
+    <div style="font-weight:800; font-size:16px; color:var(--navy); margin-bottom:6px;">Tidak Ada Data untuk Periode Ini</div>
+    <div style="font-size:13px; color:var(--grey); max-width:380px; margin:0 auto 14px;">
+      Data di tab ini (CSL/NOS/People Development, dll) adalah <b>snapshot tunggal tahun 2026</b> — belum ada catatan untuk periode yang dipilih. Bukan bug: kami tampilkan apa adanya daripada mengarang data.
+      <br><br>Yang punya data multi-tahun/bulan asli saat ini <b>hanya tab Google Business Profile</b>.
+    </div>
+    <button onclick="document.getElementById('fTahun').value='2026'; renderAll();" style="padding:9px 18px; border:1.5px solid var(--navy); background:var(--navy); color:#fff; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;">← Kembali ke Tahun 2026</button>
+  </div>
+</div>
+<div id="periodMonthDisclaimer" class="period-month-disclaimer" style="display:none;">
+  📌 Filter <b>Bulan</b> tidak berlaku presisi untuk tab ini — datanya snapshot tahunan (belum dipecah per bulan). Tab <b>Google Business Profile</b> yang sudah punya breakdown per bulan.
+</div>
 
   <!-- ========== TAB: BERANDA ========== -->
   <section class="tab-content" id="tab-beranda">
@@ -1131,14 +1149,33 @@ table.dt tr:hover td{ background:#F8F9FC; }
         <label>Filter Dealer</label>
         <select id="gmbFDealer"><option value="ALL">Semua Dealer</option></select>
       </div>
-      <div class="fitem" style="min-width:170px;">
-        <label>Tahun</label>
-        <select id="gmbFTahun"><option value="ALL">Semua Tahun</option></select>
+      <div class="fitem" style="min-width:260px; align-self:center;">
+        <div style="font-size:11px; color:var(--grey);">Tahun &amp; Bulan mengikuti <b>filter global</b> di bagian atas dashboard ⬆️</div>
       </div>
-      <div class="fitem" style="min-width:190px;">
-        <label>Bulan</label>
-        <select id="gmbFBulan"><option value="ALL">Semua Bulan</option></select>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>📆 Ringkasan Periode Terpilih (dari Ulasan Individual)</h2></div>
+    <div class="methodnote">
+      Bagian ini yang <b>ikut berubah</b> saat Anda ganti filter Tahun/Bulan di atas — dihitung dari data di sheet "Ulasan Individual GMB" (baik yang tanggalnya pasti, maupun yang diestimasi dari waktu relatif spt "5 bulan lalu").
+      <br><b>Catatan jujur:</b> "Jumlah Ulasan" di sini = jumlah ulasan yang <i>tercatat manual oleh tim</i> pada periode itu (sampel), <b>bukan</b> total keseluruhan ulasan dealer di Google (itu ada di tabel "Rating &amp; Ulasan Terkini" di bawah, hanya untuk kondisi hari ini). Kalau tim belum mencatat ulasan untuk suatu bulan/tahun, tampilannya nol/kosong — bukan berarti dealer memang tidak ada ulasan bulan itu.
+    </div>
+    <div class="kpi-row" id="gmbPeriodKpiRow"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Rata-rata Bintang Ulasan per Bulan</h3>
+        <div class="cardsub">Dihitung dari ulasan yang periodenya diketahui (pasti atau estimasi waktu relatif)</div>
+        <div class="chart-wrap"><canvas id="gmbPeriodRatingChart"></canvas></div>
       </div>
+      <div class="card">
+        <h3>Jumlah Ulasan Tercatat per Bulan</h3>
+        <div class="cardsub">Jumlah entri di sheet "Ulasan Individual GMB" per bulan (sampel, bukan total di Google)</div>
+        <div class="chart-wrap"><canvas id="gmbPeriodCountChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>Tren Snapshot Rating Toko (Data Harian GMB)</h2></div>
+    <div class="methodnote">
+      Bagian ini beda sumber — dari "Data Harian GMB" (rating agregat toko saat dicek, snapshot harian), <b>bukan</b> per-ulasan. Karena baru mulai dicatat 2026-08-04, filter ke tahun/bulan sebelum itu akan tampil kosong (memang belum ada snapshotnya, bukan bug).
     </div>
 
     <div class="grid">
@@ -1529,6 +1566,8 @@ let currentTab = 'overview';
 
 function getFilters(){
   return {
+    tahun: document.getElementById('fTahun').value,
+    bulan: document.getElementById('fBulan').value,
     wilayah: document.getElementById('fWilayah').value,
     dealer: document.getElementById('fDealer').value,
     layer: document.getElementById('fLayer').value,
@@ -3803,17 +3842,17 @@ const GMB_STATIC_DEALERS = [
   {dealer:'Sinar Wagom Intiraya (Fak-Fak)', link:'https://www.google.com/maps/place/?q=place_id:ChIJB57YzEQTRi0RpjivKur5Qko', catatan:''},
 ];
 const GMB_STATIC_HISTORY = [
-  {tanggal:'2026-08-04', dealer:'Astra Motor Entrop', rating:4.9, jumlahUlasan:1893, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'Astra Motor Manokwari', rating:4.9, jumlahUlasan:2154, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Entrop', rating:4.9, jumlahUlasan:1896, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Manokwari', rating:4.9, jumlahUlasan:2156, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Astra Motor Merauke', rating:4.9, jumlahUlasan:1739, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Astra Motor Sentani', rating:4.9, jumlahUlasan:1382, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Astra Motor Sorong 1 (Tanah Hitam)', rating:4.9, jumlahUlasan:1790, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Astra Motor Sorong 2', rating:4.9, jumlahUlasan:3922, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'Astra Motor Timika', rating:4.9, jumlahUlasan:1738, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'Astra Motor Nabire', rating:5.0, jumlahUlasan:1671, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'Astra Motor Aimas', rating:5.0, jumlahUlasan:1496, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Jayapura)', rating:5.0, jumlahUlasan:1513, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
-  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Timika)', rating:4.8, jumlahUlasan:338, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Timika', rating:4.9, jumlahUlasan:1739, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Nabire', rating:5.0, jumlahUlasan:1674, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Aimas', rating:5.0, jumlahUlasan:1498, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Jayapura)', rating:5.0, jumlahUlasan:1514, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Timika)', rating:4.8, jumlahUlasan:338, positif:4, negatif:1, temaKomplain:'skill tidak selalu sempurna (dari 1 ulasan)', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Budi Jaya Wamena', rating:4.7, jumlahUlasan:7, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Senja Indah Kaimana', rating:5.0, jumlahUlasan:8, positif:4, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Sinar Pagi Biak', rating:4.8, jumlahUlasan:923, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
@@ -3888,6 +3927,8 @@ const GMB_STATIC_REVIEWS = [
   {dealer:'Arui Makmur (Serui)', bintang:5, estimasi:true, teks:'The Honda dealership is the only one in Serui and is served by friendly staff.', tanggal:null, relatif:null, tanggalDicatat:null},
   {dealer:'Sinar Wagom Intiraya (Fak-Fak)', bintang:5, estimasi:true, teks:'THE BEST SERVICE, THE EMPLOYEES ARE POLITE AND FRIENDLY', tanggal:null, relatif:null, tanggalDicatat:null},
   {dealer:'Astra Motor Entrop', bintang:5, estimasi:false, teks:'[CONTOH] Pelayanan sangat cepat dan ramah', tanggal:null, relatif:'5 bulan lalu', tanggalDicatat:'2026-08-04'},
+  {dealer:'Astra Motor Sentani', bintang:2, estimasi:false, teks:'[CONTOH] Antri cukup lama, sparepart yang dicari kosong', tanggal:null, relatif:'1 tahun lalu', tanggalDicatat:'2026-08-04'},
+  {dealer:'Astra Motor Manokwari', bintang:4, estimasi:false, teks:'[CONTOH] Servicenya oke, cuma ruang tunggu agak sempit', tanggal:null, relatif:'2 tahun lalu', tanggalDicatat:'2026-08-04'},
 ];
 
 let GMB_DEALERS = [];
@@ -3921,40 +3962,27 @@ function ensureGmbLiveData(){
         ? '🟢 Live · diperbarui '+new Date(res.updatedAt).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
         : '🟡 Snapshot 4 Agu 2026 (Google Places, input manual belum tersambung)';
     }
-    if(currentTab==='gmb') renderGmbTab();
+    if(currentTab==='gmb') renderGmbTab(getFilters());
   });
 }
 
-function renderGmbTab(){
+function renderGmbTab(f){
   ensureGmbLiveData();
+  f = f || getFilters();
 
   const dealerSel = document.getElementById('gmbFDealer');
-  const tahunSel = document.getElementById('gmbFTahun');
-  const bulanSel = document.getElementById('gmbFBulan');
   const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   if(dealerSel.dataset.populated !== '1' && GMB_DEALERS.length){
     GMB_DEALERS.forEach(d=>{ const o=document.createElement('option'); o.value=d.dealer; o.textContent=d.dealer; dealerSel.appendChild(o); });
-    dealerSel.addEventListener('change', renderGmbTab);
+    dealerSel.addEventListener('change', ()=>renderGmbTab(getFilters()));
     dealerSel.dataset.populated = '1';
   }
-  if(tahunSel.dataset.populated !== '1'){
-    // Rentang tahun tetap 2021–tahun berjalan (bukan hanya tahun yang sudah ada datanya),
-    // supaya slicer selalu tersedia — tahun/bulan tanpa data akan tampil "Tidak Ada Data".
-    const currentYear = new Date().getFullYear();
-    const yearsFromData = GMB_HISTORY.map(h=>Number(h.tanggal.slice(0,4)));
-    const minYear = Math.min(2021, ...(yearsFromData.length? yearsFromData : [2021]));
-    const maxYear = Math.max(currentYear, ...(yearsFromData.length? yearsFromData : [currentYear]));
-    for(let y=maxYear; y>=minYear; y--){
-      const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); tahunSel.appendChild(o);
-    }
-    BULAN_NAMES.forEach((name,i)=>{ const o=document.createElement('option'); o.value=String(i+1).padStart(2,'0'); o.textContent=name; bulanSel.appendChild(o); });
-    tahunSel.addEventListener('change', renderGmbTab);
-    bulanSel.addEventListener('change', renderGmbTab);
-    tahunSel.dataset.populated = '1';
-  }
   const selectedDealer = dealerSel.value || 'ALL';
-  const selectedTahun = tahunSel.value || 'ALL';
-  const selectedBulan = bulanSel.value || 'ALL';
+  // Tahun & Bulan sekarang mengikuti filter GLOBAL di bagian atas dashboard
+  // (fTahun/fBulan) — bukan filter terpisah lagi, supaya semua tab terhubung
+  // ke 1 sumber filter yang sama.
+  const selectedTahun = f.tahun || 'ALL';
+  const selectedBulan = f.bulan || 'ALL';
   const histFiltered = GMB_HISTORY.filter(h =>
     (selectedDealer==='ALL' || h.dealer===selectedDealer) &&
     (selectedTahun==='ALL' || h.tanggal.slice(0,4)===selectedTahun) &&
@@ -3962,6 +3990,69 @@ function renderGmbTab(){
   );
   const sorted = [...histFiltered].sort((a,b)=> a.tanggal.localeCompare(b.tanggal));
   const periodLabel = (selectedBulan!=='ALL' ? BULAN_NAMES[Number(selectedBulan)-1]+' ' : '') + (selectedTahun!=='ALL' ? selectedTahun : (selectedBulan!=='ALL' ? '(semua tahun)' : ''));
+
+  // ============================================================
+  // RINGKASAN PERIODE DARI ULASAN INDIVIDUAL — ini yang ikut berubah
+  // saat filter Tahun/Bulan diganti, karena dihitung dari periodeTahun/
+  // periodeBulan tiap ulasan (pasti ATAU estimasi dari waktu relatif).
+  // Independen dari GMB_HISTORY (snapshot harian toko).
+  // ============================================================
+  const reviewsForPeriodKpi = GMB_REVIEWS.filter(r=>{
+    if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
+    if(!r.periodeTahun) return false; // periode tidak diketahui -> tidak ikut dihitung ke breakdown periode
+    if(selectedTahun!=='ALL' && r.periodeTahun!==selectedTahun) return false;
+    if(selectedBulan!=='ALL' && r.periodeBulan!==selectedBulan) return false;
+    return true;
+  });
+  const withBintang = reviewsForPeriodKpi.filter(r=>r.bintang!=null);
+  const avgBintangPeriode = withBintang.length ? (withBintang.reduce((s,r)=>s+Number(r.bintang),0)/withBintang.length) : null;
+  const posPeriode = reviewsForPeriodKpi.filter(r=>Number(r.bintang)>=4).length;
+  const negPeriode = reviewsForPeriodKpi.filter(r=>Number(r.bintang)<=2 && r.bintang!=null).length;
+  const periodKpiRow = document.getElementById('gmbPeriodKpiRow');
+  const periodSuffix2 = periodLabel ? ' — '+periodLabel : ' — Semua Periode';
+  periodKpiRow.innerHTML = [
+    {label:'Jumlah Ulasan Tercatat'+periodSuffix2, value: reviewsForPeriodKpi.length, delta:'entri di sheet Ulasan Individual GMB'},
+    {label:'Rata-rata Bintang'+periodSuffix2, value: avgBintangPeriode!=null ? avgBintangPeriode.toFixed(2) : '-', delta: reviewsForPeriodKpi.length ? 'dari '+withBintang.length+' ulasan berbintang' : 'belum ada ulasan tercatat periode ini'},
+    {label:'Ulasan Positif (★4-5)'+periodSuffix2, value: posPeriode, delta:'dari ulasan tercatat periode ini'},
+    {label:'Ulasan Negatif (★1-2)'+periodSuffix2, value: negPeriode, delta:'dari ulasan tercatat periode ini'},
+  ].map(k=>`
+    <div class="kpi good">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta good">${k.delta}</div>
+    </div>`).join('');
+
+  // Group by year-month (across ALL known periode, ignoring the Tahun/Bulan
+  // filter itself so the chart shows the full timeline; but still respects
+  // the Dealer filter) — sorted chronologically for the two period charts.
+  const reviewsForChart = GMB_REVIEWS.filter(r=>{
+    if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
+    return !!r.periodeTahun;
+  });
+  const byYm = {};
+  reviewsForChart.forEach(r=>{
+    const ym = r.periodeTahun+'-'+r.periodeBulan;
+    if(!byYm[ym]) byYm[ym] = { bintangs:[], count:0 };
+    byYm[ym].count++;
+    if(r.bintang!=null) byYm[ym].bintangs.push(Number(r.bintang));
+  });
+  const ymKeys = Object.keys(byYm).sort();
+  const ymLabels = ymKeys.map(ym=>{ const [y,m]=ym.split('-'); return BULAN_NAMES[Number(m)-1].slice(0,3)+' '+y; });
+  destroyChart('gmbPeriodRatingChart');
+  charts.gmbPeriodRatingChart = new Chart(document.getElementById('gmbPeriodRatingChart'), {
+    type:'line',
+    data:{ labels: ymLabels, datasets:[{ label:'Rata-rata Bintang', data: ymKeys.map(ym=> byYm[ym].bintangs.length ? +(byYm[ym].bintangs.reduce((a,b)=>a+b,0)/byYm[ym].bintangs.length).toFixed(2) : null), borderColor:COLORS.navy, backgroundColor:'transparent', tension:0.3, spanGaps:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{min:1,max:5, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+  destroyChart('gmbPeriodCountChart');
+  charts.gmbPeriodCountChart = new Chart(document.getElementById('gmbPeriodCountChart'), {
+    type:'bar',
+    data:{ labels: ymLabels, datasets:[{ label:'Jumlah Ulasan Tercatat', data: ymKeys.map(ym=>byYm[ym].count), backgroundColor: COLORS.gold, borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
 
   // ---- KPI ----
   const kpiRow = document.getElementById('gmbKpiRow');
@@ -4121,10 +4212,28 @@ const TAB_RENDERERS = {
   alerts: renderAlertsTab,
 };
 
+// Tab yang tidak perlu di-gate oleh filter Tahun (karena tidak
+// bergantung snapshot 2026, atau punya logic periode sendiri):
+const PERIOD_INDEPENDENT_TABS = ['beranda','gmb'];
+
+function isPeriodDataAvailable(f){
+  // Data CSL/NOS/People Development/dll cuma snapshot tunggal 2026 (tanpa
+  // breakdown bulan) — jujur tampilkan "Tidak Ada Data" untuk tahun lain,
+  // daripada menampilkan angka 2026 seolah itu data tahun yang dipilih.
+  return (f.tahun === 'ALL' || f.tahun === '2026');
+}
+
 function renderAll(){
   const f = getFilters();
   renderAlertChip(f);
-  TAB_RENDERERS[currentTab](f);
+  const overlay = document.getElementById('periodGateOverlay');
+  const monthNote = document.getElementById('periodMonthDisclaimer');
+  const gated = !PERIOD_INDEPENDENT_TABS.includes(currentTab) && !isPeriodDataAvailable(f);
+  if(overlay) overlay.style.display = gated ? 'flex' : 'none';
+  if(monthNote) monthNote.style.display = (!gated && f.bulan!=='ALL' && !PERIOD_INDEPENDENT_TABS.includes(currentTab)) ? 'block' : 'none';
+  if(!gated){
+    TAB_RENDERERS[currentTab](f);
+  }
   initFocusModeButtons();
 }
 
