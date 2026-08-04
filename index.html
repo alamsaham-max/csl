@@ -445,7 +445,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
 <div class="filterbar">
   <div class="fitem"><label>Tahun</label>
-    <select id="fTahun"><option value="2026">2026</option></select>
+    <select id="fTahun"><option value="ALL">Semua Tahun (All Time)</option><option value="2026" selected>2026</option></select>
   </div>
   <div class="fitem"><label>Semester</label>
     <select id="fSemester"><option value="SMT1">Semester 1</option></select>
@@ -1149,6 +1149,30 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
     <div class="section-title"><span class="bar"></span><h2>Rating &amp; Ulasan Terkini per Dealer</h2></div>
     <div class="card"><div style="overflow-x:auto; max-height:460px;"><table class="dt" id="gmbLatestTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>⭐ Jelajah Ulasan per Bintang</h2></div>
+    <div class="methodnote">
+      Pilih jumlah bintang untuk melihat ulasan individual (tanggal, dealer, teks ulasan) pada rating tersebut.
+      <br><b>Catatan:</b> ulasan bertanda <span style="background:#FFF7E6; padding:1px 6px; border-radius:4px;">Estimasi</span> adalah sampel teks asli dari Google yang bintangnya <i>ditaksir</i> oleh Claude dari nada tulisan (bukan rating asli) — untuk data akurat, isi manual di sheet "Ulasan Individual GMB" (tim yang buka Google Maps bisa lihat rating &amp; tanggal asli tiap ulasan).
+    </div>
+    <div class="filterbar" style="margin-bottom:12px;">
+      <div class="fitem" style="min-width:220px;">
+        <label>Jumlah Bintang</label>
+        <select id="gmbFBintang">
+          <option value="ALL">Semua Bintang</option>
+          <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+          <option value="4">⭐⭐⭐⭐ (4)</option>
+          <option value="3">⭐⭐⭐ (3)</option>
+          <option value="2">⭐⭐ (2)</option>
+          <option value="1">⭐ (1)</option>
+        </select>
+      </div>
+      <div class="fitem" style="min-width:220px;">
+        <label>Dealer</label>
+        <select id="gmbFReviewDealer"><option value="ALL">Semua Dealer</option></select>
+      </div>
+    </div>
+    <div class="card"><div style="overflow-x:auto; max-height:420px;"><table class="dt" id="gmbReviewsTable"></table></div></div>
 
     <div class="section-title"><span class="bar"></span><h2>Riwayat Input Harian</h2></div>
     <div class="card"><div style="overflow-x:auto; max-height:460px;"><table class="dt" id="gmbHistoryTable"></table></div></div>
@@ -3734,22 +3758,88 @@ function renderPeopleDevTab(){
 // ============================================================
 // GOOGLE BUSINESS PROFILE — data input manual harian (bukan crawling).
 // Live-fetch dari Apps Script (sheet "Daftar Dealer GMB" & "Data Harian
-// GMB"), dengan fallback data kosong kalau belum ada isi/koneksi.
+// GMB"), dengan fallback ke snapshot statis (hasil pencarian Google Places
+// langsung oleh Claude pada 2026-08-04) kalau Sheets belum tersambung.
 // ============================================================
+const GMB_STATIC_DEALERS = [
+  {dealer:'Astra Motor Entrop', link:'https://www.google.com/maps/place/?q=place_id:ChIJD4XQDrRZbGgR01_r4lQDvjE', catatan:''},
+  {dealer:'Astra Motor Manokwari', link:'https://www.google.com/maps/place/?q=place_id:ChIJJ3QSbK4KVC0R0LyUmA-DsS8', catatan:''},
+  {dealer:'Astra Motor Merauke', link:'https://www.google.com/maps/place/?q=place_id:ChIJXRNpNIEVtWkR2m9iC_8vTMw', catatan:''},
+  {dealer:'Astra Motor Sentani', link:'https://www.google.com/maps/place/?q=place_id:ChIJb8iFoObxbGgR2m1AJHt4VZg', catatan:''},
+  {dealer:'Astra Motor Sorong 1 (Tanah Hitam)', link:'https://www.google.com/maps/place/?q=place_id:ChIJtRQg2SxVWS0Rkw02MnL3Ox4', catatan:''},
+  {dealer:'Astra Motor Sorong 2', link:'https://www.google.com/maps/place/?q=place_id:ChIJid-L4CxVWS0R33OfxPMTZfA', catatan:''},
+  {dealer:'Astra Motor Timika', link:'https://www.google.com/maps/place/?q=place_id:ChIJV_ApeWp3I2gRYWWvVynwwFA', catatan:''},
+  {dealer:'Astra Motor Nabire', link:'https://www.google.com/maps/place/?q=place_id:ChIJwz0C6kGiH2gRW_IT9w5GGAM', catatan:''},
+  {dealer:'Astra Motor Aimas', link:'https://www.google.com/maps/place/?q=place_id:ChIJzavX3G__Wy0R83nmNxRwBgE', catatan:''},
+  {dealer:'PT Fajar Terus Bersinar (Jayapura)', link:'https://www.google.com/maps/place/?q=place_id:ChIJ_Q_74_hfbGgRwhrIW12dJNA', catatan:''},
+  {dealer:'PT Fajar Terus Bersinar (Timika)', link:'https://www.google.com/maps/place/?q=place_id:ChIJyw4wYRZ3I2gREiL6bx0Gm-k', catatan:''},
+  {dealer:'Budi Jaya Wamena', link:'https://www.google.com/maps/place/?q=place_id:ChIJTb17cMRtPmgR1337JSklpjo', catatan:''},
+  {dealer:'Senja Indah Kaimana', link:'https://www.google.com/maps/place/?q=place_id:ChIJQQnX0kkBNi0R8-LyDeedes8', catatan:''},
+  {dealer:'Sinar Pagi Biak', link:'https://www.google.com/maps/place/?q=place_id:ChIJPztcMw6OA2gR2D2NYj2jqFE', catatan:''},
+  {dealer:'CV Sinar Pagi (Nabire)', link:'https://www.google.com/maps/place/?q=place_id:ChIJx7ZAhNWjH2gREnhJmzeVRWI', catatan:''},
+  {dealer:'Sulawesi Manokwari', link:'https://www.google.com/maps/place/?q=place_id:ChIJaQFhpEkLVC0RfCeBSz-4Gjw', catatan:''},
+  {dealer:'Arui Makmur (Serui)', link:'https://www.google.com/maps/place/?q=place_id:ChIJxSwqlHdXG2gRcx64t04DJjQ', catatan:''},
+  {dealer:'Sinar Wagom Intiraya (Fak-Fak)', link:'https://www.google.com/maps/place/?q=place_id:ChIJB57YzEQTRi0RpjivKur5Qko', catatan:''},
+];
+const GMB_STATIC_HISTORY = [
+  {tanggal:'2026-08-04', dealer:'Astra Motor Entrop', rating:4.9, jumlahUlasan:1893, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Manokwari', rating:4.9, jumlahUlasan:2154, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Merauke', rating:4.9, jumlahUlasan:1739, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Sentani', rating:4.9, jumlahUlasan:1382, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Sorong 1 (Tanah Hitam)', rating:4.9, jumlahUlasan:1790, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Sorong 2', rating:4.9, jumlahUlasan:3922, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Timika', rating:4.9, jumlahUlasan:1738, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Nabire', rating:5.0, jumlahUlasan:1671, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Astra Motor Aimas', rating:5.0, jumlahUlasan:1496, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Jayapura)', rating:5.0, jumlahUlasan:1513, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'PT Fajar Terus Bersinar (Timika)', rating:4.8, jumlahUlasan:338, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Budi Jaya Wamena', rating:4.7, jumlahUlasan:7, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Senja Indah Kaimana', rating:5.0, jumlahUlasan:8, positif:4, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Sinar Pagi Biak', rating:4.8, jumlahUlasan:923, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'CV Sinar Pagi (Nabire)', rating:4.9, jumlahUlasan:811, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Sulawesi Manokwari', rating:4.7, jumlahUlasan:51, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Arui Makmur (Serui)', rating:4.6, jumlahUlasan:11, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+  {tanggal:'2026-08-04', dealer:'Sinar Wagom Intiraya (Fak-Fak)', rating:5.0, jumlahUlasan:9, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
+];
+// Ulasan individual (contoh teks asli dari Google, TANPA rating/tanggal per-ulasan
+// karena API yang tersedia tidak menyediakan itu — rating di bawah ini adalah
+// ESTIMASI dari Claude berdasarkan nada teks, BUKAN rating asli dari reviewer.
+// Untuk data akurat per bintang, isi manual di sheet "Ulasan Individual GMB"
+// (tim yang buka Google Maps bisa lihat rating & tanggal asli tiap ulasan).
+const GMB_STATIC_REVIEWS = [
+  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Good job', tanggal:null},
+  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Best best', tanggal:null},
+  {dealer:'Astra Motor Sentani', bintang:5, estimasi:true, teks:'A good motorbike showroom. The employees are kind to help with the customer\u2019s needs. Great place to buy a bike', tanggal:null},
+  {dealer:'Astra Motor Sentani', bintang:4, estimasi:true, teks:'Today is January 30, 2026, the first time I did minor maintenance on my motor vehicle (change the engine oil)', tanggal:null},
+  {dealer:'PT Fajar Terus Bersinar (Jayapura)', bintang:5, estimasi:true, teks:'The place is clean and the service is good', tanggal:null},
+  {dealer:'Astra Motor Manokwari', bintang:5, estimasi:true, teks:'Excellent service . Thank you so much', tanggal:null},
+  {dealer:'Astra Motor Sorong 1 (Tanah Hitam)', bintang:5, estimasi:true, teks:'Professional and helpful mechanic \ud83d\udc4c\ud83c\udffd Thanks Hamka :)', tanggal:null},
+  {dealer:'Budi Jaya Wamena', bintang:5, estimasi:true, teks:'The service is good, the units are complete\ud83e\udef0\ud83e\udef0', tanggal:null},
+  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'Complete and ready selection of Honda motorbikes, friendly and very helpful service', tanggal:null},
+  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'I am very satisfied with the service at CV. Sulawesi Manokwari, the service is fast and very satisfying.', tanggal:null},
+  {dealer:'Arui Makmur (Serui)', bintang:5, estimasi:true, teks:'The Honda dealership is the only one in Serui and is served by friendly staff.', tanggal:null},
+  {dealer:'Sinar Wagom Intiraya (Fak-Fak)', bintang:5, estimasi:true, teks:'THE BEST SERVICE, THE EMPLOYEES ARE POLITE AND FRIENDLY', tanggal:null},
+];
+
 let GMB_DEALERS = [];
 let GMB_HISTORY = [];
+let GMB_REVIEWS = [];
 let gmbLiveFetchStarted = false;
 
 async function loadGmbLiveData(){
   try{
     const res = await callAppsScriptAction({ key: NOS_LIVE_KEY, action: 'gmbData' });
-    if(res){
-      GMB_DEALERS = res.dealers || [];
+    if(res && (res.dealers||[]).length){
+      GMB_DEALERS = res.dealers;
       GMB_HISTORY = res.history || [];
-      return { ok:true, updatedAt: res.updatedAt };
+      GMB_REVIEWS = res.reviews || GMB_STATIC_REVIEWS;
+      return { ok:true, live:true, updatedAt: res.updatedAt };
     }
-  }catch(e){ /* diamkan, tampilkan status kosong */ }
-  return { ok:false };
+  }catch(e){ /* jatuh ke fallback statis di bawah */ }
+  GMB_DEALERS = GMB_STATIC_DEALERS;
+  GMB_HISTORY = GMB_STATIC_HISTORY;
+  GMB_REVIEWS = GMB_STATIC_REVIEWS;
+  return { ok:true, live:false };
 }
 
 function ensureGmbLiveData(){
@@ -3758,9 +3848,9 @@ function ensureGmbLiveData(){
   loadGmbLiveData().then(res=>{
     const el = document.getElementById('gmbLiveStatus');
     if(el){
-      el.textContent = res.ok
-        ? (GMB_HISTORY.length ? '🟢 Live · diperbarui '+new Date(res.updatedAt).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '🟡 Terhubung, belum ada data diinput')
-        : '⚙️ Belum terhubung ke Google Sheets';
+      el.textContent = res.live
+        ? '🟢 Live · diperbarui '+new Date(res.updatedAt).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+        : '🟡 Snapshot 4 Agu 2026 (Google Places, input manual belum tersambung)';
     }
     if(currentTab==='gmb') renderGmbTab();
   });
@@ -3859,6 +3949,31 @@ function renderGmbTab(){
         <td>${d.link ? `<a href="${d.link}" target="_blank" rel="noopener">Buka ↗</a>` : '-'}</td>
       </tr>`;
     }).join('');
+
+  // ---- Jelajah Ulasan per Bintang ----
+  const reviewDealerSel = document.getElementById('gmbFReviewDealer');
+  if(reviewDealerSel.dataset.populated !== '1'){
+    const rDealers = [...new Set(GMB_REVIEWS.map(r=>r.dealer))].sort();
+    rDealers.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; reviewDealerSel.appendChild(o); });
+    document.getElementById('gmbFBintang').addEventListener('change', renderGmbTab);
+    reviewDealerSel.addEventListener('change', renderGmbTab);
+    reviewDealerSel.dataset.populated = '1';
+  }
+  const bintangFilter = document.getElementById('gmbFBintang').value;
+  const reviewDealerFilter = reviewDealerSel.value;
+  const filteredReviews = GMB_REVIEWS.filter(r =>
+    (bintangFilter==='ALL' || String(r.bintang)===bintangFilter) &&
+    (reviewDealerFilter==='ALL' || r.dealer===reviewDealerFilter)
+  );
+  const reviewsTbl = document.getElementById('gmbReviewsTable');
+  reviewsTbl.innerHTML = `<tr><th>Tanggal</th><th>Dealer</th><th>Bintang</th><th>Ulasan</th></tr>` +
+    (filteredReviews.length ? filteredReviews.map(r=>`
+      <tr>
+        <td>${r.tanggal || '<span style="color:var(--grey);">Tidak diketahui</span>'}</td>
+        <td>${r.dealer}</td>
+        <td>${'⭐'.repeat(r.bintang)} ${r.estimasi ? '<span style="background:#FFF7E6; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;">Estimasi</span>' : ''}</td>
+        <td style="font-size:12px;">${r.teks}</td>
+      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada ulasan pada filter ini.</td></tr>`);
 
   // ---- Tabel Riwayat ----
   const histTbl = document.getElementById('gmbHistoryTable');
