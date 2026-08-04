@@ -447,6 +447,15 @@ table.dt tr:hover td{ background:#F8F9FC; }
   <div class="fitem"><label>Tahun</label>
     <select id="fTahun"><option value="ALL">Semua Tahun (All Time)</option><option value="2026" selected>2026</option></select>
   </div>
+  <div class="fitem"><label>Bulan</label>
+    <select id="fBulan">
+      <option value="ALL" selected>Semua Bulan</option>
+      <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+      <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+      <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+      <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+    </select>
+  </div>
   <div class="fitem"><label>Semester</label>
     <select id="fSemester"><option value="SMT1">Semester 1</option></select>
   </div>
@@ -1117,9 +1126,19 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
     <div class="kpi-row" id="gmbKpiRow"></div>
 
-    <div class="fitem" style="max-width:320px; margin-bottom:12px;">
-      <label>Filter Dealer</label>
-      <select id="gmbFDealer"><option value="ALL">Semua Dealer</option></select>
+    <div class="filterbar" style="margin-bottom:12px;">
+      <div class="fitem" style="min-width:220px;">
+        <label>Filter Dealer</label>
+        <select id="gmbFDealer"><option value="ALL">Semua Dealer</option></select>
+      </div>
+      <div class="fitem" style="min-width:170px;">
+        <label>Tahun</label>
+        <select id="gmbFTahun"><option value="ALL">Semua Tahun</option></select>
+      </div>
+      <div class="fitem" style="min-width:190px;">
+        <label>Bulan</label>
+        <select id="gmbFBulan"><option value="ALL">Semua Bulan</option></select>
+      </div>
     </div>
 
     <div class="grid">
@@ -3860,14 +3879,32 @@ function renderGmbTab(){
   ensureGmbLiveData();
 
   const dealerSel = document.getElementById('gmbFDealer');
+  const tahunSel = document.getElementById('gmbFTahun');
+  const bulanSel = document.getElementById('gmbFBulan');
+  const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   if(dealerSel.dataset.populated !== '1' && GMB_DEALERS.length){
     GMB_DEALERS.forEach(d=>{ const o=document.createElement('option'); o.value=d.dealer; o.textContent=d.dealer; dealerSel.appendChild(o); });
     dealerSel.addEventListener('change', renderGmbTab);
     dealerSel.dataset.populated = '1';
   }
+  if(tahunSel.dataset.populated !== '1' && GMB_HISTORY.length){
+    const years = [...new Set(GMB_HISTORY.map(h=>h.tanggal.slice(0,4)))].sort();
+    years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; tahunSel.appendChild(o); });
+    BULAN_NAMES.forEach((name,i)=>{ const o=document.createElement('option'); o.value=String(i+1).padStart(2,'0'); o.textContent=name; bulanSel.appendChild(o); });
+    tahunSel.addEventListener('change', renderGmbTab);
+    bulanSel.addEventListener('change', renderGmbTab);
+    tahunSel.dataset.populated = '1';
+  }
   const selectedDealer = dealerSel.value || 'ALL';
-  const histFiltered = selectedDealer==='ALL' ? GMB_HISTORY : GMB_HISTORY.filter(h=>h.dealer===selectedDealer);
+  const selectedTahun = tahunSel.value || 'ALL';
+  const selectedBulan = bulanSel.value || 'ALL';
+  const histFiltered = GMB_HISTORY.filter(h =>
+    (selectedDealer==='ALL' || h.dealer===selectedDealer) &&
+    (selectedTahun==='ALL' || h.tanggal.slice(0,4)===selectedTahun) &&
+    (selectedBulan==='ALL' || h.tanggal.slice(5,7)===selectedBulan)
+  );
   const sorted = [...histFiltered].sort((a,b)=> a.tanggal.localeCompare(b.tanggal));
+  const periodLabel = (selectedBulan!=='ALL' ? BULAN_NAMES[Number(selectedBulan)-1]+' ' : '') + (selectedTahun!=='ALL' ? selectedTahun : (selectedBulan!=='ALL' ? '(semua tahun)' : ''));
 
   // ---- KPI ----
   const kpiRow = document.getElementById('gmbKpiRow');
@@ -3876,11 +3913,12 @@ function renderGmbTab(){
   const totalPos = sorted.reduce((s,h)=>s+(Number(h.positif)||0),0);
   const totalNeg = sorted.reduce((s,h)=>s+(Number(h.negatif)||0),0);
   const latestEntry = sorted.length ? sorted[sorted.length-1] : null;
+  const periodSuffix = periodLabel ? ' — '+periodLabel : '';
   kpiRow.innerHTML = [
     {label:'Dealer Terdaftar', value: GMB_DEALERS.length, delta:'di Daftar Dealer GMB'},
-    {label:'Rating Terkini', value: latestEntry && latestEntry.rating!=null ? Number(latestEntry.rating).toFixed(1) : '-', delta: latestEntry? latestEntry.tanggal : 'belum ada data'},
-    {label:'Ulasan Positif (kumulatif)', value: totalPos, delta:'dari seluruh entri harian'},
-    {label:'Ulasan Negatif (kumulatif)', value: totalNeg, delta:'dari seluruh entri harian'},
+    {label:'Rata-rata Rating'+periodSuffix, value: avgRating!=null ? avgRating.toFixed(2) : '-', delta: latestEntry? ('data terakhir: '+latestEntry.tanggal) : 'belum ada data pada periode ini'},
+    {label:'Ulasan Positif'+periodSuffix, value: totalPos, delta:'dari entri harian pada periode ini'},
+    {label:'Ulasan Negatif'+periodSuffix, value: totalNeg, delta:'dari entri harian pada periode ini'},
   ].map(k=>`
     <div class="kpi good">
       <div class="label">${k.label}</div>
@@ -3961,10 +3999,17 @@ function renderGmbTab(){
   }
   const bintangFilter = document.getElementById('gmbFBintang').value;
   const reviewDealerFilter = reviewDealerSel.value;
-  const filteredReviews = GMB_REVIEWS.filter(r =>
-    (bintangFilter==='ALL' || String(r.bintang)===bintangFilter) &&
-    (reviewDealerFilter==='ALL' || r.dealer===reviewDealerFilter)
-  );
+  const periodActive = selectedTahun!=='ALL' || selectedBulan!=='ALL';
+  const filteredReviews = GMB_REVIEWS.filter(r => {
+    if(bintangFilter!=='ALL' && String(r.bintang)!==bintangFilter) return false;
+    if(reviewDealerFilter!=='ALL' && r.dealer!==reviewDealerFilter) return false;
+    if(periodActive){
+      if(!r.tanggal) return false; // tanggal tidak diketahui -> tidak bisa dicocokkan ke periode tertentu
+      if(selectedTahun!=='ALL' && r.tanggal.slice(0,4)!==selectedTahun) return false;
+      if(selectedBulan!=='ALL' && r.tanggal.slice(5,7)!==selectedBulan) return false;
+    }
+    return true;
+  });
   const reviewsTbl = document.getElementById('gmbReviewsTable');
   reviewsTbl.innerHTML = `<tr><th>Tanggal</th><th>Dealer</th><th>Bintang</th><th>Ulasan</th></tr>` +
     (filteredReviews.length ? filteredReviews.map(r=>`
@@ -4103,7 +4148,7 @@ function refreshDealerDropdown(){
 }
 refreshDealerDropdown();
 
-['fTahun','fSemester','fWilayah','fDealer','fLayer','fTipe'].forEach(id=>{
+['fTahun','fBulan','fSemester','fWilayah','fDealer','fLayer','fTipe'].forEach(id=>{
   document.getElementById(id).addEventListener('change', renderAll);
 });
 document.getElementById('radarA').addEventListener('change', ()=>renderRadarTab(getFilters()));
