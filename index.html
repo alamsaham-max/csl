@@ -383,6 +383,17 @@ table.dt tr:hover td{ background:#F8F9FC; }
           <button data-tab="demografiflp" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M2.5 20 c0-3.8 2.5-6 5.5-6 s5.5 2.2 5.5 6"/><path d="M10.5 20 c0-3.8 2.5-6 5.5-6 s5.5 2.2 5.5 6"/></svg></span> Demografi Honda People</button>
         </div>
       </div>
+
+      <div class="nav-group">
+        <button class="nav-group-header" type="button" data-group="gmb">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21 c4.5-4.2 7-7.6 7-10.8 A7 7 0 0 0 5 10.2 C5 13.4 7.5 16.8 12 21 Z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+          <span>Marketing</span>
+          <svg class="nav-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+        </button>
+        <div class="nav-subgroup" id="navGroupGmb">
+          <button data-tab="gmb" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21 c4.5-4.2 7-7.6 7-10.8 A7 7 0 0 0 5 10.2 C5 13.4 7.5 16.8 12 21 Z"/><circle cx="12" cy="10" r="2.6"/></svg></span> Google Business Profile</button>
+        </div>
+      </div>
     </nav>
   </aside>
 
@@ -1083,27 +1094,64 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
     <div class="section-title"><span class="bar"></span><h2>🏆 Screening Kelayakan KLHN 2027 (Praproyeksi)</h2><span class="tag">Berdasarkan JUKLAK KLHN 2026</span></div>
     <div class="methodnote" style="border-left-color:#C8102E; background:#FDEBEE;">
-      <b>⚠️ Disclaimer penting:</b> Ini <b>bukan hasil final</b>, hanya screening awal berdasarkan data HR + NOS yang tersedia.
+      <b>⚠️ Disclaimer penting:</b> Ini <b>bukan hasil final</b>, hanya screening awal berdasarkan data HR + NOS + Training yang tersedia.
       <br>• <b>Asumsi cutoff:</b> JUKLAK ini untuk KLHN <b>2026</b> dengan cutoff persyaratan <b>30 Nov 2025</b>. Karena belum ada JUKLAK resmi KLHN 2027, tanggal cutoff di bawah <b>digeser +1 tahun</b> (jadi <b>30 Nov 2026</b>) sebagai asumsi sementara — <b>ganti begitu JUKLAK resmi tahun berikutnya terbit.</b>
-      <br>• <b>Kriteria yang BISA dicek otomatis:</b> kesesuaian jabatan dengan kategori KLHN, masa kerja (pakai tanggal bergabung jaringan Honda sebagai proxy — bukan tanggal menjabat posisi spesifik), status Aktif, dan Grade NOS dealer.
-      <br>• <b>Kriteria yang TIDAK BISA dicek dari data ini</b> (perlu verifikasi manual): performa penjualan, Project Improvement, implementasi CRM/NMS, kuadran K2, standar Delivery Car, dan status "Dealer/AHASS Watchout". Kolom "Catatan" menandai ini per kategori.
+      <br>• <b>Kriteria yang BISA dicek otomatis:</b> kesesuaian jabatan, masa kerja (proxy: tanggal bergabung jaringan Honda), status Aktif, Grade NOS dealer, kuadran CRM (khusus CRO), dan <b>kelengkapan training wajib</b> (dicocokkan presisi ke Matriks Training JUKLAK per jabatan).
+      <br>• <b>Catatan cakupan data training:</b> data monitoring training (tab People Development) baru mencakup <b>2 dari 30 dealer</b> (Sinar Pagi Biak &amp; CV Turbo Motor) — kandidat dari dealer lain akan tampil "Belum Ada Data Training", bukan berarti belum training. Pencocokan nama training antar sistem (HOPE/HC3 vs JUKLAK) memakai pencocokan kata kunci — mohon dicek ulang untuk kasus batas (edge case).
+      <br>• <b>Kriteria yang TIDAK BISA dicek dari data ini</b> (perlu verifikasi manual): performa penjualan, Project Improvement, implementasi NMS, standar Delivery Car, dan status "Dealer/AHASS Watchout".
     </div>
-    <div class="filterbar" style="margin-bottom:12px;">
-      <div class="fitem" style="max-width:260px;">
-        <label>Filter Kategori KLHN</label>
-        <select id="klhnFCategory">
-          <option value="ALL">Semua Kategori</option>
-          <option value="Dealer/AHASS Head">Dealer/AHASS Head</option>
-          <option value="Team Leader">Team Leader</option>
-          <option value="CRO">CRO</option>
-          <option value="FLP Sales">FLP Sales</option>
-          <option value="FLP Non Sales">FLP Non Sales</option>
-          <option value="Deliveryman">Deliveryman</option>
-        </select>
+    <div class="methodnote"><b>ℹ️ Info Kuadran CRM:</b> Seluruh dealer berada di <b>Kuadran 2</b>, kecuali <b>Budi Jaya Wamena, Arui Makmur, Astra Motor Aimas,</b> dan <b>PT Fajar Terus Bersinar</b> (belum Kuadran 2) — relevan untuk syarat kategori CRO.</div>
+
+    <div class="kpi-row" id="klhnOverallKpiRow"></div>
+
+    <div id="klhnCategoryTables"></div>
+  </section>
+
+  <!-- ========== TAB: GOOGLE BUSINESS PROFILE (INPUT MANUAL HARIAN) ========== -->
+  <section class="tab-content" id="tab-gmb">
+    <div class="section-title"><span class="bar"></span><h2>📍 Google Business Profile</h2><span class="tag" id="gmbLiveStatus" style="background:var(--grey);">Memuat data…</span></div>
+    <div class="methodnote">
+      Data rating, jumlah ulasan, dan sentimen di sini <b>diinput manual oleh tim setiap hari</b> ke Google Sheets (bukan crawling otomatis) — tim membuka Google Maps tiap dealer, mencatat angkanya, lalu menaksir berapa ulasan yang terasa positif/negatif dari yang dibaca.
+      <br>Karena diisi harian secara <i>append</i> (bukan menimpa), riwayatnya membentuk <b>tren dari waktu ke waktu</b>.
+    </div>
+
+    <div class="kpi-row" id="gmbKpiRow"></div>
+
+    <div class="fitem" style="max-width:320px; margin-bottom:12px;">
+      <label>Filter Dealer</label>
+      <select id="gmbFDealer"><option value="ALL">Semua Dealer</option></select>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Tren Rating</h3>
+        <div class="cardsub">Rata-rata rating dari waktu ke waktu (sesuai filter dealer)</div>
+        <div class="chart-wrap"><canvas id="gmbRatingTrendChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Tren Jumlah Ulasan</h3>
+        <div class="chart-wrap"><canvas id="gmbReviewTrendChart"></canvas></div>
       </div>
     </div>
-    <div class="kpi-row" id="klhnKpiRow"></div>
-    <div class="card"><div style="overflow-x:auto; max-height:560px;"><table class="dt" id="klhnScreeningTable"></table></div></div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Sentimen Ulasan (Kumulatif)</h3>
+        <div class="cardsub">Perkiraan positif vs negatif dari seluruh entri harian</div>
+        <div class="chart-wrap"><canvas id="gmbSentimentChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Tema Komplain yang Sering Muncul</h3>
+        <div class="cardsub">Dari catatan "Tema Komplain" yang diinput tim</div>
+        <div class="chart-wrap"><canvas id="gmbThemeChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>Rating &amp; Ulasan Terkini per Dealer</h2></div>
+    <div class="card"><div style="overflow-x:auto; max-height:460px;"><table class="dt" id="gmbLatestTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>Riwayat Input Harian</h2></div>
+    <div class="card"><div style="overflow-x:auto; max-height:460px;"><table class="dt" id="gmbHistoryTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: ALERTS ========== -->
@@ -3307,11 +3355,84 @@ const KLHN_TENURE_REQ = { 'Dealer/AHASS Head': 2, 'CRO': 1 }; // tahun, kategori
 const KLHN_CATATAN = {
   'Dealer/AHASS Head': 'Perlu verifikasi manual: Project Improvement (Nov 2025–Nov 2026), status Dealer/AHASS Watchout.',
   'Team Leader': 'Perlu verifikasi manual: rata-rata performa penjualan tim vs rata-rata dealer, materi presentasi.',
-  'CRO': 'Perlu verifikasi manual: implementasi CRM/NMS sejak Jan 2026, kuadran K2, Project Improvement.',
+  'CRO': 'Perlu verifikasi manual: implementasi CRM/NMS sejak Jan 2026, Project Improvement.',
   'FLP Sales': 'Perlu verifikasi manual: rata-rata/median penjualan (data CDB) periode Nov 2025–Nov 2026.',
   'FLP Non Sales': 'Grade NOS dealer dicek otomatis (asumsi Des 2026); detail area kerja spesifik perlu verifikasi manual.',
   'Deliveryman': 'Perlu verifikasi manual: standar Delivery Car (desain, RAMP, tali Racet) di dealer.',
 };
+const KLHN_CATEGORY_ORDER = ['Dealer/AHASS Head','Team Leader','CRO','FLP Sales','FLP Non Sales','Deliveryman'];
+const KLHN_CATEGORY_ICON = {'Dealer/AHASS Head':'🏢','Team Leader':'👔','CRO':'📇','FLP Sales':'🛵','FLP Non Sales':'🧾','Deliveryman':'🚚'};
+
+// Info Kuadran CRM — seluruh dealer Kuadran 2, kecuali 4 dealer berikut
+const CRM_NON_K2_DEALERS = ['BUDI JAYA WAMENA','ARUI MAKMUR','ASTRA MOTOR AIMAS','PT FAJAR TERUS BERSINAR'];
+function getCrmKuadran(dealer){
+  return CRM_NON_K2_DEALERS.includes((dealer||'').toUpperCase().trim()) ? 'Bukan Kuadran 2' : 'Kuadran 2';
+}
+
+// ============================================================
+// MATRIKS TRAINING WAJIB PER JABATAN — ditranskripsi dari slide
+// "Matriks Training" JUKLAK KLHN 2026. Key = JabatanUtama (persis
+// seperti di data HR), value = daftar training wajib.
+// ============================================================
+const JABATAN_TRAINING_MATRIX = {
+  'Big Bike Manager': ['Big Wing Training','Complaint Handling Training for Leader','CX Training for Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for Leader','NOS - Big Wing','BOT for Leader','NOS 3.0 Training for Leader'],
+  'Kepala Bengkel': ['Complaint Handling Training for Leader','Salesmanship 1 Training for FLP','NOS EV Training for Leader','BOT for Leader','NOS 3.0 Training for Leader'],
+  'Kepala Cabang': ['Digimon Training for Leader','Follow Up Training for Leader','Complaint Handling Training for Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for Leader','NOS EV Training for Leader','BOT for Leader','NOS 3.0 Training for Leader'],
+  'Pemilik In Charge H1': ['Digimon Training for Leader','Follow Up Training for Leader','Complaint Handling Training for Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for Leader','NOS EV Training for Leader','BOT for Leader','NOS 3.0 Training for Leader'],
+  'Pemilik In Charge H2': ['Complaint Handling Training for Leader','Salesmanship 1 Training for FLP','NOS EV Training for Leader','BOT for Leader','NOS 3.0 Training for Leader'],
+
+  'Koordinator Sales Counter': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for Leader','Complaint Handling Training for Leader','CX Training for FLP','CX Training for Team Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','NOS EV Training for Leader','BOT for Leader'],
+  'Koordinator Salesman': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for Leader','Complaint Handling Training for Leader','CX Training for FLP','CX Training for Team Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 3 Training for Team Leader','NOS EV Training for Leader','BOT for Leader'],
+
+  'PIC CRM': ['BOT for Dealer','Fun Followup For Dealer','NOS 3 for Dealer','NOS EV for Dealer'],
+
+  'Big Bike Consultant': ['Big Wing Training','BOT for Dealer','Complaint Handling Training for Leader','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS - Big Wing','Salesmanship 2 Training for FLP','NOS EV for Dealer'],
+  'Sales Counter S1': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Sales Counter S2': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Sales Counter S3': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Salesman S1': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Salesman S2': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Salesman S3': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+  'Wing Sales People': ['3B EV Training for FLP','BOT for Dealer','Digimon Training for FLP','Fun Followup For Dealer','CX Training for FLP','Salesmanship 1 Training for FLP','Virtual Communication Training for FLP','NOS 3 for Dealer','NOS EV for Dealer','Salesmanship 2 Training for FLP','Salesmanship EV Training for FLP'],
+
+  'Admin STNK/BPKB': ['BOT for Dealer','Fun Followup For Dealer','NOS 3 for Dealer','NOS EV for Dealer'],
+  'Kasir': ['BOT for Dealer','Fun Followup For Dealer','NOS 3 for Dealer','NOS EV for Dealer'],
+  'PIC Parts': ['BOT for Dealer','Fun Followup For Dealer','NOS 3 for Dealer','NOS EV for Dealer'],
+
+  'Delivery Man': ['BOT for Dealer','Fun Followup For Dealer','NOS 3 for Dealer','NOS EV for Dealer'],
+};
+
+// Nama training di data HOPE/HC3 (PEOPLE_DEV_DATA) ditulis dengan format
+// berbeda dari nama di Matriks Training JUKLAK (mis. "DIGIMON FOR FLP" vs
+// "Digimon Training for FLP"). Fungsi ini menormalkan kata kunci supaya
+// keduanya bisa dicocokkan (mengabaikan kata "training"/"for").
+function normTrainingKeywords(s){
+  return s.toLowerCase().replace(/training/g,' ').replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w && w!=='for').sort().join(' ');
+}
+function trainingIsCompleted(requiredName, completedNames){
+  const reqKw = new Set(normTrainingKeywords(requiredName).split(' '));
+  return completedNames.some(cn=>{
+    const cnKw = new Set(normTrainingKeywords(cn).split(' '));
+    let overlap = 0;
+    reqKw.forEach(w=>{ if(cnKw.has(w)) overlap++; });
+    return overlap >= Math.max(1, reqKw.size - 1); // toleransi selisih 1 kata (mis. angka versi training)
+  });
+}
+
+// Cek status training FLP dari data People Development (PEOPLE_DEV_DATA) — cakupan baru 2 dealer
+function getTrainingInfo(nama, dealer, jabatan){
+  const required = JABATAN_TRAINING_MATRIX[jabatan] || [];
+  const rec = PEOPLE_DEV_DATA.find(d => (d.dealer||'').toUpperCase().trim()===(dealer||'').toUpperCase().trim() && (d.nama||'').toUpperCase().trim()===(nama||'').toUpperCase().trim());
+  if(!rec) return { status:'Belum Ada Data Training', required: required.length, completed:0, missing: required };
+  const completedNames = rec.trainings.map(t=>t.training);
+  const missing = required.filter(req => !trainingIsCompleted(req, completedNames));
+  const completed = required.length - missing.length;
+  let status;
+  if(required.length===0) status = 'Tidak Ada Syarat Training';
+  else if(missing.length===0) status = 'Training Lengkap';
+  else status = `Kurang ${missing.length} Training`;
+  return { status, required: required.length, completed, missing };
+}
 
 function flpApplyFilters(){
   const dealer = document.getElementById('flpFDealer').value;
@@ -3440,53 +3561,7 @@ function renderDemografiFlpTab(){
   renderKlhnScreening(filtered);
 }
 
-function renderKlhnScreening(baseFiltered){
-  const catFilter = document.getElementById('klhnFCategory');
-  if(catFilter.dataset.bound !== '1'){
-    catFilter.addEventListener('change', ()=> renderKlhnScreening(flpApplyFilters()));
-    catFilter.dataset.bound = '1';
-  }
-  const selectedCat = catFilter.value;
-  const candidates = baseFiltered.filter(r=> r.klhn!=null && (selectedCat==='ALL' || r.klhn===selectedCat));
-
-  // ---- KPI ----
-  const kpiRow = document.getElementById('klhnKpiRow');
-  const perCat = {};
-  candidates.forEach(r=>{ perCat[r.klhn] = (perCat[r.klhn]||0)+1; });
-  const lolos = candidates.filter(r=>klhnStatus(r).status==='Lolos Screening Awal').length;
-  kpiRow.innerHTML = [
-    {label:'Total Kandidat', value: candidates.length, delta:'sesuai filter aktif'},
-    {label:'Lolos Screening Awal', value: lolos, delta:'kriteria otomatis terpenuhi'},
-    {label:'Kategori Ditampilkan', value: Object.keys(perCat).length, delta:'dari 6 kategori KLHN'},
-    {label:'Perlu Verifikasi Manual', value: candidates.length, delta:'semua kandidat (lihat catatan)'},
-  ].map(k=>`
-    <div class="kpi good">
-      <div class="label">${k.label}</div>
-      <div class="value">${k.value}</div>
-      <div class="delta good">${k.delta}</div>
-    </div>`).join('');
-
-  // ---- Tabel ----
-  const tbl = document.getElementById('klhnScreeningTable');
-  tbl.innerHTML = `<tr><th>Nama</th><th>Dealer</th><th>Jabatan</th><th>Kategori KLHN</th><th>Group</th><th>Masa Kerja</th><th>Grade NOS Dealer</th><th>Status Screening</th><th>Catatan</th></tr>` +
-    [...candidates].sort((a,b)=> (a.klhn||'').localeCompare(b.klhn||'') || b.tenureYears - a.tenureYears).map(r=>{
-      const st = klhnStatus(r);
-      const stColor = st.status==='Lolos Screening Awal' ? '#E9F7EF' : (st.status==='Belum Memenuhi' ? '#FDEBEE' : '#FFF7E6');
-      return `<tr>
-        <td>${r.nama}</td>
-        <td>${r.dealer}</td>
-        <td>${r.jabatan}</td>
-        <td><b>${r.klhn}</b></td>
-        <td>${r.group}</td>
-        <td>${r.tenureYears!=null? r.tenureYears.toFixed(1)+' th' : '-'}</td>
-        <td>${r.nosGrade? nosGradeBadge(r.nosGrade) : '<span style="color:var(--grey);">Belum ada data</span>'}</td>
-        <td style="background:${stColor}; font-weight:700;">${st.status}</td>
-        <td style="font-size:11px; color:var(--grey);">${KLHN_CATATAN[r.klhn]||''}</td>
-      </tr>`;
-    }).join('');
-}
-
-function klhnStatus(r){
+function klhnStatus(r, trainInfo){
   const cat = r.klhn;
   const tenureReq = KLHN_TENURE_REQ[cat];
   if(tenureReq!=null){
@@ -3497,7 +3572,73 @@ function klhnStatus(r){
     if(!r.nosGrade) return {status:'Perlu Verifikasi Manual'};
     if(GRADE_RANK[r.nosGrade] < GRADE_RANK['Gold']) return {status:'Belum Memenuhi'};
   }
+  if(cat==='CRO'){
+    if(getCrmKuadran(r.dealer) !== 'Kuadran 2') return {status:'Belum Memenuhi'};
+  }
+  if(trainInfo){
+    if(trainInfo.status==='Belum Ada Data Training') return {status:'Perlu Verifikasi Manual'};
+    if(trainInfo.status.startsWith('Kurang')) return {status:'Belum Memenuhi'};
+  }
   return {status:'Lolos Screening Awal'};
+}
+
+function renderKlhnScreening(baseFiltered){
+  const candidates = baseFiltered.filter(r=> r.klhn!=null);
+
+  // ---- KPI keseluruhan ----
+  const kpiRow = document.getElementById('klhnOverallKpiRow');
+  const statuses = candidates.map(r=> klhnStatus(r, getTrainingInfo(r.nama, r.dealer, r.jabatan)).status);
+  const lolos = statuses.filter(s=>s==='Lolos Screening Awal').length;
+  const belum = statuses.filter(s=>s==='Belum Memenuhi').length;
+  kpiRow.innerHTML = [
+    {label:'Total Kandidat (semua kategori)', value: candidates.length, delta:'sesuai filter aktif di atas'},
+    {label:'Lolos Screening Awal', value: lolos, delta:'kriteria otomatis terpenuhi'},
+    {label:'Belum Memenuhi', value: belum, delta:'kriteria otomatis tidak terpenuhi'},
+    {label:'Perlu Verifikasi Manual', value: candidates.length - lolos - belum, delta:'data tidak lengkap untuk cek otomatis'},
+  ].map(k=>`
+    <div class="kpi good">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta good">${k.delta}</div>
+    </div>`).join('');
+
+  // ---- 6 tabel terpisah per kategori ----
+  const container = document.getElementById('klhnCategoryTables');
+  container.innerHTML = KLHN_CATEGORY_ORDER.map(cat=>`
+    <div class="section-title" style="margin-top:22px;"><span class="bar"></span><h2>${KLHN_CATEGORY_ICON[cat]} ${cat}</h2><span class="tag" id="klhnCount_${cat.replace(/[^A-Za-z]/g,'')}">-</span></div>
+    <div class="card"><div style="overflow-x:auto; max-height:440px;"><table class="dt" id="klhnTbl_${cat.replace(/[^A-Za-z]/g,'')}"></table></div></div>
+  `).join('');
+
+  KLHN_CATEGORY_ORDER.forEach(cat=>{
+    const key = cat.replace(/[^A-Za-z]/g,'');
+    const catCandidates = candidates.filter(r=>r.klhn===cat);
+    document.getElementById(`klhnCount_${key}`).textContent = catCandidates.length + ' kandidat';
+    const isCRO = cat==='CRO';
+    const tbl = document.getElementById(`klhnTbl_${key}`);
+    const extraHeader = isCRO ? '<th>Kuadran CRM</th>' : '';
+    tbl.innerHTML = `<tr><th>Nama</th><th>Dealer</th><th>Jabatan</th><th>Group</th><th>Masa Kerja</th><th>Grade NOS Dealer</th>${extraHeader}<th>Status Training</th><th>Status Screening</th><th>Catatan</th></tr>` +
+      (catCandidates.length ? [...catCandidates].sort((a,b)=> b.tenureYears - a.tenureYears).map(r=>{
+        const trainInfo = getTrainingInfo(r.nama, r.dealer, r.jabatan);
+        const st = klhnStatus(r, trainInfo);
+        const stColor = st.status==='Lolos Screening Awal' ? '#E9F7EF' : (st.status==='Belum Memenuhi' ? '#FDEBEE' : '#FFF7E6');
+        const trainColor = trainInfo.status==='Training Lengkap' ? '#E9F7EF' : (trainInfo.status.startsWith('Kurang') ? '#FDEBEE' : '#F3F4F6');
+        const trainDetail = trainInfo.required>0 ? ` (${trainInfo.completed}/${trainInfo.required} modul)` : '';
+        const missingTitle = trainInfo.missing && trainInfo.missing.length ? ` title="Belum: ${trainInfo.missing.join('; ')}"` : '';
+        const extraCell = isCRO ? `<td>${getCrmKuadran(r.dealer)==='Kuadran 2' ? '<b style="color:var(--green,#1E8E5A);">Kuadran 2 ✓</b>' : '<b style="color:var(--red-dark);">Bukan Kuadran 2</b>'}</td>` : '';
+        return `<tr>
+          <td>${r.nama}</td>
+          <td>${r.dealer}</td>
+          <td>${r.jabatan}</td>
+          <td>${r.group}</td>
+          <td>${r.tenureYears!=null? r.tenureYears.toFixed(1)+' th' : '-'}</td>
+          <td>${r.nosGrade? nosGradeBadge(r.nosGrade) : '<span style="color:var(--grey);">Belum ada data</span>'}</td>
+          ${extraCell}
+          <td style="background:${trainColor}; font-size:11.5px;"${missingTitle}>${trainInfo.status}${trainDetail}</td>
+          <td style="background:${stColor}; font-weight:700;">${st.status}</td>
+          <td style="font-size:11px; color:var(--grey);">${KLHN_CATATAN[cat]||''}</td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="9" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada kandidat pada kategori ini sesuai filter yang aktif.</td></tr>`);
+  });
 }
 
 
@@ -3590,6 +3731,149 @@ function renderPeopleDevTab(){
 }
 
 
+// ============================================================
+// GOOGLE BUSINESS PROFILE — data input manual harian (bukan crawling).
+// Live-fetch dari Apps Script (sheet "Daftar Dealer GMB" & "Data Harian
+// GMB"), dengan fallback data kosong kalau belum ada isi/koneksi.
+// ============================================================
+let GMB_DEALERS = [];
+let GMB_HISTORY = [];
+let gmbLiveFetchStarted = false;
+
+async function loadGmbLiveData(){
+  try{
+    const res = await callAppsScriptAction({ key: NOS_LIVE_KEY, action: 'gmbData' });
+    if(res){
+      GMB_DEALERS = res.dealers || [];
+      GMB_HISTORY = res.history || [];
+      return { ok:true, updatedAt: res.updatedAt };
+    }
+  }catch(e){ /* diamkan, tampilkan status kosong */ }
+  return { ok:false };
+}
+
+function ensureGmbLiveData(){
+  if(gmbLiveFetchStarted) return;
+  gmbLiveFetchStarted = true;
+  loadGmbLiveData().then(res=>{
+    const el = document.getElementById('gmbLiveStatus');
+    if(el){
+      el.textContent = res.ok
+        ? (GMB_HISTORY.length ? '🟢 Live · diperbarui '+new Date(res.updatedAt).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '🟡 Terhubung, belum ada data diinput')
+        : '⚙️ Belum terhubung ke Google Sheets';
+    }
+    if(currentTab==='gmb') renderGmbTab();
+  });
+}
+
+function renderGmbTab(){
+  ensureGmbLiveData();
+
+  const dealerSel = document.getElementById('gmbFDealer');
+  if(dealerSel.dataset.populated !== '1' && GMB_DEALERS.length){
+    GMB_DEALERS.forEach(d=>{ const o=document.createElement('option'); o.value=d.dealer; o.textContent=d.dealer; dealerSel.appendChild(o); });
+    dealerSel.addEventListener('change', renderGmbTab);
+    dealerSel.dataset.populated = '1';
+  }
+  const selectedDealer = dealerSel.value || 'ALL';
+  const histFiltered = selectedDealer==='ALL' ? GMB_HISTORY : GMB_HISTORY.filter(h=>h.dealer===selectedDealer);
+  const sorted = [...histFiltered].sort((a,b)=> a.tanggal.localeCompare(b.tanggal));
+
+  // ---- KPI ----
+  const kpiRow = document.getElementById('gmbKpiRow');
+  const withRating = sorted.filter(h=>h.rating!=null);
+  const avgRating = withRating.length ? (withRating.reduce((s,h)=>s+Number(h.rating),0)/withRating.length) : null;
+  const totalPos = sorted.reduce((s,h)=>s+(Number(h.positif)||0),0);
+  const totalNeg = sorted.reduce((s,h)=>s+(Number(h.negatif)||0),0);
+  const latestEntry = sorted.length ? sorted[sorted.length-1] : null;
+  kpiRow.innerHTML = [
+    {label:'Dealer Terdaftar', value: GMB_DEALERS.length, delta:'di Daftar Dealer GMB'},
+    {label:'Rating Terkini', value: latestEntry && latestEntry.rating!=null ? Number(latestEntry.rating).toFixed(1) : '-', delta: latestEntry? latestEntry.tanggal : 'belum ada data'},
+    {label:'Ulasan Positif (kumulatif)', value: totalPos, delta:'dari seluruh entri harian'},
+    {label:'Ulasan Negatif (kumulatif)', value: totalNeg, delta:'dari seluruh entri harian'},
+  ].map(k=>`
+    <div class="kpi good">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta good">${k.delta}</div>
+    </div>`).join('');
+
+  // ---- Tren Rating ----
+  destroyChart('gmbRatingTrendChart');
+  charts.gmbRatingTrendChart = new Chart(document.getElementById('gmbRatingTrendChart'), {
+    type:'line',
+    data:{ labels: sorted.map(h=>h.tanggal), datasets:[{ label:'Rating', data: sorted.map(h=>h.rating!=null?Number(h.rating):null), borderColor:COLORS.navy, backgroundColor:'transparent', tension:0.3, spanGaps:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{min:1,max:5, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
+  // ---- Tren Jumlah Ulasan ----
+  destroyChart('gmbReviewTrendChart');
+  charts.gmbReviewTrendChart = new Chart(document.getElementById('gmbReviewTrendChart'), {
+    type:'line',
+    data:{ labels: sorted.map(h=>h.tanggal), datasets:[{ label:'Jumlah Ulasan', data: sorted.map(h=>h.jumlahUlasan!=null?Number(h.jumlahUlasan):null), borderColor:COLORS.gold, backgroundColor:'transparent', tension:0.3, spanGaps:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
+  // ---- Sentimen ----
+  destroyChart('gmbSentimentChart');
+  charts.gmbSentimentChart = new Chart(document.getElementById('gmbSentimentChart'), {
+    type:'doughnut',
+    data:{ labels:['Positif','Negatif'], datasets:[{ data:[totalPos, totalNeg], backgroundColor:[COLORS.green, COLORS.red||'#C8102E'] }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:10}}} } }
+  });
+
+  // ---- Tema Komplain (hitung kata kunci dari catatan) ----
+  const themeCount = {};
+  sorted.forEach(h=>{
+    if(!h.temaKomplain) return;
+    h.temaKomplain.split(/[,;]/).map(s=>s.trim().toLowerCase()).filter(Boolean).forEach(theme=>{
+      themeCount[theme] = (themeCount[theme]||0)+1;
+    });
+  });
+  const themeSorted = Object.entries(themeCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  destroyChart('gmbThemeChart');
+  charts.gmbThemeChart = new Chart(document.getElementById('gmbThemeChart'), {
+    type:'bar',
+    data:{ labels: themeSorted.map(t=>t[0]), datasets:[{ label:'Frekuensi', data: themeSorted.map(t=>t[1]), backgroundColor: COLORS.navy, borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ x:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} } }
+  });
+
+  // ---- Tabel Terkini per Dealer ----
+  const latestByDealer = {};
+  GMB_HISTORY.forEach(h=>{
+    if(!latestByDealer[h.dealer] || h.tanggal > latestByDealer[h.dealer].tanggal) latestByDealer[h.dealer] = h;
+  });
+  const latestTbl = document.getElementById('gmbLatestTable');
+  const dealerList = GMB_DEALERS.length ? GMB_DEALERS : Object.keys(latestByDealer).map(d=>({dealer:d, link:''}));
+  latestTbl.innerHTML = `<tr><th>Dealer</th><th>Rating Terkini</th><th>Jumlah Ulasan</th><th>Update Terakhir</th><th>Link</th></tr>` +
+    dealerList.map(d=>{
+      const h = latestByDealer[d.dealer];
+      return `<tr>
+        <td>${d.dealer}</td>
+        <td>${h && h.rating!=null ? '⭐ '+Number(h.rating).toFixed(1) : '<span style="color:var(--grey);">Belum ada data</span>'}</td>
+        <td>${h && h.jumlahUlasan!=null ? h.jumlahUlasan : '-'}</td>
+        <td>${h ? h.tanggal : '-'}</td>
+        <td>${d.link ? `<a href="${d.link}" target="_blank" rel="noopener">Buka ↗</a>` : '-'}</td>
+      </tr>`;
+    }).join('');
+
+  // ---- Tabel Riwayat ----
+  const histTbl = document.getElementById('gmbHistoryTable');
+  histTbl.innerHTML = `<tr><th>Tanggal</th><th>Dealer</th><th>Rating</th><th>Jumlah Ulasan</th><th>Positif</th><th>Negatif</th><th>Tema Komplain</th><th>Dicatat Oleh</th></tr>` +
+    ([...histFiltered].sort((a,b)=> b.tanggal.localeCompare(a.tanggal)).map(h=>`
+      <tr>
+        <td>${h.tanggal}</td><td>${h.dealer}</td>
+        <td>${h.rating!=null? Number(h.rating).toFixed(1) : '-'}</td>
+        <td>${h.jumlahUlasan!=null? h.jumlahUlasan : '-'}</td>
+        <td>${h.positif||0}</td><td>${h.negatif||0}</td>
+        <td style="font-size:11.5px;">${h.temaKomplain||'-'}</td>
+        <td>${h.dicatatOleh||'-'}</td>
+      </tr>`).join('') || `<tr><td colspan="8" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Belum ada data harian diinput.</td></tr>`);
+}
+
 const TAB_RENDERERS = {
   beranda: ()=>{},
   overview: renderOverview,
@@ -3606,6 +3890,7 @@ const TAB_RENDERERS = {
   nos: renderNosTab,
   peopledev: renderPeopleDevTab,
   demografiflp: renderDemografiFlpTab,
+  gmb: renderGmbTab,
   alerts: renderAlertsTab,
 };
 
