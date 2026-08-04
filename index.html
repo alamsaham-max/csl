@@ -1171,8 +1171,10 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
     <div class="section-title"><span class="bar"></span><h2>⭐ Jelajah Ulasan per Bintang</h2></div>
     <div class="methodnote">
-      Pilih jumlah bintang untuk melihat ulasan individual (tanggal, dealer, teks ulasan) pada rating tersebut.
-      <br><b>Catatan:</b> ulasan bertanda <span style="background:#FFF7E6; padding:1px 6px; border-radius:4px;">Estimasi</span> adalah sampel teks asli dari Google yang bintangnya <i>ditaksir</i> oleh Claude dari nada tulisan (bukan rating asli) — untuk data akurat, isi manual di sheet "Ulasan Individual GMB" (tim yang buka Google Maps bisa lihat rating &amp; tanggal asli tiap ulasan).
+      Pilih jumlah bintang &amp; periode (Tahun/Bulan di atas) untuk melihat ulasan individual pada rating &amp; periode tersebut.
+      <br><b>Cara kerja periode "Diposting Sekitar":</b> Google Maps tidak menampilkan tanggal pasti tiap ulasan, hanya label relatif spt <i>"5 bulan lalu"</i>. Kalau tim mencatat label itu (kolom "Waktu Relatif" di sheet "Ulasan Individual GMB") beserta tanggal saat dicatat, dashboard ini <b>otomatis menghitung mundur</b> jadi estimasi bulan-tahun kalender — sehingga bisa difilter per bulan/tahun walau tanpa tanggal pasti.
+      <br>Badge <span style="background:#EAF2FF; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;">Estimasi periode</span> = bulan-tahun dihitung dari waktu relatif (arahkan kursor untuk lihat detail perhitungannya). Badge <span style="background:#FFF7E6; padding:1px 6px; border-radius:4px;">Bintang Estimasi</span> = jumlah bintang ditaksir dari nada teks (bukan rating asli) karena belum diinput manual.
+      <br>Untuk data paling akurat, isi kolom Bintang, Waktu Relatif (atau Tanggal Pasti kalau tahu), dan Tanggal Dicatat di sheet "Ulasan Individual GMB" setiap kali tim membuka Google Maps.
     </div>
     <div class="filterbar" style="margin-bottom:12px;">
       <div class="fitem" style="min-width:220px;">
@@ -3820,24 +3822,72 @@ const GMB_STATIC_HISTORY = [
   {tanggal:'2026-08-04', dealer:'Arui Makmur (Serui)', rating:4.6, jumlahUlasan:11, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
   {tanggal:'2026-08-04', dealer:'Sinar Wagom Intiraya (Fak-Fak)', rating:5.0, jumlahUlasan:9, positif:5, negatif:0, temaKomplain:'Tidak ada komplain terdeteksi dari sampel ulasan teratas', dicatatOleh:'Claude (Google Places)'},
 ];
-// Ulasan individual (contoh teks asli dari Google, TANPA rating/tanggal per-ulasan
-// karena API yang tersedia tidak menyediakan itu — rating di bawah ini adalah
-// ESTIMASI dari Claude berdasarkan nada teks, BUKAN rating asli dari reviewer.
-// Untuk data akurat per bintang, isi manual di sheet "Ulasan Individual GMB"
-// (tim yang buka Google Maps bisa lihat rating & tanggal asli tiap ulasan).
+// ============================================================
+// PARSER WAKTU RELATIF GMB
+// Google Maps tidak menampilkan tanggal pasti tiap ulasan — hanya label
+// relatif spt "5 bulan lalu", "seminggu lalu", "a year ago". Fungsi ini
+// mengonversi label itu + tanggal saat tim MENCATATNYA (tanggalDicatat)
+// menjadi estimasi bulan-tahun kalender saat ulasan itu kemungkinan diposting.
+// Perhitungan selalu berbasis tanggalDicatat (bukan tanggal hari ini dibuka),
+// supaya hasilnya tetap sama walau dashboard dibuka di bulan-bulan berikutnya.
+// ============================================================
+function parseGmbRelativePeriod(tanggalDicatat, relatif){
+  if(!tanggalDicatat || !relatif) return null;
+  const base = new Date(tanggalDicatat+'T00:00:00');
+  if(isNaN(base.getTime())) return null;
+  const t = String(relatif).toLowerCase().trim();
+  const numMatch = t.match(/(\d+)/);
+  const amount = numMatch ? parseInt(numMatch[1],10) : 1; // "seminggu lalu"/"a month ago" dsb = 1
+  const d = new Date(base);
+  if(/hari|day|kemarin|yesterday|jam|hour|menit|minute|baru saja|just now/.test(t)){
+    d.setDate(d.getDate() - (/(jam|hour|menit|minute|baru saja|just now)/.test(t) ? 0 : amount));
+  } else if(/minggu|week/.test(t)){
+    d.setDate(d.getDate() - amount*7);
+  } else if(/bulan|month/.test(t)){
+    d.setMonth(d.getMonth() - amount);
+  } else if(/tahun|year/.test(t)){
+    d.setFullYear(d.getFullYear() - amount);
+  } else {
+    return null; // format tidak dikenali
+  }
+  return { tahun:String(d.getFullYear()), bulan:String(d.getMonth()+1).padStart(2,'0') };
+}
+
+// Lengkapi tiap entri ulasan dengan periode (tahun/bulan) hasil parsing:
+// prioritas 1) tanggal pasti kalau diketahui, 2) hitung dari waktu relatif + tanggal dicatat.
+function normalizeGmbReviews(list){
+  return (list||[]).map(r=>{
+    let periodeTahun = null, periodeBulan = null, sumber = null;
+    if(r.tanggal){
+      periodeTahun = r.tanggal.slice(0,4); periodeBulan = r.tanggal.slice(5,7); sumber = 'pasti';
+    } else if(r.relatif && r.tanggalDicatat){
+      const p = parseGmbRelativePeriod(r.tanggalDicatat, r.relatif);
+      if(p){ periodeTahun = p.tahun; periodeBulan = p.bulan; sumber = 'estimasi_relatif'; }
+    }
+    return { ...r, periodeTahun, periodeBulan, sumberPeriode: sumber };
+  });
+}
+
+// Ulasan individual — CONTOH ILUSTRASI cara kerja fitur waktu relatif.
+// Teks ulasan di bawah ini nyata (dari Google), tapi label "relatif" dan
+// "tanggalDicatat" pada baris bertanda [CONTOH] adalah ILUSTRASI supaya
+// Anda lihat cara kerja parsernya — GANTI dengan waktu relatif yang Anda
+// baca sendiri di Google Maps (lihat sheet "Ulasan Individual GMB").
+// Rating (bintang) untuk ulasan tanpa data asli tetap ESTIMASI dari nada teks.
 const GMB_STATIC_REVIEWS = [
-  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Good job', tanggal:null},
-  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Best best', tanggal:null},
-  {dealer:'Astra Motor Sentani', bintang:5, estimasi:true, teks:'A good motorbike showroom. The employees are kind to help with the customer\u2019s needs. Great place to buy a bike', tanggal:null},
-  {dealer:'Astra Motor Sentani', bintang:4, estimasi:true, teks:'Today is January 30, 2026, the first time I did minor maintenance on my motor vehicle (change the engine oil)', tanggal:null},
-  {dealer:'PT Fajar Terus Bersinar (Jayapura)', bintang:5, estimasi:true, teks:'The place is clean and the service is good', tanggal:null},
-  {dealer:'Astra Motor Manokwari', bintang:5, estimasi:true, teks:'Excellent service . Thank you so much', tanggal:null},
-  {dealer:'Astra Motor Sorong 1 (Tanah Hitam)', bintang:5, estimasi:true, teks:'Professional and helpful mechanic \ud83d\udc4c\ud83c\udffd Thanks Hamka :)', tanggal:null},
-  {dealer:'Budi Jaya Wamena', bintang:5, estimasi:true, teks:'The service is good, the units are complete\ud83e\udef0\ud83e\udef0', tanggal:null},
-  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'Complete and ready selection of Honda motorbikes, friendly and very helpful service', tanggal:null},
-  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'I am very satisfied with the service at CV. Sulawesi Manokwari, the service is fast and very satisfying.', tanggal:null},
-  {dealer:'Arui Makmur (Serui)', bintang:5, estimasi:true, teks:'The Honda dealership is the only one in Serui and is served by friendly staff.', tanggal:null},
-  {dealer:'Sinar Wagom Intiraya (Fak-Fak)', bintang:5, estimasi:true, teks:'THE BEST SERVICE, THE EMPLOYEES ARE POLITE AND FRIENDLY', tanggal:null},
+  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Good job', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Entrop', bintang:5, estimasi:true, teks:'Best best', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Sentani', bintang:5, estimasi:true, teks:'A good motorbike showroom. The employees are kind to help with the customer\u2019s needs. Great place to buy a bike', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Sentani', bintang:4, estimasi:true, teks:'Today is January 30, 2026, the first time I did minor maintenance on my motor vehicle (change the engine oil)', tanggal:'2026-01-30', relatif:null, tanggalDicatat:null},
+  {dealer:'PT Fajar Terus Bersinar (Jayapura)', bintang:5, estimasi:true, teks:'The place is clean and the service is good', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Manokwari', bintang:5, estimasi:true, teks:'Excellent service . Thank you so much', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Sorong 1 (Tanah Hitam)', bintang:5, estimasi:true, teks:'Professional and helpful mechanic \ud83d\udc4c\ud83c\udffd Thanks Hamka :)', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Budi Jaya Wamena', bintang:5, estimasi:true, teks:'The service is good, the units are complete\ud83e\udef0\ud83e\udef0', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'Complete and ready selection of Honda motorbikes, friendly and very helpful service', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'I am very satisfied with the service at CV. Sulawesi Manokwari, the service is fast and very satisfying.', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Arui Makmur (Serui)', bintang:5, estimasi:true, teks:'The Honda dealership is the only one in Serui and is served by friendly staff.', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Sinar Wagom Intiraya (Fak-Fak)', bintang:5, estimasi:true, teks:'THE BEST SERVICE, THE EMPLOYEES ARE POLITE AND FRIENDLY', tanggal:null, relatif:null, tanggalDicatat:null},
+  {dealer:'Astra Motor Entrop', bintang:5, estimasi:false, teks:'[CONTOH] Pelayanan sangat cepat dan ramah', tanggal:null, relatif:'5 bulan lalu', tanggalDicatat:'2026-08-04'},
 ];
 
 let GMB_DEALERS = [];
@@ -3851,13 +3901,13 @@ async function loadGmbLiveData(){
     if(res && (res.dealers||[]).length){
       GMB_DEALERS = res.dealers;
       GMB_HISTORY = res.history || [];
-      GMB_REVIEWS = res.reviews || GMB_STATIC_REVIEWS;
+      GMB_REVIEWS = normalizeGmbReviews(res.reviews && res.reviews.length ? res.reviews : GMB_STATIC_REVIEWS);
       return { ok:true, live:true, updatedAt: res.updatedAt };
     }
   }catch(e){ /* jatuh ke fallback statis di bawah */ }
   GMB_DEALERS = GMB_STATIC_DEALERS;
   GMB_HISTORY = GMB_STATIC_HISTORY;
-  GMB_REVIEWS = GMB_STATIC_REVIEWS;
+  GMB_REVIEWS = normalizeGmbReviews(GMB_STATIC_REVIEWS);
   return { ok:true, live:false };
 }
 
@@ -3887,9 +3937,16 @@ function renderGmbTab(){
     dealerSel.addEventListener('change', renderGmbTab);
     dealerSel.dataset.populated = '1';
   }
-  if(tahunSel.dataset.populated !== '1' && GMB_HISTORY.length){
-    const years = [...new Set(GMB_HISTORY.map(h=>h.tanggal.slice(0,4)))].sort();
-    years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; tahunSel.appendChild(o); });
+  if(tahunSel.dataset.populated !== '1'){
+    // Rentang tahun tetap 2021–tahun berjalan (bukan hanya tahun yang sudah ada datanya),
+    // supaya slicer selalu tersedia — tahun/bulan tanpa data akan tampil "Tidak Ada Data".
+    const currentYear = new Date().getFullYear();
+    const yearsFromData = GMB_HISTORY.map(h=>Number(h.tanggal.slice(0,4)));
+    const minYear = Math.min(2021, ...(yearsFromData.length? yearsFromData : [2021]));
+    const maxYear = Math.max(currentYear, ...(yearsFromData.length? yearsFromData : [currentYear]));
+    for(let y=maxYear; y>=minYear; y--){
+      const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); tahunSel.appendChild(o);
+    }
     BULAN_NAMES.forEach((name,i)=>{ const o=document.createElement('option'); o.value=String(i+1).padStart(2,'0'); o.textContent=name; bulanSel.appendChild(o); });
     tahunSel.addEventListener('change', renderGmbTab);
     bulanSel.addEventListener('change', renderGmbTab);
@@ -4004,21 +4061,31 @@ function renderGmbTab(){
     if(bintangFilter!=='ALL' && String(r.bintang)!==bintangFilter) return false;
     if(reviewDealerFilter!=='ALL' && r.dealer!==reviewDealerFilter) return false;
     if(periodActive){
-      if(!r.tanggal) return false; // tanggal tidak diketahui -> tidak bisa dicocokkan ke periode tertentu
-      if(selectedTahun!=='ALL' && r.tanggal.slice(0,4)!==selectedTahun) return false;
-      if(selectedBulan!=='ALL' && r.tanggal.slice(5,7)!==selectedBulan) return false;
+      if(!r.periodeTahun) return false; // periode tidak diketahui (belum ada tanggal/waktu relatif) -> tidak bisa dicocokkan
+      if(selectedTahun!=='ALL' && r.periodeTahun!==selectedTahun) return false;
+      if(selectedBulan!=='ALL' && r.periodeBulan!==selectedBulan) return false;
     }
     return true;
   });
   const reviewsTbl = document.getElementById('gmbReviewsTable');
-  reviewsTbl.innerHTML = `<tr><th>Tanggal</th><th>Dealer</th><th>Bintang</th><th>Ulasan</th></tr>` +
-    (filteredReviews.length ? filteredReviews.map(r=>`
+  reviewsTbl.innerHTML = `<tr><th>Diposting Sekitar</th><th>Dealer</th><th>Bintang</th><th>Ulasan</th></tr>` +
+    (filteredReviews.length ? filteredReviews.map(r=>{
+      let periodeCell;
+      if(r.sumberPeriode==='pasti'){
+        periodeCell = `${r.tanggal}`;
+      } else if(r.sumberPeriode==='estimasi_relatif'){
+        periodeCell = `${BULAN_NAMES[Number(r.periodeBulan)-1]} ${r.periodeTahun} <span style="background:#EAF2FF; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;" title="Dihitung dari waktu relatif &quot;${r.relatif}&quot; yang dibaca di Google Maps pada ${r.tanggalDicatat}">Estimasi periode</span>`;
+      } else {
+        periodeCell = '<span style="color:var(--grey);">Tidak diketahui</span>';
+      }
+      return `
       <tr>
-        <td>${r.tanggal || '<span style="color:var(--grey);">Tidak diketahui</span>'}</td>
+        <td style="font-size:12px;">${periodeCell}</td>
         <td>${r.dealer}</td>
-        <td>${'⭐'.repeat(r.bintang)} ${r.estimasi ? '<span style="background:#FFF7E6; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;">Estimasi</span>' : ''}</td>
+        <td>${'⭐'.repeat(r.bintang)} ${r.estimasi ? '<span style="background:#FFF7E6; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700;">Bintang Estimasi</span>' : ''}</td>
         <td style="font-size:12px;">${r.teks}</td>
-      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada ulasan pada filter ini.</td></tr>`);
+      </tr>`;
+    }).join('') : `<tr><td colspan="4" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada ulasan pada filter ini.</td></tr>`);
 
   // ---- Tabel Riwayat ----
   const histTbl = document.getElementById('gmbHistoryTable');
