@@ -1033,6 +1033,37 @@ table.dt tr:hover td{ background:#F8F9FC; }
       <select id="pdDealerFilter"><option value="ALL">Semua Dealer</option></select>
     </div>
     <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="pdDetailTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>👥 Demografi &amp; Insight FLP</h2><span class="tag">Sumber: Data Sales People Cutoff Agustus 2026 · Z11 Papua</span></div>
+    <div class="methodnote">Data karyawan (FLP) seluruh dealer Z11 Papua dari 2001–2026 (4.275 record histori). Insight di bawah difokuskan pada staff berstatus <b>Aktif</b> per Agustus 2026.</div>
+
+    <div class="kpi-row" id="flpKpiRow"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Komposisi Gender</h3>
+        <div class="chart-wrap"><canvas id="flpGenderChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Tingkat Pendidikan</h3>
+        <div class="chart-wrap"><canvas id="flpEduChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Kategori Jabatan</h3>
+        <div class="cardsub">Pengelompokan peran (Sales, Mekanik/Teknisi, Admin/CRM, dst)</div>
+        <div class="chart-wrap"><canvas id="flpKategoriChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Lama Bergabung (Tenure)</h3>
+        <div class="cardsub">Distribusi masa kerja staff aktif</div>
+        <div class="chart-wrap"><canvas id="flpTenureChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>Ringkasan per Dealer</h2></div>
+    <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="flpPerDealerTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: ALERTS ========== -->
@@ -3221,6 +3252,100 @@ function pdGetDealers(){
   return [...new Set(PEOPLE_DEV_DATA.map(d=>d.dealer))].sort();
 }
 
+
+// ============================================================
+// FLP DEMOGRAFI & INSIGHT — dari file "DATA_SALES_PEOPLE_CUTOFF_0_08_2026.xlsx"
+// (4.275 record histori karyawan Z11 Papua 2001-2026, difokuskan pada status Aktif)
+// ============================================================
+const FLP_OVERALL = {"totalAktif": 896, "totalTidakAktif": 3379, "gender": {"Laki-Laki": 546, "Perempuan": 350}, "pendidikan": {"SMU DAN SEDERAJAT": 711, "SARJANA": 162, "DIPLOMA 3": 9, "SMP DAN SEDERAJAT": 6, "DIPLOMA 1": 4, "MASTER": 2, "SEKOLAH DASAR": 2}, "tipeJabatan": {"Murni": 642, "Rangkap": 254}, "group": {"H1": 620, "H2": 253, "H3": 23}, "kategori": {"Sales": 367, "Mekanik/Teknisi": 230, "Admin/CRM/Kasir": 151, "Parts": 36, "Delivery": 28, "Lainnya": 28, "Leader/Kepala": 28, "Pemilik/Investor": 19, "Security": 9}, "avgTenure": 5.1, "tenureDist": {"<1 th": 230, "1-2 th": 159, "2-3 th": 117, "3-5 th": 114, "5-10 th": 147, ">10 th": 123}};
+const FLP_PER_DEALER = [{"dealer": "PT FAJAR TERUS BERSINAR", "total": 102, "laki": 50, "perempuan": 52, "avgTenure": 4.0, "sarjana": 16, "smu": 83, "sales": 38, "mekanik": 22, "leader": 3, "admin": 25}, {"dealer": "ASTRA MOTOR SORONG", "total": 72, "laki": 51, "perempuan": 21, "avgTenure": 3.5, "sarjana": 12, "smu": 58, "sales": 38, "mekanik": 16, "leader": 1, "admin": 7}, {"dealer": "ASTRA MOTOR TIMIKA", "total": 65, "laki": 44, "perempuan": 21, "avgTenure": 2.7, "sarjana": 11, "smu": 53, "sales": 32, "mekanik": 22, "leader": 1, "admin": 7}, {"dealer": "ASTRA MOTOR MANOKWARI", "total": 61, "laki": 29, "perempuan": 32, "avgTenure": 4.6, "sarjana": 16, "smu": 42, "sales": 33, "mekanik": 10, "leader": 1, "admin": 12}, {"dealer": "PT ASTRA INTERNATIONAL TBK - HONDA", "total": 60, "laki": 35, "perempuan": 25, "avgTenure": 5.0, "sarjana": 7, "smu": 51, "sales": 30, "mekanik": 11, "leader": 1, "admin": 9}, {"dealer": "ASTRA MOTOR ENTROP", "total": 59, "laki": 32, "perempuan": 27, "avgTenure": 4.6, "sarjana": 7, "smu": 52, "sales": 34, "mekanik": 10, "leader": 2, "admin": 7}, {"dealer": "ASTRA MOTOR TANAH HITAM", "total": 56, "laki": 31, "perempuan": 25, "avgTenure": 5.4, "sarjana": 7, "smu": 49, "sales": 29, "mekanik": 11, "leader": 1, "admin": 6}, {"dealer": "SINAR PAGI NABIRE", "total": 56, "laki": 31, "perempuan": 25, "avgTenure": 4.8, "sarjana": 12, "smu": 41, "sales": 22, "mekanik": 14, "leader": 2, "admin": 13}, {"dealer": "ASTRA MOTOR MERAUKE", "total": 53, "laki": 43, "perempuan": 10, "avgTenure": 3.7, "sarjana": 11, "smu": 42, "sales": 23, "mekanik": 16, "leader": 1, "admin": 8}, {"dealer": "ASTRA MOTOR SORONG 2", "total": 48, "laki": 29, "perempuan": 19, "avgTenure": 3.5, "sarjana": 10, "smu": 36, "sales": 19, "mekanik": 13, "leader": 1, "admin": 8}, {"dealer": "ASTRA MOTOR NABIRE", "total": 40, "laki": 21, "perempuan": 19, "avgTenure": 3.2, "sarjana": 8, "smu": 32, "sales": 24, "mekanik": 6, "leader": 1, "admin": 5}, {"dealer": "SINAR PAGI BIAK", "total": 33, "laki": 24, "perempuan": 9, "avgTenure": 4.9, "sarjana": 5, "smu": 28, "sales": 15, "mekanik": 8, "leader": 3, "admin": 4}, {"dealer": "ASTRA MOTOR AIMAS", "total": 30, "laki": 14, "perempuan": 16, "avgTenure": 2.9, "sarjana": 10, "smu": 20, "sales": 15, "mekanik": 7, "leader": 1, "admin": 4}, {"dealer": "CV TURBO MOTOR", "total": 26, "laki": 20, "perempuan": 6, "avgTenure": 4.7, "sarjana": 2, "smu": 24, "sales": 0, "mekanik": 12, "leader": 1, "admin": 9}, {"dealer": "SULAWESI MANOKWARI", "total": 24, "laki": 12, "perempuan": 12, "avgTenure": 8.2, "sarjana": 5, "smu": 19, "sales": 9, "mekanik": 4, "leader": 1, "admin": 6}, {"dealer": "CV METRO MOTOR NABIRE", "total": 14, "laki": 8, "perempuan": 6, "avgTenure": 5.7, "sarjana": 1, "smu": 13, "sales": 0, "mekanik": 7, "leader": 0, "admin": 5}, {"dealer": "Cendrawasih Motor 3", "total": 12, "laki": 10, "perempuan": 2, "avgTenure": 8.0, "sarjana": 2, "smu": 8, "sales": 0, "mekanik": 8, "leader": 0, "admin": 1}, {"dealer": "CV HARKAT ABADI", "total": 11, "laki": 9, "perempuan": 2, "avgTenure": 18.9, "sarjana": 2, "smu": 8, "sales": 0, "mekanik": 6, "leader": 0, "admin": 2}, {"dealer": "CV SINAR PAGI", "total": 11, "laki": 10, "perempuan": 1, "avgTenure": 4.2, "sarjana": 1, "smu": 10, "sales": 0, "mekanik": 7, "leader": 1, "admin": 3}, {"dealer": "BUDI JAYA WAMENA", "total": 10, "laki": 6, "perempuan": 4, "avgTenure": 9.8, "sarjana": 4, "smu": 6, "sales": 2, "mekanik": 2, "leader": 2, "admin": 2}, {"dealer": "Sinar Wagom Intiraya", "total": 10, "laki": 5, "perempuan": 5, "avgTenure": 5.3, "sarjana": 3, "smu": 6, "sales": 2, "mekanik": 3, "leader": 1, "admin": 2}, {"dealer": "Bintang Timur", "total": 8, "laki": 5, "perempuan": 3, "avgTenure": 8.6, "sarjana": 1, "smu": 7, "sales": 0, "mekanik": 4, "leader": 0, "admin": 2}, {"dealer": "Cendrawasih Motor", "total": 6, "laki": 5, "perempuan": 1, "avgTenure": 7.3, "sarjana": 1, "smu": 4, "sales": 0, "mekanik": 4, "leader": 0, "admin": 0}, {"dealer": "SENJA INDAH KAIMANA", "total": 6, "laki": 4, "perempuan": 2, "avgTenure": 7.3, "sarjana": 3, "smu": 3, "sales": 1, "mekanik": 0, "leader": 1, "admin": 1}, {"dealer": "ARUI MAKMUR", "total": 5, "laki": 3, "perempuan": 2, "avgTenure": 7.1, "sarjana": 2, "smu": 3, "sales": 1, "mekanik": 1, "leader": 1, "admin": 1}, {"dealer": "Doanja Motor", "total": 5, "laki": 4, "perempuan": 1, "avgTenure": 18.5, "sarjana": 1, "smu": 3, "sales": 0, "mekanik": 2, "leader": 0, "admin": 0}, {"dealer": "BIntang Timur Motor 2", "total": 4, "laki": 4, "perempuan": 0, "avgTenure": 12.1, "sarjana": 0, "smu": 3, "sales": 0, "mekanik": 2, "leader": 1, "admin": 0}, {"dealer": "Sumber Baru Motor", "total": 4, "laki": 4, "perempuan": 0, "avgTenure": 36.3, "sarjana": 0, "smu": 4, "sales": 0, "mekanik": 1, "leader": 0, "admin": 0}, {"dealer": "Surya Siwa", "total": 3, "laki": 2, "perempuan": 1, "avgTenure": 48.9, "sarjana": 0, "smu": 3, "sales": 0, "mekanik": 1, "leader": 0, "admin": 1}, {"dealer": "Rahayu Motor", "total": 2, "laki": 1, "perempuan": 1, "avgTenure": 8.6, "sarjana": 2, "smu": 0, "sales": 0, "mekanik": 0, "leader": 0, "admin": 1}];
+
+function renderFlpDemografi(){
+  // ---- KPI ----
+  const kpiRow = document.getElementById('flpKpiRow');
+  const pctSarjana = ((FLP_OVERALL.pendidikan['SARJANA']||0) / FLP_OVERALL.totalAktif * 100).toFixed(0);
+  kpiRow.innerHTML = [
+    {label:'Total Staff Aktif', value: FLP_OVERALL.totalAktif, delta: FLP_OVERALL.totalTidakAktif+' tidak aktif (histori)'},
+    {label:'Rata-rata Masa Kerja', value: FLP_OVERALL.avgTenure+' th', delta:'per staff aktif'},
+    {label:'% Lulusan Sarjana', value: pctSarjana+'%', delta:'dari total staff aktif'},
+    {label:'Dealer Tercakup', value: FLP_PER_DEALER.length, delta:'dealer dengan staff aktif'},
+  ].map(k=>`
+    <div class="kpi good">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta good">${k.delta}</div>
+    </div>`).join('');
+
+  // ---- Gender ----
+  destroyChart('flpGenderChart');
+  charts.flpGenderChart = new Chart(document.getElementById('flpGenderChart'), {
+    type:'doughnut',
+    data:{ labels:['Laki-Laki','Perempuan'], datasets:[{
+      data:[FLP_OVERALL.gender['Laki-Laki']||0, FLP_OVERALL.gender['Perempuan']||0],
+      backgroundColor:[COLORS.navy, COLORS.gold],
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:10}}} } }
+  });
+
+  // ---- Pendidikan ----
+  const eduOrder = ['SEKOLAH DASAR','SMP DAN SEDERAJAT','SMU DAN SEDERAJAT','DIPLOMA 1','DIPLOMA 3','SARJANA','MASTER'];
+  const eduLabels = {'SEKOLAH DASAR':'SD','SMP DAN SEDERAJAT':'SMP','SMU DAN SEDERAJAT':'SMU/SMK','DIPLOMA 1':'D1','DIPLOMA 3':'D3','SARJANA':'S1','MASTER':'S2'};
+  destroyChart('flpEduChart');
+  charts.flpEduChart = new Chart(document.getElementById('flpEduChart'), {
+    type:'bar',
+    data:{ labels: eduOrder.map(e=>eduLabels[e]), datasets:[{
+      label:'Jumlah Staff', data: eduOrder.map(e=>FLP_OVERALL.pendidikan[e]||0),
+      backgroundColor: COLORS.navy, borderRadius:6,
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
+  });
+
+  // ---- Kategori Jabatan ----
+  const katSorted = Object.entries(FLP_OVERALL.kategori).sort((a,b)=>b[1]-a[1]);
+  destroyChart('flpKategoriChart');
+  charts.flpKategoriChart = new Chart(document.getElementById('flpKategoriChart'), {
+    type:'bar',
+    data:{ labels: katSorted.map(k=>k[0]), datasets:[{
+      label:'Jumlah', data: katSorted.map(k=>k[1]), backgroundColor: COLORS.green, borderRadius:6,
+    }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} } }
+  });
+
+  // ---- Tenure ----
+  const tenureLabels = ['<1 th','1-2 th','2-3 th','3-5 th','5-10 th','>10 th'];
+  destroyChart('flpTenureChart');
+  charts.flpTenureChart = new Chart(document.getElementById('flpTenureChart'), {
+    type:'bar',
+    data:{ labels: tenureLabels, datasets:[{
+      label:'Jumlah Staff', data: tenureLabels.map(t=>FLP_OVERALL.tenureDist[t]||0),
+      backgroundColor: COLORS.gold, borderRadius:6,
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
+  });
+
+  // ---- Tabel per Dealer ----
+  const tbl = document.getElementById('flpPerDealerTable');
+  tbl.innerHTML = `<tr><th>Dealer</th><th>Total Aktif</th><th>Laki-Laki</th><th>Perempuan</th><th>Rata² Tenure</th><th>Sarjana</th><th>SMU/SMK</th><th>Sales</th><th>Mekanik</th><th>Leader</th><th>Admin/CRM</th></tr>` +
+    FLP_PER_DEALER.map(d=>`
+      <tr>
+        <td>${d.dealer}</td>
+        <td><b>${d.total}</b></td>
+        <td>${d.laki}</td>
+        <td>${d.perempuan}</td>
+        <td>${d.avgTenure!=null? d.avgTenure+' th' : '-'}</td>
+        <td>${d.sarjana}</td>
+        <td>${d.smu}</td>
+        <td>${d.sales}</td>
+        <td>${d.mekanik}</td>
+        <td>${d.leader}</td>
+        <td>${d.admin}</td>
+      </tr>`).join('');
+}
+
+
 function renderPeopleDevTab(){
   const dealers = pdGetDealers();
   document.getElementById('pdDealerCountNote').textContent = dealers.length;
@@ -3292,16 +3417,23 @@ function renderPeopleDevTab(){
       scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
   });
 
-  // ---- Tabel detail per staff ----
+  // ---- Tabel detail per staff — PIVOT: satu kolom per modul training ----
   const filtered = selectedDealer==='ALL' ? PEOPLE_DEV_DATA : PEOPLE_DEV_DATA.filter(d=>d.dealer===selectedDealer);
+  const allModules = [...new Set(PEOPLE_DEV_DATA.flatMap(d=>d.trainings.map(t=>t.training)))].sort();
   const tbl = document.getElementById('pdDetailTable');
-  tbl.innerHTML = `<tr><th>Dealer</th><th>Nama (FLP)</th><th>Jumlah Jenis Training</th><th>Daftar Training</th></tr>` +
+  const headerCols = allModules.map(m=>`<th style="writing-mode:vertical-rl; text-orientation:mixed; white-space:nowrap; font-size:10px; padding:6px 3px; max-height:180px;">${m}</th>`).join('');
+  tbl.innerHTML = `<tr><th style="position:sticky; left:0; background:#fff;">Dealer</th><th style="position:sticky; left:0; background:#fff;">Nama (FLP)</th><th>Jumlah Modul</th>${headerCols}</tr>` +
     [...filtered].sort((a,b)=> b.trainings.length - a.trainings.length).map(d=>{
-      const list = d.trainings.length
-        ? d.trainings.map(t=> t.training + (t.count>1? ` (${t.count}x)` : '')).join(', ')
-        : '<span style="color:var(--grey); font-style:italic;">Belum ada training tercatat</span>';
-      return `<tr><td>${d.dealer}</td><td>${d.nama}</td><td><b>${d.trainings.length}</b></td><td style="font-size:11.5px;">${list}</td></tr>`;
+      const byModule = {};
+      d.trainings.forEach(t=>{ byModule[t.training] = t.count; });
+      const cells = allModules.map(m=>{
+        const c = byModule[m];
+        return c ? `<td style="text-align:center; background:#E9F7EF; font-weight:700; color:var(--green,#1E8E5A);">${c>1?c+'x':'✓'}</td>` : `<td style="text-align:center; color:#DDD;">–</td>`;
+      }).join('');
+      return `<tr><td style="position:sticky; left:0; background:#fff;">${d.dealer}</td><td style="position:sticky; left:0; background:#fff;">${d.nama}</td><td><b>${d.trainings.length}</b></td>${cells}</tr>`;
     }).join('');
+
+  renderFlpDemografi();
 }
 
 
