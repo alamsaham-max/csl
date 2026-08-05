@@ -213,7 +213,10 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; posit
 .chart-wrap.tall{ height:380px; }
 
 table.dt{ width:100%; border-collapse:collapse; font-size:12.5px; }
-table.dt th{ text-align:left; color:var(--grey); font-weight:800; font-size:10px; text-transform:uppercase; padding:7px 8px; border-bottom:2px solid var(--line); position:sticky; top:0; background:var(--card);}
+table.dt th{ text-align:left; color:var(--grey); font-weight:800; font-size:10px; text-transform:uppercase; padding:7px 8px; border-bottom:2px solid var(--line); position:sticky; top:0; background:var(--card); cursor:pointer; user-select:none; white-space:nowrap; }
+table.dt th:hover{ color:var(--navy); background:#EEF2FA; }
+table.dt th.sort-asc::after{ content:' ▲'; font-size:9px; }
+table.dt th.sort-desc::after{ content:' ▼'; font-size:9px; }
 table.dt td{ padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
 table.dt tr:hover td{ background:#F8F9FC; }
 .pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800; }
@@ -442,10 +445,6 @@ table.dt tr:hover td{ background:#F8F9FC; }
 
 
 <div class="greeting" id="greetingTitle">Halo, apa yang Anda butuhkan hari ini?</div>
-<div class="greeting-banner" id="greetingBanner">
-  <span>👋 Halo, Tim <b>HC3 Z11 — Astra Motor Papua</b>. Gunakan menu di samping atau kartu di bawah untuk mulai menjelajah dashboard.</span>
-  <button onclick="document.getElementById('greetingBanner').style.display='none'">✕</button>
-</div>
 
 <div class="filterbar">
   <div class="fitem"><label>Tahun</label>
@@ -461,7 +460,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
     </select>
   </div>
   <div class="fitem"><label>Semester</label>
-    <select id="fSemester"><option value="SMT1">Semester 1</option></select>
+    <select id="fSemester"><option value="SMT1">Semester 1</option><option value="SMT2">Semester 2</option></select>
   </div>
   <div class="fitem"><label>Wilayah</label>
     <select id="fWilayah">
@@ -3595,6 +3594,55 @@ function renderNosTab(f){
 // ============================================================
 
 // ============================================================
+// FITUR SORT UNIVERSAL — berlaku untuk SEMUA tabel class="dt" di
+// seluruh dashboard, termasuk yang di-render ulang lewat innerHTML
+// (pakai event delegation, jadi tidak perlu di-attach ulang tiap render).
+// Klik header kolom = urutkan naik, klik lagi = urutkan turun.
+// Deteksi otomatis angka (termasuk format Rp, %, koma ribuan) vs teks.
+// ============================================================
+function sortDtTableValue(text){
+  const raw = (text||'').trim();
+  // Coba parse sebagai angka: buang "Rp", "%", spasi, koma ribuan, simbol bintang/emoji dsb.
+  const cleaned = raw.replace(/[^\d.,-]/g,'').replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',','.');
+  const num = parseFloat(cleaned);
+  if(!isNaN(num) && /\d/.test(raw)) return { isNum:true, val:num };
+  return { isNum:false, val: raw.toLowerCase() };
+}
+document.addEventListener('click', function(e){
+  const th = e.target.closest('table.dt th');
+  if(!th) return;
+  const table = th.closest('table');
+  if(!table) return;
+  const rows = Array.from(table.rows);
+  if(rows.length < 2) return; // cuma header, tidak ada data
+  const headerRow = rows[0];
+  const headerCells = Array.from(headerRow.cells);
+  const colIndex = headerCells.indexOf(th);
+  if(colIndex < 0) return;
+  const dataRows = rows.slice(1);
+  // Skip kalau baris data cuma 1 sel gabungan (colspan placeholder "Tidak ada data")
+  if(dataRows.length === 1 && dataRows[0].cells.length === 1) return;
+
+  const currentDir = th.classList.contains('sort-asc') ? 'asc' : (th.classList.contains('sort-desc') ? 'desc' : null);
+  const nextDir = currentDir === 'asc' ? 'desc' : 'asc';
+  headerCells.forEach(c => c.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(nextDir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+  const sorted = dataRows.slice().sort((a,b)=>{
+    const ca = a.cells[colIndex], cb = b.cells[colIndex];
+    if(!ca || !cb) return 0;
+    const va = sortDtTableValue(ca.textContent);
+    const vb = sortDtTableValue(cb.textContent);
+    let cmp;
+    if(va.isNum && vb.isNum) cmp = va.val - vb.val;
+    else cmp = va.val < vb.val ? -1 : (va.val > vb.val ? 1 : 0);
+    return nextDir === 'asc' ? cmp : -cmp;
+  });
+  sorted.forEach(row => table.appendChild(row));
+});
+
+
+// ============================================================
 // PEOPLE DEVELOPMENT — Training FLP, snapshot September 2026
 // (dari file "mon-training_-Sep-2026.xlsx", pivot Flexmonster,
 // diparse berdasarkan level indentasi baris: kode_dealer > nama_dealer > nama staff)
@@ -4105,9 +4153,6 @@ const GMB_STATIC_REVIEWS = [
   {dealer:'Sulawesi Manokwari', bintang:5, estimasi:true, teks:'I am very satisfied with the service at CV. Sulawesi Manokwari, the service is fast and very satisfying.', tanggal:null, relatif:null, tanggalDicatat:null},
   {dealer:'Arui Makmur (Serui)', bintang:5, estimasi:true, teks:'The Honda dealership is the only one in Serui and is served by friendly staff.', tanggal:null, relatif:null, tanggalDicatat:null},
   {dealer:'Sinar Wagom Intiraya (Fak-Fak)', bintang:5, estimasi:true, teks:'THE BEST SERVICE, THE EMPLOYEES ARE POLITE AND FRIENDLY', tanggal:null, relatif:null, tanggalDicatat:null},
-  {dealer:'Astra Motor Entrop', bintang:5, estimasi:false, teks:'[CONTOH] Pelayanan sangat cepat dan ramah', tanggal:null, relatif:'5 bulan lalu', tanggalDicatat:'2026-08-04'},
-  {dealer:'Astra Motor Sentani', bintang:2, estimasi:false, teks:'[CONTOH] Antri cukup lama, sparepart yang dicari kosong', tanggal:null, relatif:'1 tahun lalu', tanggalDicatat:'2026-08-04'},
-  {dealer:'Astra Motor Manokwari', bintang:4, estimasi:false, teks:'[CONTOH] Servicenya oke, cuma ruang tunggu agak sempit', tanggal:null, relatif:'2 tahun lalu', tanggalDicatat:'2026-08-04'},
 ];
 
 let GMB_DEALERS = [];
