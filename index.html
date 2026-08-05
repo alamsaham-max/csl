@@ -3252,7 +3252,7 @@ function ensureNosLiveData(){
         ? '🟢 Live · diperbarui ' + new Date(nosLiveStatus.updatedAt).toLocaleString('id-ID', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
         : 'Snapshot 2026 (statis) · Fase 1';
     }
-    if(currentTab === 'nos') renderNosTab();
+    if(currentTab === 'nos') renderNosTab(getFilters());
   });
 }
 
@@ -3264,7 +3264,53 @@ function get2026Actual(historyName){
   return match ? match.finalResult : null;
 }
 
-function renderNosHistory(){
+// ============================================================
+// Pencocokan filter GLOBAL (Dealer/Wilayah/Tipe Layer) ke data NOS.
+// Penamaan dealer NOS kadang beda format dari daftar dealer CSL global
+// (mis. "CV SINAR PAGI NABIRE" vs "SINAR PAGI NABIRE") — dicocokkan
+// dengan normName + substring, BUKAN exact match, supaya tetap kena.
+// Kalau tidak ketemu pasangannya sama sekali, dealer itu diperlakukan
+// "tidak diketahui" (ikut tampil kalau Wilayah=Semua, tersembunyi kalau
+// Wilayah difilter ke kota tertentu — supaya tidak salah kelompok).
+// ============================================================
+function nosNameMatchesDealerFilter(nosName, selectedDealer){
+  if(!selectedDealer || selectedDealer==='ALL') return true;
+  const a = normName(nosName), b = normName(selectedDealer);
+  return a===b || a.includes(b) || b.includes(a);
+}
+const NOS_CITY_CACHE = {};
+function nosCityFor(nosName){
+  const key = normName(nosName);
+  if(key in NOS_CITY_CACHE) return NOS_CITY_CACHE[key];
+  let found = null;
+  Object.keys(RAW.dealers).forEach(k=>{
+    if(found) return;
+    const nk = normName(k);
+    if(nk===key || key.includes(nk) || nk.includes(key)) found = RAW.dealers[k].city;
+  });
+  NOS_CITY_CACHE[key] = found;
+  return found;
+}
+function nosChannelForTipe(tipe){
+  return tipe==='REGULER' ? 'Reguler H123' : tipe==='WING' ? 'Wing' : tipe==='AHASS' ? 'AHASS H23' : null;
+}
+function filterNosList(list, f, channelOf){
+  return list.filter(d=>{
+    if(f.dealer && f.dealer!=='ALL' && !nosNameMatchesDealerFilter(d.name, f.dealer)) return false;
+    if(f.tipe && f.tipe!=='ALL'){
+      const wanted = nosChannelForTipe(f.tipe);
+      if(channelOf(d) !== wanted) return false;
+    }
+    if(f.wilayah && f.wilayah!=='ALL'){
+      const city = nosCityFor(d.name);
+      if(city !== f.wilayah) return false;
+    }
+    return true;
+  });
+}
+
+function renderNosHistory(historyList){
+  const list = historyList || NOS_HISTORY;
   // Chart: distribusi grade per tahun (2023/2024/2025 aktual)
   const years = [{key:'a2023',label:'2023'},{key:'a2024',label:'2024'},{key:'a2025',label:'2025'}];
   destroyChart('nosTrendChart');
@@ -3274,7 +3320,7 @@ function renderNosHistory(){
       labels: years.map(y=>y.label),
       datasets: GRADE_ORDER.map(g=>({
         label: g,
-        data: years.map(y => NOS_HISTORY.filter(d=>d[y.key]===g).length),
+        data: years.map(y => list.filter(d=>d[y.key]===g).length),
         backgroundColor: GRADE_COLOR[g], borderRadius:4,
       }))
     },
@@ -3286,7 +3332,7 @@ function renderNosHistory(){
   // Tabel histori per dealer — hanya angka aktual per tahun + Target 2026 (tahun berjalan)
   const tbl = document.getElementById('nosHistoryTable');
   tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>2023</th><th>2024</th><th>2025</th><th>2026 (Aktual)</th><th>Target 2026</th></tr>` +
-    NOS_HISTORY.map(d=>{
+    (list.length ? list.map(d=>{
       const actual2026 = get2026Actual(d.name);
       const cell2026 = actual2026
         ? gradeCellVsTarget(actual2026, d.t2026)
@@ -3301,7 +3347,7 @@ function renderNosHistory(){
         ${cell2026}
         <td>${gradeTxt(d.t2026)}</td>
       </tr>`;
-    }).join('');
+    }).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada dealer yang cocok dengan filter ini.</td></tr>`);
 }
 
 function nosGradeBadge(grade){
@@ -3337,9 +3383,10 @@ function renderNosTab(f){
     // ditutup dengan pesan jujur karena datanya memang tidak ada.
     // ============================================================
     const key = HIST_YEAR_KEY[selectedYear];
+    const histFiltered = filterNosList(NOS_HISTORY, f, d=>NOS_TIPE_TO_CHANNEL[d.tipe]);
     const gradeCounts = {Platinum:0, Gold:0, Silver:0, Bronze:0};
     let counted = 0;
-    NOS_HISTORY.forEach(d=>{ if(d[key]){ gradeCounts[d[key]] = (gradeCounts[d[key]]||0)+1; counted++; } });
+    histFiltered.forEach(d=>{ if(d[key]){ gradeCounts[d[key]] = (gradeCounts[d[key]]||0)+1; counted++; } });
     const kpiRow = document.getElementById('nosKpiRow');
     kpiRow.innerHTML = GRADE_ORDER.map(g=>{
       const icon = g==='Platinum'?'🏆':g==='Gold'?'🥇':g==='Silver'?'🥈':'🥉';
@@ -3353,7 +3400,7 @@ function renderNosTab(f){
     nosNote.style.display = 'block';
     nosNote.innerHTML = `📌 Anda melihat data <b>${selectedYear}</b> — hanya <b>Grade Final Audit</b> yang tercatat untuk tahun ini (data real, dari sheet histori NOS). Breakdown Premises/Process/People, Result%, Mandatory%, dan ranking detail per dealer <b>hanya tersedia untuk 2026</b> — bagian itu ditandai jelas di bawah.`;
 
-    // Chart Distribusi Grade per Channel — pakai tipe dealer dari NOS_HISTORY
+    // Chart Distribusi Grade per Channel — pakai tipe dealer dari NOS_HISTORY (sudah difilter Dealer/Wilayah/Tipe)
     const channels = ['Reguler H123','Wing','AHASS H23'];
     destroyChart('nosGradeChart');
     charts.nosGradeChart = new Chart(document.getElementById('nosGradeChart'), {
@@ -3362,7 +3409,7 @@ function renderNosTab(f){
         labels: channels,
         datasets: GRADE_ORDER.map(g=>({
           label: g,
-          data: channels.map(ch => NOS_HISTORY.filter(d => NOS_TIPE_TO_CHANNEL[d.tipe]===ch && d[key]===g).length),
+          data: channels.map(ch => histFiltered.filter(d => NOS_TIPE_TO_CHANNEL[d.tipe]===ch && d[key]===g).length),
           backgroundColor: GRADE_COLOR[g], borderRadius:4,
         }))
       },
@@ -3374,14 +3421,17 @@ function renderNosTab(f){
     // Bagian yang butuh granularitas 2026 saja -> tampilkan pesan, jangan gambar chart kosong
     destroyChart('nosRankChart');
     setHistMsg('nosRankChart','nosRankMsg', true);
+    document.getElementById('nosRankMsg').textContent = 'Ranking Result% hanya tersedia untuk 2026 — data tahun 2023-2025 cuma mencatat Grade Final, bukan skor persen.';
     destroyChart('nosH1BreakdownChart');
     setHistMsg('nosH1BreakdownChart','nosH1Msg', true);
+    document.getElementById('nosH1Msg').textContent = 'Breakdown ini hanya tersedia untuk 2026.';
     destroyChart('nosH23BreakdownChart');
     setHistMsg('nosH23BreakdownChart','nosH23Msg', true);
+    document.getElementById('nosH23Msg').textContent = 'Breakdown ini hanya tersedia untuk 2026.';
     detailTbl.innerHTML = '';
     detailMsg.style.display = 'flex';
 
-    renderNosHistory();
+    renderNosHistory(histFiltered);
     return;
   }
 
@@ -3394,16 +3444,18 @@ function renderNosTab(f){
   setHistMsg('nosH1BreakdownChart','nosH1Msg', false);
   setHistMsg('nosH23BreakdownChart','nosH23Msg', false);
 
+  const nosFiltered = filterNosList(NOS_DATA, f, d=>d.channel);
+
   // KPI: jumlah dealer per Final Grade
   const gradeCounts = {Platinum:0, Gold:0, Silver:0, Bronze:0};
-  NOS_DATA.forEach(d=>{ if(d.finalResult) gradeCounts[d.finalResult] = (gradeCounts[d.finalResult]||0)+1; });
+  nosFiltered.forEach(d=>{ if(d.finalResult) gradeCounts[d.finalResult] = (gradeCounts[d.finalResult]||0)+1; });
   const kpiRow = document.getElementById('nosKpiRow');
   kpiRow.innerHTML = GRADE_ORDER.map(g=>{
     const icon = g==='Platinum'?'🏆':g==='Gold'?'🥇':g==='Silver'?'🥈':'🥉';
     return `<div class="kpi good">
       <div class="label">${icon} ${g}</div>
       <div class="value" style="color:${GRADE_COLOR[g]};">${gradeCounts[g]||0}</div>
-      <div class="delta good">dari ${NOS_DATA.length} dealer</div>
+      <div class="delta good">dari ${nosFiltered.length} dealer</div>
     </div>`;
   }).join('');
 
@@ -3416,7 +3468,7 @@ function renderNosTab(f){
       labels: channels,
       datasets: GRADE_ORDER.map(g=>({
         label: g,
-        data: channels.map(ch => NOS_DATA.filter(d=>d.channel===ch && d.finalResult===g).length),
+        data: channels.map(ch => nosFiltered.filter(d=>d.channel===ch && d.finalResult===g).length),
         backgroundColor: GRADE_COLOR[g],
         borderRadius: 4,
       }))
@@ -3426,9 +3478,9 @@ function renderNosTab(f){
       scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{stepSize:1}} } }
   });
 
-  // Chart 2: ranking result% seluruh dealer
+  // Chart 2: ranking result% dealer (sesuai filter)
   destroyChart('nosRankChart');
-  const ranked = [...NOS_DATA].sort((a,b)=>a.resultPct-b.resultPct);
+  const ranked = [...nosFiltered].sort((a,b)=>a.resultPct-b.resultPct);
   charts.nosRankChart = new Chart(document.getElementById('nosRankChart'), {
     type:'bar',
     data:{ labels: ranked.map(d=>d.name), datasets:[{
@@ -3439,6 +3491,8 @@ function renderNosTab(f){
       plugins:{ legend:{display:false} },
       scales:{ x:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
   });
+  setHistMsg('nosRankChart','nosRankMsg', nosFiltered.length===0);
+  if(nosFiltered.length===0) document.getElementById('nosRankMsg').textContent = 'Tidak ada dealer yang cocok dengan filter ini.';
 
   // Tabel detail per dealer — termasuk breakdown Premises/Process/People
   // (dirata-ratakan dari H1 & H23 kalau dealer punya keduanya, atau H23 saja untuk AHASS mandiri)
@@ -3451,7 +3505,7 @@ function renderNosTab(f){
   }
   const tbl = document.getElementById('nosDetailTable');
   tbl.innerHTML = `<tr><th>Dealer</th><th>Channel</th><th>Premises</th><th>Process</th><th>People</th><th>Result %</th><th>Result Grade</th><th>Mandatory %</th><th>Final Grade</th></tr>` +
-    [...NOS_DATA].sort((a,b)=>b.resultPct-a.resultPct).map(d=>{
+    (nosFiltered.length ? [...nosFiltered].sort((a,b)=>b.resultPct-a.resultPct).map(d=>{
       const prem = nosAspectAvg(d,'premises'), proc = nosAspectAvg(d,'process'), ppl = nosAspectAvg(d,'people');
       return `
       <tr>
@@ -3465,42 +3519,46 @@ function renderNosTab(f){
         <td>${(d.mandatoryPct*100).toFixed(0)}%</td>
         <td>${nosGradeBadge(d.finalResult)}</td>
       </tr>`;
-    }).join('');
+    }).join('') : `<tr><td colspan="9" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada dealer yang cocok dengan filter ini.</td></tr>`);
 
-  // Breakdown Premises/Process/People — H1 (hanya dealer yang punya data h1)
-  const h1Dealers = NOS_DATA.filter(d=>d.h1);
+  // Breakdown Premises/Process/People — H1 (hanya dealer yang punya data h1, sesuai filter)
+  const h1Dealers = nosFiltered.filter(d=>d.h1);
   const h1Avg = ['premises','process','people'].map(k=>
-    h1Dealers.reduce((s,d)=>s+d.h1[k].num,0)/h1Dealers.length*100
+    h1Dealers.length ? h1Dealers.reduce((s,d)=>s+d.h1[k].num,0)/h1Dealers.length*100 : null
   );
   destroyChart('nosH1BreakdownChart');
   charts.nosH1BreakdownChart = new Chart(document.getElementById('nosH1BreakdownChart'), {
     type:'bar',
     data:{ labels:['Premises','Process','People'], datasets:[{
-      label:'Rata-rata H1', data:h1Avg.map(v=>+v.toFixed(1)),
+      label:'Rata-rata H1', data:h1Avg.map(v=>v!=null?+v.toFixed(1):0),
       backgroundColor:[COLORS.navy, COLORS.gold, COLORS.green], borderRadius:8, maxBarThickness:70,
     }]},
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
       scales:{ y:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
   });
+  setHistMsg('nosH1BreakdownChart','nosH1Msg', h1Dealers.length===0);
+  if(h1Dealers.length===0) document.getElementById('nosH1Msg').textContent = 'Tidak ada dealer H1 (Sales) yang cocok dengan filter ini.';
 
-  // Breakdown Premises/Process/People — H23 (semua dealer)
+  // Breakdown Premises/Process/People — H23 (sesuai filter)
   const h23Avg = ['premises','process','people'].map(k=>
-    NOS_DATA.reduce((s,d)=>s+d.h23[k].num,0)/NOS_DATA.length*100
+    nosFiltered.length ? nosFiltered.reduce((s,d)=>s+d.h23[k].num,0)/nosFiltered.length*100 : null
   );
   destroyChart('nosH23BreakdownChart');
   charts.nosH23BreakdownChart = new Chart(document.getElementById('nosH23BreakdownChart'), {
     type:'bar',
     data:{ labels:['Premises','Process','People'], datasets:[{
-      label:'Rata-rata H23', data:h23Avg.map(v=>+v.toFixed(1)),
+      label:'Rata-rata H23', data:h23Avg.map(v=>v!=null?+v.toFixed(1):0),
       backgroundColor:[COLORS.navy, COLORS.gold, COLORS.green], borderRadius:8, maxBarThickness:70,
     }]},
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
       scales:{ y:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
   });
+  setHistMsg('nosH23BreakdownChart','nosH23Msg', nosFiltered.length===0);
+  if(nosFiltered.length===0) document.getElementById('nosH23Msg').textContent = 'Tidak ada dealer yang cocok dengan filter ini.';
 
-  renderNosHistory();
+  renderNosHistory(filterNosList(NOS_HISTORY, f, d=>NOS_TIPE_TO_CHANNEL[d.tipe]));
 }
 
 // ============================================================
