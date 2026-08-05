@@ -3641,6 +3641,39 @@ document.addEventListener('click', function(e){
   sorted.forEach(row => table.appendChild(row));
 });
 
+// ============================================================
+// FITUR KLIK-UNTUK-FILTER GLOBAL — klik nama dealer di tabel manapun
+// (NOS, GMB, People Dev, Demografi FLP, dst) langsung mengatur filter
+// Dealer GLOBAL ke dealer itu, lalu seluruh dashboard menyesuaikan.
+// PENTING: hanya diarahkan ke dealer yang ada di daftar resmi CSL
+// (RAW.dealers) — karena itu satu-satunya daftar yang aman dipakai di
+// SEMUA tab. Dealer yang cuma muncul di data NOS/GMB/People/FLP (nama
+// beda/tidak ada padanan CSL-nya) sengaja tidak memicu apa pun, supaya
+// tidak membuat tab lain error karena mencari data yang tidak ada.
+// ============================================================
+const CSL_DEALER_NAMES = Object.keys(RAW.dealers);
+document.addEventListener('click', function(e){
+  const cell = e.target.closest('td');
+  if(!cell) return;
+  if(e.target.closest('button')) return; // jangan bentrok sama tombol di dalam sel (mis. link "Buka ↗")
+  const text = cell.textContent.trim();
+  if(!text || text.length < 4 || text.length > 60) return;
+  const norm = normName(text);
+  const matchName = CSL_DEALER_NAMES.find(k=>{
+    const nk = normName(k);
+    return nk===norm || nk.includes(norm) || norm.includes(nk);
+  });
+  if(!matchName) return; // bukan sel nama dealer yang dikenal di daftar resmi CSL
+
+  const dealerSel = document.getElementById('fDealer');
+  if(dealerSel.value === matchName) return;
+  dealerSel.value = matchName;
+  renderAll();
+  dealerSel.style.transition = 'box-shadow 0.15s';
+  dealerSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
+  setTimeout(()=>{ dealerSel.style.boxShadow=''; }, 900);
+});
+
 
 // ============================================================
 // PEOPLE DEVELOPMENT — Training FLP, snapshot September 2026
