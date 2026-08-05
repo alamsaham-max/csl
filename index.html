@@ -1081,10 +1081,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
     </div>
 
     <div class="section-title"><span class="bar"></span><h2>Detail per Staff (FLP)</h2></div>
-    <div class="fitem" style="max-width:320px; margin-bottom:12px;">
-      <label>Filter Dealer</label>
-      <select id="pdDealerFilter"><option value="ALL">Semua Dealer</option></select>
-    </div>
+    <div class="methodnote" style="margin-bottom:12px;">📌 Tabel ini mengikuti filter <b>Dealer</b> &amp; <b>Wilayah</b> di bagian atas dashboard.</div>
     <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="pdDetailTable"></table></div></div>
   </section>
 
@@ -1094,8 +1091,8 @@ table.dt tr:hover td{ background:#F8F9FC; }
     <div class="methodnote">Sumber: Data Sales People Cutoff Agustus 2026 (4.275 record histori 2001–2026, Z11 Papua). Semua chart &amp; tabel di bawah <b>saling terhubung</b> — ubah filter apa pun, seluruhnya ikut ter-update.</div>
 
     <div class="card" style="padding:16px 20px;">
+      <div class="methodnote" style="margin-bottom:10px;">📌 Filter <b>Dealer</b> &amp; <b>Wilayah</b> mengikuti filter global di atas. Filter di bawah ini khusus untuk atribut FLP (tidak ada di filter global).</div>
       <div class="filterbar" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;">
-        <div class="fitem" style="min-width:200px;"><label>Dealer</label><select id="flpFDealer"><option value="ALL">Semua Dealer</option></select></div>
         <div class="fitem" style="min-width:140px;"><label>Group</label><select id="flpFGroup"><option value="ALL">Semua Group</option><option value="H1">H1</option><option value="H2">H2</option><option value="H3">H3</option></select></div>
         <div class="fitem" style="min-width:170px;"><label>Kategori Jabatan</label><select id="flpFKategori"><option value="ALL">Semua Kategori</option></select></div>
         <div class="fitem" style="min-width:150px;"><label>Gender</label><select id="flpFGender"><option value="ALL">Semua</option><option value="Laki-Laki">Laki-Laki</option><option value="Perempuan">Perempuan</option></select></div>
@@ -3257,6 +3254,27 @@ function ensureNosLiveData(){
 }
 
 function normName(s){ return (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,''); }
+
+// ============================================================
+// BULAN AUDIT NOS 2026 — data REAL dari baris "Bulan Kunjungan"
+// di sheet "Rekap Horizontal" (file Z11-2026-MASTER REKAP SAMPING
+// Reguler H123 / H23 / Wing). 1=Jan ... 12=Des. Tidak ada audit
+// di bulan Januari (2026) — makanya kosong kalau Bulan=Januari dipilih.
+// Astra Motor Tanah Hitam diaudit 2x (Feb & Jul) — dipakai bulan
+// TERAKHIR (Jul) sebagai bulan audit final.
+// ============================================================
+const NOS_BULAN_AUDIT_RAW = {
+  'ASTRA MOTOR MANOKWARI':2, 'SULAWESI MANOKWARI':2, 'SINAR WAGOM INTIRAYA':3,
+  'ASTRA MOTOR SENTANI':4, 'ASTRA MOTOR ENTROP':5, 'BUDI JAYA WAMENA':5,
+  'PT FAJAR TERUS BERSINAR':6, 'ASTRA MOTOR MERAUKE':6, 'SINAR PAGI NABIRE':7,
+  'ASTRA MOTOR NABIRE':7, 'ASTRA MOTOR SORONG':5, 'ASTRA MOTOR TANAH HITAM':7,
+  'CENDRAWASIH MOTOR 3':2, 'TURBO MOTOR':3, 'METRO MOTOR':4,
+  'BINTANG TIMUR MOTOR 2':5, 'SUMBER BARU MOTOR':6, 'DOANJA MOTOR':7,
+};
+const NOS_BULAN_AUDIT = {};
+Object.keys(NOS_BULAN_AUDIT_RAW).forEach(k=>{ NOS_BULAN_AUDIT[normName(k)] = NOS_BULAN_AUDIT_RAW[k]; });
+NOS_DATA.forEach(d=>{ d.bulanAudit = NOS_BULAN_AUDIT[normName(d.name)] || null; });
+
 const NOS_DATA_BY_NAME = {};
 NOS_DATA.forEach(d => { NOS_DATA_BY_NAME[normName(d.name)] = d; });
 function get2026Actual(historyName){
@@ -3308,6 +3326,10 @@ function filterNosList(list, f, channelOf){
     return true;
   });
 }
+
+// Alias generik (dipakai People Dev & Demografi FLP juga, bukan cuma NOS)
+function matchesDealerFilter(name, selectedDealer){ return nosNameMatchesDealerFilter(name, selectedDealer); }
+function cityForDealerName(name){ return nosCityFor(name); }
 
 function renderNosHistory(historyList){
   const list = historyList || NOS_HISTORY;
@@ -3369,6 +3391,7 @@ function setHistMsg(canvasId, msgId, show){
 function renderNosTab(f){
   ensureNosLiveData();
   f = f || getFilters();
+  const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const selectedYear = (f && f.tahun) || 'ALL';
   const HIST_YEAR_KEY = {'2023':'a2023','2024':'a2024','2025':'a2025'};
   const nosNote = document.getElementById('nosPeriodNote');
@@ -3398,7 +3421,7 @@ function renderNosTab(f){
     }).join('');
 
     nosNote.style.display = 'block';
-    nosNote.innerHTML = `📌 Anda melihat data <b>${selectedYear}</b> — hanya <b>Grade Final Audit</b> yang tercatat untuk tahun ini (data real, dari sheet histori NOS). Breakdown Premises/Process/People, Result%, Mandatory%, dan ranking detail per dealer <b>hanya tersedia untuk 2026</b> — bagian itu ditandai jelas di bawah.`;
+    nosNote.innerHTML = `📌 Anda melihat data <b>${selectedYear}</b> — hanya <b>Grade Final Audit</b> yang tercatat untuk tahun ini (data real, dari sheet histori NOS). Breakdown Premises/Process/People, Result%, Mandatory%, dan ranking detail per dealer <b>hanya tersedia untuk 2026</b> — bagian itu ditandai jelas di bawah. Filter <b>Bulan</b> juga cuma berlaku presisi untuk 2026 (satu-satunya tahun yang punya data "Bulan Kunjungan" per dealer).`;
 
     // Chart Distribusi Grade per Channel — pakai tipe dealer dari NOS_HISTORY (sudah difilter Dealer/Wilayah/Tipe)
     const channels = ['Reguler H123','Wing','AHASS H23'];
@@ -3444,7 +3467,13 @@ function renderNosTab(f){
   setHistMsg('nosH1BreakdownChart','nosH1Msg', false);
   setHistMsg('nosH23BreakdownChart','nosH23Msg', false);
 
-  const nosFiltered = filterNosList(NOS_DATA, f, d=>d.channel);
+  const nosFiltered = filterNosList(NOS_DATA, f, d=>d.channel)
+    .filter(d => (f.bulan==='ALL') || (d.bulanAudit === Number(f.bulan)));
+
+  if(f.bulan !== 'ALL'){
+    nosNote.style.display = 'block';
+    nosNote.innerHTML = `📌 Menampilkan <b>${nosFiltered.length} dealer</b> yang benar-benar diaudit di bulan <b>${BULAN_NAMES[Number(f.bulan)-1]} 2026</b> (dari data real "Bulan Kunjungan" assessor). Bulan tanpa audit akan tampil kosong — bukan bug.`;
+  }
 
   // KPI: jumlah dealer per Final Grade
   const gradeCounts = {Platinum:0, Gold:0, Silver:0, Bronze:0};
@@ -3671,15 +3700,16 @@ function getTrainingInfo(nama, dealer, jabatan){
   return { status, required: required.length, completed, missing };
 }
 
-function flpApplyFilters(){
-  const dealer = document.getElementById('flpFDealer').value;
+function flpApplyFilters(f){
+  f = f || getFilters();
   const group = document.getElementById('flpFGroup').value;
   const kategori = document.getElementById('flpFKategori').value;
   const gender = document.getElementById('flpFGender').value;
   const edu = document.getElementById('flpFEdu').value;
   const tipe = document.getElementById('flpFTipe').value;
   return FLP_RECORDS.filter(r =>
-    (dealer==='ALL' || r.dealer===dealer) &&
+    (!f.dealer || f.dealer==='ALL' || matchesDealerFilter(r.dealer, f.dealer)) &&
+    (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(r.dealer)===f.wilayah) &&
     (group==='ALL' || r.group===group) &&
     (kategori==='ALL' || r.kategori===kategori) &&
     (gender==='ALL' || r.gender===gender) &&
@@ -3688,29 +3718,27 @@ function flpApplyFilters(){
   );
 }
 
-function renderDemografiFlpTab(){
+function renderDemografiFlpTab(f){
+  f = f || getFilters();
   // ---- populate dropdown options sekali saja ----
-  const dealerSel = document.getElementById('flpFDealer');
   const kategoriSel = document.getElementById('flpFKategori');
   const eduSel = document.getElementById('flpFEdu');
-  if(dealerSel.dataset.populated !== '1'){
-    const dealers = [...new Set(FLP_RECORDS.map(r=>r.dealer))].sort();
-    dealers.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; dealerSel.appendChild(o); });
+  if(kategoriSel.dataset.populated !== '1'){
     const kategoris = [...new Set(FLP_RECORDS.map(r=>r.kategori))].sort();
     kategoris.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; kategoriSel.appendChild(o); });
     const edus = [...new Set(FLP_RECORDS.map(r=>r.pendidikan))].sort();
     edus.forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; eduSel.appendChild(o); });
-    ['flpFDealer','flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe'].forEach(id=>{
-      document.getElementById(id).addEventListener('change', renderDemografiFlpTab);
+    ['flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe'].forEach(id=>{
+      document.getElementById(id).addEventListener('change', ()=>renderDemografiFlpTab(getFilters()));
     });
     document.getElementById('flpFReset').addEventListener('click', ()=>{
-      ['flpFDealer','flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe'].forEach(id=>{ document.getElementById(id).value='ALL'; });
-      renderDemografiFlpTab();
+      ['flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe'].forEach(id=>{ document.getElementById(id).value='ALL'; });
+      renderDemografiFlpTab(getFilters());
     });
-    dealerSel.dataset.populated = '1';
+    kategoriSel.dataset.populated = '1';
   }
 
-  const filtered = flpApplyFilters();
+  const filtered = flpApplyFilters(f);
 
   // ---- KPI ----
   const kpiRow = document.getElementById('flpKpiRow');
@@ -3879,28 +3907,26 @@ function renderKlhnScreening(baseFiltered){
 }
 
 
-function renderPeopleDevTab(){
-  const dealers = pdGetDealers();
-  document.getElementById('pdDealerCountNote').textContent = dealers.length;
+function renderPeopleDevTab(f){
+  f = f || getFilters();
+  const allDealers = pdGetDealers();
+  document.getElementById('pdDealerCountNote').textContent = allDealers.length;
 
-  // populate filter dropdown once
-  const filterEl = document.getElementById('pdDealerFilter');
-  if(filterEl.dataset.populated !== '1'){
-    dealers.forEach(d=>{
-      const opt = document.createElement('option');
-      opt.value = d; opt.textContent = d;
-      filterEl.appendChild(opt);
-    });
-    filterEl.dataset.populated = '1';
-    filterEl.addEventListener('change', renderPeopleDevTab);
-  }
-  const selectedDealer = filterEl.value || 'ALL';
+  // Data sesuai filter global Dealer & Wilayah (nama dealer People Dev
+  // kadang beda format dari daftar dealer CSL global — dicocokkan fleksibel
+  // via matchesDealerFilter/cityForDealerName, sama seperti tab NOS).
+  const scopedData = PEOPLE_DEV_DATA.filter(d=>{
+    if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(d.dealer, f.dealer)) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(d.dealer) !== f.wilayah) return false;
+    return true;
+  });
+  const dealers = [...new Set(scopedData.map(d=>d.dealer))].sort();
 
   // ---- KPI ----
-  const totalStaff = PEOPLE_DEV_DATA.length;
-  const totalTrainingInstances = PEOPLE_DEV_DATA.reduce((s,d)=>s+d.trainings.reduce((s2,t)=>s2+t.count,0),0);
-  const staffWithTraining = PEOPLE_DEV_DATA.filter(d=>d.trainings.length>0).length;
-  const avgPerStaff = totalStaff ? (PEOPLE_DEV_DATA.reduce((s,d)=>s+d.trainings.length,0)/totalStaff) : 0;
+  const totalStaff = scopedData.length;
+  const totalTrainingInstances = scopedData.reduce((s,d)=>s+d.trainings.reduce((s2,t)=>s2+t.count,0),0);
+  const staffWithTraining = scopedData.filter(d=>d.trainings.length>0).length;
+  const avgPerStaff = totalStaff ? (scopedData.reduce((s,d)=>s+d.trainings.length,0)/totalStaff) : 0;
   const kpiRow = document.getElementById('pdKpiRow');
   kpiRow.innerHTML = [
     {label:'Dealer Tercatat', value: dealers.length, delta:'dari data Sep 2026'},
@@ -3916,7 +3942,7 @@ function renderPeopleDevTab(){
 
   // ---- Chart: training terpopuler (top 10) ----
   const trainingCounts = {};
-  PEOPLE_DEV_DATA.forEach(d=>{
+  scopedData.forEach(d=>{
     d.trainings.forEach(t=>{
       trainingCounts[t.training] = (trainingCounts[t.training]||0) + 1; // jumlah staff yang ikut, bukan akumulasi count
     });
@@ -3934,7 +3960,7 @@ function renderPeopleDevTab(){
 
   // ---- Chart: rata-rata jenis training per staff, per dealer ----
   const perDealer = dealers.map(dl=>{
-    const staffs = PEOPLE_DEV_DATA.filter(d=>d.dealer===dl);
+    const staffs = scopedData.filter(d=>d.dealer===dl);
     const avg = staffs.length ? staffs.reduce((s,d)=>s+d.trainings.length,0)/staffs.length : 0;
     return { dealer: dl, avg, staffCount: staffs.length };
   });
@@ -3951,12 +3977,12 @@ function renderPeopleDevTab(){
   });
 
   // ---- Tabel detail per staff — PIVOT: satu kolom per modul training ----
-  const filtered = selectedDealer==='ALL' ? PEOPLE_DEV_DATA : PEOPLE_DEV_DATA.filter(d=>d.dealer===selectedDealer);
+  const filtered = scopedData;
   const allModules = [...new Set(PEOPLE_DEV_DATA.flatMap(d=>d.trainings.map(t=>t.training)))].sort();
   const tbl = document.getElementById('pdDetailTable');
   const headerCols = allModules.map(m=>`<th style="writing-mode:vertical-rl; text-orientation:mixed; white-space:nowrap; font-size:10px; padding:6px 3px; max-height:180px;">${m}</th>`).join('');
   tbl.innerHTML = `<tr><th style="position:sticky; left:0; background:#fff;">Dealer</th><th style="position:sticky; left:0; background:#fff;">Nama (FLP)</th><th>Jumlah Modul</th>${headerCols}</tr>` +
-    [...filtered].sort((a,b)=> b.trainings.length - a.trainings.length).map(d=>{
+    (filtered.length ? [...filtered].sort((a,b)=> b.trainings.length - a.trainings.length).map(d=>{
       const byModule = {};
       d.trainings.forEach(t=>{ byModule[t.training] = t.count; });
       const cells = allModules.map(m=>{
@@ -3964,7 +3990,7 @@ function renderPeopleDevTab(){
         return c ? `<td style="text-align:center; background:#E9F7EF; font-weight:700; color:var(--green,#1E8E5A);">${c>1?c+'x':'✓'}</td>` : `<td style="text-align:center; color:#DDD;">–</td>`;
       }).join('');
       return `<tr><td style="position:sticky; left:0; background:#fff;">${d.dealer}</td><td style="position:sticky; left:0; background:#fff;">${d.nama}</td><td><b>${d.trainings.length}</b></td>${cells}</tr>`;
-    }).join('');
+    }).join('') : `<tr><td colspan="${3+allModules.length}" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada staff yang cocok dengan filter ini.</td></tr>`);
 }
 
 
