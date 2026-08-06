@@ -1277,6 +1277,18 @@ table.dt tr:hover td{ background:#F8F9FC; }
         <div class="chart-wrap"><canvas id="cdbCityChart"></canvas></div>
       </div>
     </div>
+    <div class="section-title"><span class="bar"></span><h2>YTD Achievement per Dealer</h2><span class="tag">Target: 95%</span></div>
+    <div class="methodnote" id="cdbYtdNote"></div>
+    <div class="card">
+      <h3>Rata-rata %Validitas YTD per Dealer</h3>
+      <div class="cardsub">Diurutkan terendah ke tertinggi — merah = di bawah target 95%, hijau = mencapai target</div>
+      <div class="chart-wrap tall"><canvas id="cdbYtdChart"></canvas></div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>Achievement CDB per Bulan (Pivot per Dealer)</h2></div>
+    <div class="methodnote" id="cdbPivotNote"></div>
+    <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="cdbPivotTable"></table></div></div>
+
     <div class="section-title"><span class="bar"></span><h2>Detail per Dealer</h2></div>
     <div class="methodnote" id="cdbDetailNote"></div>
     <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="cdbDetailTable"></table></div></div>
@@ -2122,10 +2134,15 @@ function renderCdbTab(f){
   const totalUstk = totalRecords.reduce((s,r)=>s+(r.t||0),0);
   const totalValid = totalRecords.reduce((s,r)=>s+(r.v||0),0);
   const periodLabel = (selMonth?CDB_BULAN_NAMES[selMonth-1]+' ':'') + (selYear||'Semua Tahun');
+  // Hitung capaian target 95% per dealer (rata-rata YTD periode terpilih)
+  const dealerAvgMap = {};
+  periodFiltered.forEach(r=>{ if(r.p!=null){ if(!dealerAvgMap[r.d]) dealerAvgMap[r.d]=[]; dealerAvgMap[r.d].push(r.p); } });
+  const dealerAvgs = Object.entries(dealerAvgMap).map(([d,arr])=>({d, avg: arr.reduce((a,b)=>a+b,0)/arr.length}));
+  const targetMet = dealerAvgs.filter(x=>x.avg>=0.95).length;
   const kpiRow = document.getElementById('cdbKpiRow');
   kpiRow.innerHTML = [
     {label:'%Validitas Rata-rata — '+periodLabel, value: avgPct!=null ? (avgPct*100).toFixed(1)+'%' : '-', delta: withPct.length+' data-point'},
-    {label:'Dealer Tercakup', value: dealersCovered, delta:'sesuai filter aktif'},
+    {label:'Dealer Mencapai Target (≥95%)', value: dealerAvgs.length? `${targetMet} / ${dealerAvgs.length}` : '-', delta:'berdasarkan rata-rata periode ini'},
     {label:'Total Data Diinput (bulan dgn breakdown)', value: totalUstk||'-', delta: totalRecords.length? totalRecords.length+' bulan ada breakdown' : 'tidak ada breakdown di periode ini'},
     {label:'Total Data Valid (bulan dgn breakdown)', value: totalValid||'-', delta: totalUstk? (totalValid/totalUstk*100).toFixed(1)+'% dari total' : '-'},
   ].map(k=>`
@@ -2160,10 +2177,52 @@ function renderCdbTab(f){
   charts.cdbCityChart = new Chart(document.getElementById('cdbCityChart'), {
     type:'bar',
     data:{ labels: cityEntries.map(c=>c[0]), datasets:[{ label:'%Validitas (Mei 2025)', data: cityEntries.map(c=>+(c[1]*100).toFixed(1)),
-      backgroundColor: cityEntries.map(c=> c[1]>=0.95?COLORS.green:c[1]>=0.85?COLORS.gold:'#D64545'), borderRadius:6 }] },
+      backgroundColor: cityEntries.map(c=> c[1]>=0.95?'#1E8E5A':'#D64545'), borderRadius:6 }] },
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
       scales:{ x:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
+
+  // ---- Chart YTD per dealer (rata-rata periode terpilih, target 95%) ----
+  const ytdSorted = [...dealerAvgs].sort((a,b)=>a.avg-b.avg);
+  const ytdNote = document.getElementById('cdbYtdNote');
+  ytdNote.innerHTML = `Menampilkan rata-rata %Validitas periode <b>${periodLabel}</b> per dealer (sesuai filter Dealer/Wilayah aktif). <b>${targetMet} dari ${dealerAvgs.length} dealer</b> mencapai target 95%.`;
+  destroyChart('cdbYtdChart');
+  charts.cdbYtdChart = new Chart(document.getElementById('cdbYtdChart'), {
+    type:'bar',
+    data:{ labels: ytdSorted.map(x=>x.d), datasets:[{ label:'%Validitas YTD', data: ytdSorted.map(x=>+(x.avg*100).toFixed(1)),
+      backgroundColor: ytdSorted.map(x=> x.avg>=0.95?'#1E8E5A':'#D64545'), borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
+      annotation:undefined },
+      scales:{ x:{min:0,max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
+  // ---- Pivot Dealer x Bulan (kolom = Januari..Desember, sesuai Tahun terpilih) ----
+  const pivotYear = selYear || Math.max(...scoped.map(r=>r.y)); // kalau "Semua Tahun", pakai tahun terbaru yg ada datanya
+  const pivotNote = document.getElementById('cdbPivotNote');
+  pivotNote.innerHTML = selYear
+    ? `Menampilkan achievement %Validitas per bulan untuk tahun <b>${pivotYear}</b> (sesuai filter Tahun di atas).`
+    : `Filter Tahun = "Semua Tahun" — pivot ini menampilkan tahun terbaru yang ada datanya (<b>${pivotYear}</b>). Pilih tahun tertentu di atas untuk pivot tahun lain.`;
+  const pivotDealers = [...new Set(scoped.filter(r=>r.y===pivotYear).map(r=>r.d))].sort();
+  const pivotTbl = document.getElementById('cdbPivotTable');
+  const monthHeaders = CDB_BULAN_NAMES.map(m=>`<th>${m.slice(0,3)}</th>`).join('');
+  pivotTbl.innerHTML = `<tr><th>Nama Dealer</th>${monthHeaders}<th>Rata-rata</th></tr>` +
+    (pivotDealers.length ? pivotDealers.map(dl=>{
+      const rowData = CDB_DATA.filter(r=>r.d===dl && r.y===pivotYear);
+      const cells = [];
+      let sum=0, cnt=0;
+      for(let m=1; m<=12; m++){
+        const rec = rowData.find(r=>r.m===m);
+        if(rec && rec.p!=null){
+          sum += rec.p; cnt++;
+          const color = rec.p>=0.95?'#1E8E5A':'#D64545';
+          cells.push(`<td style="text-align:center; font-weight:700; color:${color};">${(rec.p*100).toFixed(0)}%</td>`);
+        } else {
+          cells.push(`<td style="text-align:center; color:#DDD;">–</td>`);
+        }
+      }
+      const avg = cnt ? sum/cnt : null;
+      return `<tr><td>${dl}</td>${cells.join('')}<td style="text-align:center;"><b>${avg!=null?(avg*100).toFixed(1)+'%':'-'}</b></td></tr>`;
+    }).join('') : `<tr><td colspan="14" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada dealer yang cocok dengan filter ini.</td></tr>`);
 
   // ---- Tabel detail (sesuai periode & filter dealer/wilayah) ----
   const noteEl = document.getElementById('cdbDetailNote');
@@ -2181,7 +2240,7 @@ function renderCdbTab(f){
         <td>${r.v ?? '-'}</td>
         <td>${r.i ?? '-'}</td>
         <td>${r.t ?? '-'}</td>
-        <td><b style="color:${r.p>=0.95?'#1E8E5A':r.p>=0.85?'#B7862E':'#D64545'};">${r.p!=null ? (r.p*100).toFixed(1)+'%' : '-'}</b></td>
+        <td><b style="color:${r.p!=null ? (r.p>=0.95?'#1E8E5A':'#D64545') : 'var(--grey)'};">${r.p!=null ? (r.p*100).toFixed(1)+'%' : '-'}</b></td>
       </tr>`).join('') : `<tr><td colspan="7" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada data yang cocok dengan filter ini.</td></tr>`);
 }
 
