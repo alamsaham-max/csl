@@ -1159,8 +1159,8 @@ table.dt tr:hover td{ background:#F8F9FC; }
   <section class="tab-content" id="tab-gmb">
     <div class="section-title"><span class="bar"></span><h2>📍 Google Business Profile</h2><span class="tag" id="gmbLiveStatus" style="background:var(--grey);">Memuat data…</span></div>
     <div class="methodnote">
-      Data rating, jumlah ulasan, dan sentimen di sini <b>diinput manual oleh tim setiap hari</b> ke Google Sheets (bukan crawling otomatis) — tim membuka Google Maps tiap dealer, mencatat angkanya, lalu menaksir berapa ulasan yang terasa positif/negatif dari yang dibaca.
-      <br>Karena diisi harian secara <i>append</i> (bukan menimpa), riwayatnya membentuk <b>tren dari waktu ke waktu</b>.
+      <b>Sumber utama:</b> rating &amp; jumlah ulasan tiap dealer ditarik <b>otomatis</b> (via Google Places, tanpa kerja manual) setiap kali diminta di chat — cukup minta "tarik ulang data GMB" kapan saja. Karena disimpan sebagai snapshot per tanggal (bukan menimpa), riwayatnya membentuk <b>tren dari waktu ke waktu</b>.
+      <br>Detail per-ulasan (bintang &amp; bulan tiap ulasan) di bagian paling bawah bersifat <b>opsional</b> — cuma terisi kalau tim sempat input manual, dan tidak wajib untuk pemantauan rutin.
     </div>
 
     <div class="kpi-row" id="gmbKpiRow"></div>
@@ -1175,28 +1175,9 @@ table.dt tr:hover td{ background:#F8F9FC; }
       </div>
     </div>
 
-    <div class="section-title"><span class="bar"></span><h2>📆 Ringkasan Periode Terpilih (dari Ulasan Individual)</h2></div>
+    <div class="section-title"><span class="bar"></span><h2>Tren Rating &amp; Jumlah Ulasan (Otomatis)</h2></div>
     <div class="methodnote">
-      Bagian ini yang <b>ikut berubah</b> saat Anda ganti filter Tahun/Bulan di atas — dihitung dari data di sheet "Ulasan Individual GMB" (baik yang tanggalnya pasti, maupun yang diestimasi dari waktu relatif spt "5 bulan lalu").
-      <br><b>Catatan jujur:</b> "Jumlah Ulasan" di sini = jumlah ulasan yang <i>tercatat manual oleh tim</i> pada periode itu (sampel), <b>bukan</b> total keseluruhan ulasan dealer di Google (itu ada di tabel "Rating &amp; Ulasan Terkini" di bawah, hanya untuk kondisi hari ini). Kalau tim belum mencatat ulasan untuk suatu bulan/tahun, tampilannya nol/kosong — bukan berarti dealer memang tidak ada ulasan bulan itu.
-    </div>
-    <div class="kpi-row" id="gmbPeriodKpiRow"></div>
-    <div class="grid">
-      <div class="card">
-        <h3>Rata-rata Bintang Ulasan per Bulan</h3>
-        <div class="cardsub">Dihitung dari ulasan yang periodenya diketahui (pasti atau estimasi waktu relatif)</div>
-        <div class="chart-wrap"><canvas id="gmbPeriodRatingChart"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Jumlah Ulasan Tercatat per Bulan</h3>
-        <div class="cardsub">Jumlah entri di sheet "Ulasan Individual GMB" per bulan (sampel, bukan total di Google)</div>
-        <div class="chart-wrap"><canvas id="gmbPeriodCountChart"></canvas></div>
-      </div>
-    </div>
-
-    <div class="section-title"><span class="bar"></span><h2>Tren Snapshot Rating Toko (Data Harian GMB)</h2></div>
-    <div class="methodnote">
-      Bagian ini beda sumber — dari "Data Harian GMB" (rating agregat toko saat dicek, snapshot harian), <b>bukan</b> per-ulasan. Karena baru mulai dicatat 2026-08-04, filter ke tahun/bulan sebelum itu akan tampil kosong (memang belum ada snapshotnya, bukan bug).
+      Ini yang <b>tidak perlu kerja manual</b> — snapshot rating &amp; jumlah ulasan per dealer, ditarik otomatis tiap kali diminta. Baru ada 2 titik waktu (4 &amp; 6 Agustus 2026); makin sering ditarik ulang, makin panjang trennya.
     </div>
 
     <div class="grid">
@@ -1221,6 +1202,25 @@ table.dt tr:hover td{ background:#F8F9FC; }
         <h3>Tema Komplain yang Sering Muncul</h3>
         <div class="cardsub">Dari catatan "Tema Komplain" yang diinput tim</div>
         <div class="chart-wrap"><canvas id="gmbThemeChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span><h2>📆 Opsional — Detail per Ulasan Individual (Perlu Input Manual)</h2></div>
+    <div class="methodnote">
+      Bagian ini <b>tidak wajib diisi</b> — cuma untuk yang mau lihat detail tiap ulasan (bintang &amp; kira-kira bulan berapa). Ikut berubah saat filter Tahun/Bulan diganti, dihitung dari sheet "Ulasan Individual GMB" (opsional, isi kalau ada waktu tim).
+      <br><b>Catatan jujur:</b> "Jumlah Ulasan" di sini = jumlah ulasan yang <i>tercatat manual oleh tim</i> pada periode itu (sampel), <b>bukan</b> total keseluruhan ulasan dealer di Google (itu ada di tabel "Rating &amp; Ulasan Terkini" di bawah, hanya untuk kondisi hari ini). Kalau tim belum mencatat ulasan untuk suatu bulan/tahun, tampilannya nol/kosong — bukan berarti dealer memang tidak ada ulasan bulan itu.
+    </div>
+    <div class="kpi-row" id="gmbPeriodKpiRow"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Rata-rata Bintang Ulasan per Bulan</h3>
+        <div class="cardsub">Dihitung dari ulasan yang periodenya diketahui (pasti atau estimasi waktu relatif)</div>
+        <div class="chart-wrap"><canvas id="gmbPeriodRatingChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Jumlah Ulasan Tercatat per Bulan</h3>
+        <div class="cardsub">Jumlah entri di sheet "Ulasan Individual GMB" per bulan (sampel, bukan total di Google)</div>
+        <div class="chart-wrap"><canvas id="gmbPeriodCountChart"></canvas></div>
       </div>
     </div>
 
