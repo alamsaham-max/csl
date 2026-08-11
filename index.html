@@ -1111,9 +1111,11 @@ table.dt tr:hover td{ background:#F8F9FC; }
         <div class="fitem" style="min-width:150px;"><label>Tipe Jabatan</label><select id="flpFTipe"><option value="ALL">Semua</option><option value="Murni">Murni</option><option value="Rangkap">Rangkap</option></select></div>
         <button id="flpFReset" type="button" style="height:38px; padding:0 16px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-weight:700; color:var(--navy); cursor:pointer;">↺ Reset Filter</button>
       </div>
+      <input type="hidden" id="flpFTenureBin" value="ALL">
     </div>
 
     <div class="kpi-row" id="flpKpiRow"></div>
+    <div class="methodnote" id="flpActiveNote" style="display:none; border-left-color:#B7862E; background:#FFF7E6;"></div>
 
     <div class="grid">
       <div class="card">
@@ -4235,22 +4237,36 @@ function getTrainingInfo(nama, dealer, jabatan){
   return { status, required: required.length, completed, missing };
 }
 
-function flpApplyFilters(f){
-  f = f || getFilters();
+function flpMatches(r, f, skipDim){
   const group = document.getElementById('flpFGroup').value;
   const kategori = document.getElementById('flpFKategori').value;
   const gender = document.getElementById('flpFGender').value;
   const edu = document.getElementById('flpFEdu').value;
   const tipe = document.getElementById('flpFTipe').value;
-  return FLP_RECORDS.filter(r =>
-    (!f.dealer || f.dealer==='ALL' || matchesDealerFilter(r.dealer, f.dealer)) &&
+  const tenureBinSel = document.getElementById('flpFTenureBin').value;
+  return (!f.dealer || f.dealer==='ALL' || matchesDealerFilter(r.dealer, f.dealer)) &&
     (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(r.dealer)===f.wilayah) &&
-    (group==='ALL' || r.group===group) &&
-    (kategori==='ALL' || r.kategori===kategori) &&
-    (gender==='ALL' || r.gender===gender) &&
-    (edu==='ALL' || r.pendidikan===edu) &&
-    (tipe==='ALL' || r.tipeJabatan===tipe)
-  );
+    (skipDim==='group' || group==='ALL' || r.group===group) &&
+    (skipDim==='kategori' || kategori==='ALL' || r.kategori===kategori) &&
+    (skipDim==='gender' || gender==='ALL' || r.gender===gender) &&
+    (skipDim==='edu' || edu==='ALL' || r.pendidikan===edu) &&
+    (skipDim==='tipe' || tipe==='ALL' || r.tipeJabatan===tipe) &&
+    (skipDim==='tenure' || tenureBinSel==='ALL' || flpTenureBinOf(r.tenureYears)===tenureBinSel);
+}
+const FLP_TENURE_BINS = [ ['<1 th',0,1], ['1-2 th',1,2], ['2-3 th',2,3], ['3-5 th',3,5], ['5-10 th',5,10], ['>10 th',10,999] ];
+function flpTenureBinOf(v){
+  if(v==null) return null;
+  const b = FLP_TENURE_BINS.find(([label,lo,hi])=> v>=lo && v<hi);
+  return b ? b[0] : null;
+}
+function flpApplyFilters(f){
+  f = f || getFilters();
+  return FLP_RECORDS.filter(r => flpMatches(r, f, null));
+}
+function flpToggleFilter(selectId, value){
+  const sel = document.getElementById(selectId);
+  sel.value = (sel.value === value) ? 'ALL' : value;
+  setTimeout(()=> renderDemografiFlpTab(getFilters()), 0);
 }
 
 // ============================================================
@@ -4506,13 +4522,17 @@ function renderDemografiFlpTab(f){
       document.getElementById(id).addEventListener('change', ()=>renderDemografiFlpTab(getFilters()));
     });
     document.getElementById('flpFReset').addEventListener('click', ()=>{
-      ['flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe'].forEach(id=>{ document.getElementById(id).value='ALL'; });
+      ['flpFGroup','flpFKategori','flpFGender','flpFEdu','flpFTipe','flpFTenureBin'].forEach(id=>{ document.getElementById(id).value='ALL'; });
       renderDemografiFlpTab(getFilters());
     });
     kategoriSel.dataset.populated = '1';
   }
 
   const filtered = flpApplyFilters(f);
+  const gS = document.getElementById('flpFGender').value;
+  const eS = document.getElementById('flpFEdu').value;
+  const kS = document.getElementById('flpFKategori').value;
+  const tS = document.getElementById('flpFTenureBin').value;
 
   // ---- KPI ----
   const kpiRow = document.getElementById('flpKpiRow');
@@ -4532,48 +4552,74 @@ function renderDemografiFlpTab(f){
       <div class="delta good">${k.delta}</div>
     </div>`).join('');
 
+  const flpNoteEl = document.getElementById('flpActiveNote');
+  const flpActiveList = [
+    gS!=='ALL' ? `Gender: <b>${gS}</b>` : null,
+    eS!=='ALL' ? `Pendidikan: <b>${eS}</b>` : null,
+    kS!=='ALL' ? `Kategori: <b>${kS}</b>` : null,
+    tS!=='ALL' ? `Masa Kerja: <b>${tS}</b>` : null,
+  ].filter(Boolean);
+  if(flpNoteEl){
+    if(flpActiveList.length){
+      flpNoteEl.style.display = 'block';
+      flpNoteEl.innerHTML = `🔎 Filter aktif dari klik chart: ${flpActiveList.join(' · ')} — klik lagi untuk reset satu-satu.`;
+    } else {
+      flpNoteEl.style.display = 'none';
+    }
+  }
+
   // ---- Gender ----
-  const genderCount = {'Laki-Laki':0,'Perempuan':0};
-  filtered.forEach(r=>{ genderCount[r.gender] = (genderCount[r.gender]||0)+1; });
+  const genderCountEx = {'Laki-Laki':0,'Perempuan':0};
+  FLP_RECORDS.filter(r=>flpMatches(r,f,'gender')).forEach(r=>{ genderCountEx[r.gender] = (genderCountEx[r.gender]||0)+1; });
+  const flpGenderColors = ['Laki-Laki','Perempuan'].map(g=> (gS==='ALL'||gS===g) ? (g==='Laki-Laki'?COLORS.navy:COLORS.gold) : '#D9DEE6');
   destroyChart('flpGenderChart');
   charts.flpGenderChart = new Chart(document.getElementById('flpGenderChart'), {
     type:'doughnut',
-    data:{ labels:['Laki-Laki','Perempuan'], datasets:[{ data:[genderCount['Laki-Laki'], genderCount['Perempuan']], backgroundColor:[COLORS.navy, COLORS.gold] }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:10}}} } }
+    data:{ labels:['Laki-Laki','Perempuan'], datasets:[{ data:[genderCountEx['Laki-Laki'], genderCountEx['Perempuan']], backgroundColor: flpGenderColors }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:10}}} },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; flpToggleFilter('flpFGender', chart.data.labels[elements[0].index]); } }
   });
 
   // ---- Pendidikan ----
   const eduOrder = ['SEKOLAH DASAR','SMP DAN SEDERAJAT','SMU DAN SEDERAJAT','DIPLOMA 1','DIPLOMA 3','SARJANA','MASTER'];
   const eduLabels = {'SEKOLAH DASAR':'SD','SMP DAN SEDERAJAT':'SMP','SMU DAN SEDERAJAT':'SMU/SMK','DIPLOMA 1':'D1','DIPLOMA 3':'D3','SARJANA':'S1','MASTER':'S2'};
-  const eduCount = {};
-  filtered.forEach(r=>{ eduCount[r.pendidikan] = (eduCount[r.pendidikan]||0)+1; });
+  const eduCountEx = {};
+  FLP_RECORDS.filter(r=>flpMatches(r,f,'edu')).forEach(r=>{ eduCountEx[r.pendidikan] = (eduCountEx[r.pendidikan]||0)+1; });
+  const flpEduColors = eduOrder.map(e => (eS==='ALL'||eS===e) ? COLORS.navy : '#D9DEE6');
   destroyChart('flpEduChart');
   charts.flpEduChart = new Chart(document.getElementById('flpEduChart'), {
     type:'bar',
-    data:{ labels: eduOrder.map(e=>eduLabels[e]), datasets:[{ label:'Jumlah Staff', data: eduOrder.map(e=>eduCount[e]||0), backgroundColor: COLORS.navy, borderRadius:6 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
+    data:{ labels: eduOrder.map(e=>eduLabels[e]), fullLabels: eduOrder, datasets:[{ label:'Jumlah Staff', data: eduOrder.map(e=>eduCountEx[e]||0), backgroundColor: flpEduColors, borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} },
+      interaction: { mode: 'index', intersect: false },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; flpToggleFilter('flpFEdu', chart.data.fullLabels[elements[0].index]); } }
   });
 
   // ---- Kategori Jabatan ----
-  const katCount = {};
-  filtered.forEach(r=>{ katCount[r.kategori] = (katCount[r.kategori]||0)+1; });
-  const katSorted = Object.entries(katCount).sort((a,b)=>b[1]-a[1]);
+  const katCountEx = {};
+  FLP_RECORDS.filter(r=>flpMatches(r,f,'kategori')).forEach(r=>{ katCountEx[r.kategori] = (katCountEx[r.kategori]||0)+1; });
+  const katSorted = Object.entries(katCountEx).sort((a,b)=>b[1]-a[1]);
+  const flpKatColors = katSorted.map(k => (kS==='ALL'||kS===k[0]) ? COLORS.green : '#D9DEE6');
   destroyChart('flpKategoriChart');
   charts.flpKategoriChart = new Chart(document.getElementById('flpKategoriChart'), {
     type:'bar',
-    data:{ labels: katSorted.map(k=>k[0]), datasets:[{ label:'Jumlah', data: katSorted.map(k=>k[1]), backgroundColor: COLORS.green, borderRadius:6 }] },
+    data:{ labels: katSorted.map(k=>k[0]), datasets:[{ label:'Jumlah', data: katSorted.map(k=>k[1]), backgroundColor: flpKatColors, borderRadius:6 }] },
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
-      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} } }
+      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} },
+      interaction: { mode: 'index', intersect: false },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; flpToggleFilter('flpFKategori', chart.data.labels[elements[0].index]); } }
   });
 
   // ---- Tenure ----
-  const tenureBins = [ ['<1 th',0,1], ['1-2 th',1,2], ['2-3 th',2,3], ['3-5 th',3,5], ['5-10 th',5,10], ['>10 th',10,999] ];
-  const tenureCount = tenureBins.map(([label,lo,hi])=> filtered.filter(r=> r.tenureYears!=null && r.tenureYears>=lo && r.tenureYears<hi).length );
+  const tenureCountEx = FLP_TENURE_BINS.map(([label,lo,hi])=> FLP_RECORDS.filter(r=>flpMatches(r,f,'tenure')).filter(r=> r.tenureYears!=null && r.tenureYears>=lo && r.tenureYears<hi).length );
+  const flpTenureColors = FLP_TENURE_BINS.map(b=> (tS==='ALL'||tS===b[0]) ? COLORS.gold : '#D9DEE6');
   destroyChart('flpTenureChart');
   charts.flpTenureChart = new Chart(document.getElementById('flpTenureChart'), {
     type:'bar',
-    data:{ labels: tenureBins.map(b=>b[0]), datasets:[{ label:'Jumlah Staff', data: tenureCount, backgroundColor: COLORS.gold, borderRadius:6 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} } }
+    data:{ labels: FLP_TENURE_BINS.map(b=>b[0]), datasets:[{ label:'Jumlah Staff', data: tenureCountEx, backgroundColor: flpTenureColors, borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}} },
+      interaction: { mode: 'index', intersect: false },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; flpToggleFilter('flpFTenureBin', chart.data.labels[elements[0].index]); } }
   });
 
   // ---- Tabel per Dealer (sesuai filter) ----
