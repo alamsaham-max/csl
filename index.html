@@ -1930,8 +1930,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <section class="tab-content" id="tab-petakonsumen">
     <div class="section-title"><span class="bar"></span><h2>🗺️ Peta Sebaran Konsumen</h2><span class="tag">6 Provinsi Papua</span></div>
     <div class="methodnote">
-      Peta interaktif (bisa di-zoom/geser) yang <b>siap menerima data titik konsumen</b> — tiap pembelian nanti diplot sebagai marker sesuai koordinat lat/long, provinsi, kota/kabupaten, kecamatan, hingga kelurahan.
-      <br><b>Status saat ini:</b> baru menampilkan 6 titik pusat provinsi sebagai placeholder (belum ada data konsumen asli). Kirim data Excel dengan kolom minimal: <code>Nama/ID Konsumen, Latitude, Longitude, Provinsi, Kota/Kabupaten, Kecamatan, Kelurahan</code> — begitu diterima, peta ini langsung diisi titik sungguhan, otomatis mengelompok (cluster) sesuai level zoom.
+      Peta interaktif (bisa di-zoom/geser) yang <b>siap menerima data titik konsumen</b> — tiap pembelian nanti diplot sebagai marker sesuai koordinat lat/long.
+      <br><b>Status saat ini:</b> sedang proses geocoding 845 nama kecamatan yang Anda kirim (progres: <b id="kecProgressText">28/845</b>). Titik hijau = akurasi tinggi (match resmi wilayah administratif), kuning = sedang, merah = rendah (kemungkinan nyasar ke lokasi terdekat, bukan pusat kecamatan sebenarnya — perlu verifikasi ulang).
+      <br>Begitu data konsumen asli (dengan referensi kelurahan/kecamatan) dikirim, titik-titik ini jadi basis untuk plot per pembelian.
     </div>
     <div class="kpi-row" id="petaKpiRow"></div>
     <div class="card" style="padding:8px;">
@@ -2928,6 +2929,15 @@ function renderRadarTab(f){
 // ============================================================
 const CONSUMER_LOCATIONS = []; // <-- isi data konsumen asli di sini nanti
 
+// ============================================================
+// LOOKUP KOORDINAT KECAMATAN — progres bertahap (28 dari 845 total
+// kecamatan yang dikirim user, per 28 Agustus 2026). confidence:
+// "tinggi" = match resmi administrative_area_level_3 di Google Places,
+// "sedang"/"rendah" = match kurang presisi (nyasar ke POI terdekat,
+// bukan koordinat pasti kecamatan) — perlu diverifikasi ulang nanti.
+// ============================================================
+const KECAMATAN_COORDS = [{nama:"Abepura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.6813971,lng:140.7662871,confidence:"tinggi"},{nama:"Aifat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2568532,lng:132.5001338,confidence:"tinggi"},{nama:"Aimas",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.9569666,lng:131.3070473,confidence:"tinggi"},{nama:"Aitinyo",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.4413734,lng:132.3839209,confidence:"tinggi"},{nama:"Ayamaru",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2754068,lng:132.1954691,confidence:"tinggi"},{nama:"Arso",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-3.0833868,lng:140.5964124,confidence:"tinggi"},{nama:"Biak Kota",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.1837602,lng:136.0797406,confidence:"tinggi"},{nama:"Bintuni",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.1270389,lng:133.55121,confidence:"tinggi"},{nama:"Dogiyai",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-4.0117207,lng:135.9963258,confidence:"tinggi"},{nama:"Fakfak",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.9301404,lng:132.3024382,confidence:"tinggi"},{nama:"Aitinyo Barat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3919485,lng:132.2658282,confidence:"tinggi"},{nama:"Amberbaken",kabupaten:"Tambrauw Regency",provinsi:"West Papua",lat:-0.5186292,lng:133.0490734,confidence:"tinggi"},{nama:"Anggi",kabupaten:"Arfak Mountains Regency",provinsi:"West Papua",lat:-1.3260424,lng:133.9158721,confidence:"tinggi"},{nama:"Agats",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.5392614,lng:138.1355877,confidence:"tinggi"},{nama:"Agimuga",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.6377699,lng:137.4882762,confidence:"tinggi"},{nama:"Atsj",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.7789952,lng:138.4787258,confidence:"tinggi"},{nama:"Ilaga",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-4.0460389,lng:137.5275422,confidence:"tinggi"},{nama:"Aitinyo Utara",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3033463,lng:132.3116515,confidence:"tinggi"},{nama:"Angkaisera",kabupaten:"Yapen Islands Regency",provinsi:"Papua",lat:-1.8591376,lng:136.3115961,confidence:"tinggi"},{nama:"Animha",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.8733132,lng:140.4308159,confidence:"tinggi"},{nama:"Apalapsili",kabupaten:"Yalimo Regency",provinsi:"Highland Papua",lat:-3.9198211,lng:139.3044253,confidence:"tinggi"},{nama:"Apawer Hulu",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.0469798,lng:138.3589086,confidence:"tinggi"},{nama:"Aradide",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.8150328,lng:136.4790748,confidence:"tinggi"},{nama:"Ardipura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.5551017,lng:140.7035004,confidence:"sedang"},{nama:"Arguni",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.6450999,lng:132.5583138,confidence:"sedang"},{nama:"Aroba",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.6623708,lng:133.4066618,confidence:"tinggi"},{nama:"Anotaurei",kabupaten:"Kepulauan Yapen",provinsi:"Papua",lat:-1.8791323,lng:136.2419494,confidence:"rendah"},{nama:"Arimop",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.0972184,lng:140.3091796,confidence:"rendah"}];
+
 const PAPUA_PROVINCES = [
   {nama:'Papua', ibukota:'Jayapura', lat:-2.5334, lng:140.7181},
   {nama:'Papua Barat', ibukota:'Manokwari', lat:-0.8615, lng:134.0620},
@@ -2948,10 +2958,11 @@ function renderPetaKonsumenTab(f){
   f = f || getFilters();
 
   const kpiRow = document.getElementById('petaKpiRow');
+  const tinggiCount = KECAMATAN_COORDS.filter(k=>k.confidence==='tinggi').length;
   kpiRow.innerHTML = [
-    {label:'Total Titik Konsumen', value: CONSUMER_LOCATIONS.length, delta: CONSUMER_LOCATIONS.length ? 'data asli' : 'belum ada data — placeholder provinsi saja'},
+    {label:'Total Titik Konsumen', value: CONSUMER_LOCATIONS.length, delta: CONSUMER_LOCATIONS.length ? 'data asli' : 'belum ada data konsumen'},
+    {label:'Kecamatan Ter-geocoding', value: `${KECAMATAN_COORDS.length} / 845`, delta: `${tinggiCount} akurasi tinggi, progres bertahap`},
     {label:'Provinsi Tercakup', value: PAPUA_PROVINCES.length, delta:'Papua, Papua Barat, Papua Selatan, Papua Tengah, Papua Pegunungan, Papua Barat Daya'},
-    {label:'Level Detail Siap', value:'Kelurahan', delta:'begitu data lat/long per kelurahan tersedia'},
   ].map(k=>`
     <div class="kpi good">
       <div class="label">${k.label}</div>
@@ -2974,11 +2985,18 @@ function renderPetaKonsumenTab(f){
   });
 
   if(CONSUMER_LOCATIONS.length === 0){
-    // Placeholder: tampilkan titik pusat 6 provinsi saja, supaya peta tidak kosong melompong
+    // Placeholder: titik pusat 6 provinsi (abu-abu tipis, latar belakang)
     PAPUA_PROVINCES.forEach(p=>{
-      L.marker([p.lat, p.lng], { icon: svgMarkerIcon('#B7862E', 28) })
+      L.marker([p.lat, p.lng], { icon: svgMarkerIcon('#AAB2BD', 22) })
         .addTo(petaKonsumenMapInstance)
-        .bindPopup(`<b>${p.nama}</b><br>Ibukota: ${p.ibukota}<br><i style="color:#888;">Belum ada data konsumen — placeholder titik provinsi.</i>`);
+        .bindPopup(`<b>${p.nama}</b><br>Ibukota: ${p.ibukota}<br><i style="color:#888;">Titik pusat provinsi (bukan data konsumen).</i>`);
+    });
+    // Titik kecamatan yang sudah berhasil di-geocoding (progres bertahap)
+    const confColor = { 'tinggi':'#1E8E5A', 'sedang':'#B7862E', 'rendah':'#D64545' };
+    KECAMATAN_COORDS.forEach(k=>{
+      L.circleMarker([k.lat, k.lng], { radius:5, color:confColor[k.confidence]||'#888', fillColor:confColor[k.confidence]||'#888', fillOpacity:0.8, weight:1 })
+        .addTo(petaKonsumenMapInstance)
+        .bindPopup(`<b>Kec. ${k.nama}</b><br>${k.kabupaten}, ${k.provinsi}<br>Akurasi: <b style="color:${confColor[k.confidence]};">${k.confidence}</b>`);
     });
   } else {
     // Data asli sudah ada — plot per titik konsumen, warna sesuai dealer/provinsi bisa disesuaikan nanti
@@ -3000,8 +3018,8 @@ function renderPetaKonsumenTab(f){
   // Tabel detail
   const tbl = document.getElementById('petaDetailTable');
   if(CONSUMER_LOCATIONS.length === 0){
-    tbl.innerHTML = `<tr><th>Provinsi</th><th>Ibukota</th><th>Latitude</th><th>Longitude</th></tr>` +
-      PAPUA_PROVINCES.map(p=>`<tr><td>${p.nama}</td><td>${p.ibukota}</td><td>${p.lat}</td><td>${p.lng}</td></tr>`).join('');
+    tbl.innerHTML = `<tr><th>Kecamatan</th><th>Kabupaten</th><th>Provinsi</th><th>Latitude</th><th>Longitude</th><th>Akurasi</th></tr>` +
+      KECAMATAN_COORDS.map(k=>`<tr><td>${k.nama}</td><td>${k.kabupaten}</td><td>${k.provinsi}</td><td>${k.lat}</td><td>${k.lng}</td><td><b style="color:${k.confidence==='tinggi'?'#1E8E5A':k.confidence==='sedang'?'#B7862E':'#D64545'};">${k.confidence}</b></td></tr>`).join('');
   } else {
     tbl.innerHTML = `<tr><th>Nama</th><th>Provinsi</th><th>Kota</th><th>Kecamatan</th><th>Kelurahan</th><th>Dealer</th></tr>` +
       CONSUMER_LOCATIONS.map(c=>`<tr><td>${c.nama||'-'}</td><td>${c.provinsi||'-'}</td><td>${c.kota||'-'}</td><td>${c.kecamatan||'-'}</td><td>${c.kelurahan||'-'}</td><td>${c.dealer||'-'}</td></tr>`).join('');
