@@ -1192,6 +1192,7 @@ table.dt tr:hover td{ background:#F8F9FC; }
     </div>
 
     <div class="kpi-row" id="kompKpiRow"></div>
+    <div class="methodnote" id="kompActiveNote" style="display:none; border-left-color:#B7862E; background:#FFF7E6;"></div>
 
     <div class="grid">
       <div class="card">
@@ -4262,16 +4263,33 @@ function renderKomposisiTab(f){
   const tipeFilter = document.getElementById('kompFTipe').value;
   const groupFilter = groupSel.value;
 
-  const scoped = HONDA_PEOPLE_FULL.filter(r=>{
+  // Predikat generik — bisa "kecualikan 1 dimensi" supaya chart yang
+  // sedang diklik tetap menampilkan SEMUA kategorinya (yang lain abu-abu),
+  // sementara KPI & chart LAIN tetap kena filter penuh.
+  function matchesKomp(r, skipDim){
     if(statusFilter!=='ALL' && r.status!==statusFilter) return false;
-    if(genderFilter!=='ALL' && r.gender!==genderFilter) return false;
-    if(eduFilter!=='ALL' && r.pendidikan!==eduFilter) return false;
-    if(tipeFilter!=='ALL' && r.tipeJabatan!==tipeFilter) return false;
+    if(skipDim!=='gender' && genderFilter!=='ALL' && r.gender!==genderFilter) return false;
+    if(skipDim!=='edu' && eduFilter!=='ALL' && r.pendidikan!==eduFilter) return false;
+    if(skipDim!=='tipe' && tipeFilter!=='ALL' && r.tipeJabatan!==tipeFilter) return false;
     if(groupFilter!=='ALL' && r.group!==groupFilter) return false;
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.dealer, f.dealer)) return false;
     if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer) !== f.wilayah) return false;
     return true;
-  });
+  }
+  const scoped = HONDA_PEOPLE_FULL.filter(r=>matchesKomp(r, null));
+  const scopedExceptGender = HONDA_PEOPLE_FULL.filter(r=>matchesKomp(r, 'gender'));
+  const scopedExceptEdu = HONDA_PEOPLE_FULL.filter(r=>matchesKomp(r, 'edu'));
+  const scopedExceptTipe = HONDA_PEOPLE_FULL.filter(r=>matchesKomp(r, 'tipe'));
+
+  // Klik chart Gender/Pendidikan/Tipe -> toggle filter lokal tab ini
+  function toggleKompFilter(selectId, value){
+    const sel = document.getElementById(selectId);
+    sel.value = (sel.value === value) ? 'ALL' : value; // klik lagi = reset
+    // Ditunda 1 tick — chart.js masih memproses event klik itu sendiri;
+    // menghancurkan/membuat ulang chart yang sama secara sinkron di tengah
+    // proses itu memicu error internal Chart.js (lihat cross-filter dealer).
+    setTimeout(()=> renderKomposisiTab(getFilters()), 0);
+  }
 
   // ---- KPI ----
   const withTenure = scoped.filter(r=>r.usiaKerja!=null);
@@ -4311,35 +4329,57 @@ function renderKomposisiTab(f){
       scales:{ y:{beginAtZero:true, grid:{color:'#E3E7EE'}}, x:{grid:{display:false}, ticks:{font:{size:9.5}, maxRotation:35, minRotation:35}} } }
   });
 
-  // ---- Chart Gender (donut) ----
+  // ---- Chart Gender (donut) — pakai scopedExceptGender supaya kedua kategori tetap tampil ----
+  const genderCountFull = {'Laki-Laki':0,'Perempuan':0};
+  scopedExceptGender.forEach(r=>{ if(genderCountFull[r.gender]!=null) genderCountFull[r.gender]++; });
+  const genderColors = ['Laki-Laki','Perempuan'].map(g => (genderFilter==='ALL' || genderFilter===g) ? (g==='Laki-Laki'?COLORS.navy:COLORS.gold) : '#D9DEE6');
   destroyChart('kompGenderChart');
   charts.kompGenderChart = new Chart(document.getElementById('kompGenderChart'), {
     type:'doughnut',
-    data:{ labels:['Laki-Laki','Perempuan'], datasets:[{ data:[genderCount['Laki-Laki'], genderCount['Perempuan']], backgroundColor:[COLORS.navy, COLORS.gold] }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
+    data:{ labels:['Laki-Laki','Perempuan'], datasets:[{ data:[genderCountFull['Laki-Laki'], genderCountFull['Perempuan']], backgroundColor: genderColors }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; toggleKompFilter('kompFGender', chart.data.labels[elements[0].index]); } }
   });
 
-  // ---- Chart Pendidikan ----
-  const eduCounter = {};
-  scoped.forEach(r=>{ eduCounter[r.pendidikan] = (eduCounter[r.pendidikan]||0)+1; });
-  const eduSorted = Object.entries(eduCounter).sort((a,b)=>b[1]-a[1]);
+  // ---- Chart Pendidikan — pakai scopedExceptEdu supaya semua kategori tetap tampil ----
+  const eduCounterFull = {};
+  scopedExceptEdu.forEach(r=>{ eduCounterFull[r.pendidikan] = (eduCounterFull[r.pendidikan]||0)+1; });
+  const eduSorted = Object.entries(eduCounterFull).sort((a,b)=>b[1]-a[1]);
+  const eduColors = eduSorted.map(e => (eduFilter==='ALL' || eduFilter===e[0]) ? COLORS.green : '#D9DEE6');
   destroyChart('kompEduChart');
   charts.kompEduChart = new Chart(document.getElementById('kompEduChart'), {
     type:'bar',
-    data:{ labels: eduSorted.map(e=>e[0]), datasets:[{ label:'Jumlah', data: eduSorted.map(e=>e[1]), backgroundColor: COLORS.green, borderRadius:8 }] },
+    data:{ labels: eduSorted.map(e=>e[0]), datasets:[{ label:'Jumlah', data: eduSorted.map(e=>e[1]), backgroundColor: eduColors, borderRadius:8 }] },
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
-      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} } }
+      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; toggleKompFilter('kompFPendidikan', chart.data.labels[elements[0].index]); } }
   });
 
-  // ---- Chart Tipe Jabatan ----
-  const tipeCounter = {Murni:0, Rangkap:0};
-  scoped.forEach(r=>{ if(tipeCounter[r.tipeJabatan]!=null) tipeCounter[r.tipeJabatan]++; });
+  // ---- Chart Tipe Jabatan — pakai scopedExceptTipe supaya kedua kategori tetap tampil ----
+  const tipeCounterFull = {Murni:0, Rangkap:0};
+  scopedExceptTipe.forEach(r=>{ if(tipeCounterFull[r.tipeJabatan]!=null) tipeCounterFull[r.tipeJabatan]++; });
+  const tipeColors = ['Murni','Rangkap'].map(t => (tipeFilter==='ALL' || tipeFilter===t) ? (t==='Murni'?COLORS.navy:'#D64545') : '#D9DEE6');
   destroyChart('kompTipeChart');
   charts.kompTipeChart = new Chart(document.getElementById('kompTipeChart'), {
     type:'doughnut',
-    data:{ labels:['Murni','Rangkap'], datasets:[{ data:[tipeCounter.Murni, tipeCounter.Rangkap], backgroundColor:[COLORS.navy, '#D64545'] }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
+    data:{ labels:['Murni','Rangkap'], datasets:[{ data:[tipeCounterFull.Murni, tipeCounterFull.Rangkap], backgroundColor: tipeColors }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} },
+      onClick: (evt, elements, chart) => { if(!elements.length) return; toggleKompFilter('kompFTipe', chart.data.labels[elements[0].index]); } }
   });
+
+  const kompActiveFilterNote = [
+    genderFilter!=='ALL' ? `Gender: <b>${genderFilter}</b>` : null,
+    eduFilter!=='ALL' ? `Pendidikan: <b>${eduFilter}</b>` : null,
+    tipeFilter!=='ALL' ? `Tipe Jabatan: <b>${tipeFilter}</b>` : null,
+  ].filter(Boolean);
+  const activeNoteEl = document.getElementById('kompActiveNote');
+  if(kompActiveFilterNote.length){
+    activeNoteEl.style.display = 'block';
+    activeNoteEl.innerHTML = `🔎 Filter aktif dari klik chart: ${kompActiveFilterNote.join(' · ')} — klik kategori yang sama lagi di chart untuk reset.`;
+  } else {
+    activeNoteEl.style.display = 'none';
+  }
+
 
   // ---- Chart Top Jabatan ----
   const jabatanCounter = {};
