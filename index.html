@@ -4044,10 +4044,15 @@ function applyDealerCrossFilter(text, highlightEl){
   const dealerSel = document.getElementById('fDealer');
   if(dealerSel.value === matchName) return true;
   dealerSel.value = matchName;
-  renderAll();
-  dealerSel.style.transition = 'box-shadow 0.15s';
-  dealerSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
-  setTimeout(()=>{ dealerSel.style.boxShadow=''; }, 900);
+  // Ditunda 1 tick — kalau dipicu dari klik chart, Chart.js masih memproses
+  // event klik itu sendiri; menghancurkan/membuat ulang chart yang sama
+  // secara sinkron di tengah proses itu memicu error internal Chart.js.
+  setTimeout(()=>{
+    renderAll();
+    dealerSel.style.transition = 'box-shadow 0.15s';
+    dealerSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
+    setTimeout(()=>{ dealerSel.style.boxShadow=''; }, 900);
+  }, 0);
   return true;
 }
 
@@ -4058,10 +4063,12 @@ function applyWilayahCrossFilter(text){
   if(!opt || opt.value==='ALL') return false;
   if(wilayahSel.value === opt.value) return true;
   wilayahSel.value = opt.value;
-  renderAll();
-  wilayahSel.style.transition = 'box-shadow 0.15s';
-  wilayahSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
-  setTimeout(()=>{ wilayahSel.style.boxShadow=''; }, 900);
+  setTimeout(()=>{
+    renderAll();
+    wilayahSel.style.transition = 'box-shadow 0.15s';
+    wilayahSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
+    setTimeout(()=>{ wilayahSel.style.boxShadow=''; }, 900);
+  }, 0);
   return true;
 }
 
