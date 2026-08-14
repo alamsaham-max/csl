@@ -206,7 +206,8 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; posit
 .focus-modal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:22px; cursor:pointer; color:var(--grey); line-height:1; }
 .focus-modal-close:hover{ color:var(--red-dark); }
 .focus-modal-body{ flex:1; overflow:auto; min-height:0; }
-.focus-modal-body table.dt{ font-size:13px; }
+.focus-modal-body table.dt{ font-size:12.5px; table-layout:fixed; width:100%; }
+.focus-modal-body table.dt th, .focus-modal-body table.dt td{ word-wrap:break-word; overflow-wrap:break-word; white-space:normal; }
 .card h3{ font-size:13.5px; margin:0 0 3px; font-weight:800; color:var(--navy); }
 .card .cardsub{ font-size:11px; color:var(--grey); margin-bottom:10px; }
 .chart-wrap{ position:relative; height:290px; }
@@ -1931,7 +1932,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="section-title"><span class="bar"></span><h2>🗺️ Peta Sebaran Konsumen</h2><span class="tag">6 Provinsi Papua</span></div>
     <div class="methodnote">
       Peta interaktif (bisa di-zoom/geser) yang <b>siap menerima data titik konsumen</b> — tiap pembelian nanti diplot sebagai marker sesuai koordinat lat/long.
-      <br><b>Status saat ini:</b> sedang proses geocoding 845 nama kecamatan yang Anda kirim (progres: <b id="kecProgressText">28/845</b>). Titik hijau = akurasi tinggi (match resmi wilayah administratif), kuning = sedang, merah = rendah (kemungkinan nyasar ke lokasi terdekat, bukan pusat kecamatan sebenarnya — perlu verifikasi ulang).
+      <br><b>Status saat ini:</b> sedang proses geocoding 845 nama kecamatan yang Anda kirim (progres: <b id="kecProgressText">291/845</b>). Titik hijau = akurasi tinggi (match resmi wilayah administratif), kuning = sedang, merah = rendah (kemungkinan nyasar ke lokasi terdekat, bukan pusat kecamatan sebenarnya — perlu verifikasi ulang).
       <br>Begitu data konsumen asli (dengan referensi kelurahan/kecamatan) dikirim, titik-titik ini jadi basis untuk plot per pembelian.
     </div>
     <div class="kpi-row" id="petaKpiRow"></div>
@@ -2010,6 +2011,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="chart-wrap"><canvas id="gmbPeriodCountChart"></canvas></div>
       </div>
     </div>
+
+    <div class="section-title"><span class="bar"></span><h2>📋 Rekap Performa GMB per Dealer</h2></div>
+    <div class="methodnote">
+      Format mengikuti standar rekap GBP: <b>J.Review All</b> = total ulasan sepanjang masa, <b>Review Monthly</b> = ulasan baru bulan ini (dari estimasi delta antar-snapshot), <b>Rating 1-5</b> = breakdown bintang dari ulasan BULAN INI saja (bukan kumulatif), <b>%Cont</b> = persentase kontribusi tiap kelompok rating terhadap Review Monthly.
+      <br>⚠️ <b>Jumlah Feedback / Belum Feedback / %ACH Feedback masih "Belum Ada Data"</b> — kolom ini melacak apakah dealer sudah <i>membalas</i> tiap ulasan di Google Maps, bukan dari data rating/jumlah ulasan yang sudah ada. Ini butuh sumber data baru (tim mengecek status balasan tiap ulasan secara manual, atau via Google Business Profile Manager tiap dealer).
+    </div>
+    <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="gmbRekapTable"></table></div></div>
 
     <div class="section-title"><span class="bar"></span><h2>Rating &amp; Ulasan Terkini per Dealer</h2></div>
     <div class="card"><div style="overflow-x:auto; max-height:460px;"><table class="dt" id="gmbLatestTable"></table></div></div>
@@ -2104,6 +2112,32 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </div>
     </div>
     <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="cdbValTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>📇 Kualitas Data Instansi</h2><span class="tag">Tarikan SAP · YTD Juli 2026 · 22.009 Data Jualan</span></div>
+    <div class="methodnote">
+      <b>Pekerjaan "ber-instansi"</b> = jenis pekerjaan yang seharusnya selalu punya Nama Instansi terisi (Pegawai/Karyawan Negeri &amp; Swasta, Guru/Dosen) — total <b>11.072 dari 22.009 data jualan</b>.
+      <br><b>"Kosong"</b> mencakup benar-benar kosong maupun diisi placeholder yang bukan nama instansi asli (mis. "N", "0", "-", ".", "N/A") — pola ini terdeteksi konsisten di file SAP sebagai konvensi "tidak diisi".
+      <br>🔎 <b>Temuan utama:</b> kategori <b>Guru/Dosen</b> punya tingkat kekosongan <b>95,1%</b> (831 dari 874) — jauh di atas kategori Pegawai lainnya yang cuma 1,4%-5,2%. Ini pendorong utama gap data instansi secara keseluruhan.
+    </div>
+    <div class="kpi-row" id="cdbInstansiKpiRow"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Jumlah Data Jualan per Dealer</h3>
+        <div class="cardsub">Klik bar untuk filter ke dealer itu</div>
+        <div class="chart-wrap tall"><canvas id="cdbJualanDealerChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>%Kosong Nama Instansi per Dealer</h3>
+        <div class="cardsub">Dari data pekerjaan ber-instansi saja — klik bar untuk filter</div>
+        <div class="chart-wrap tall"><canvas id="cdbKosongDealerChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>%Kosong per Kategori Pekerjaan</h3>
+      <div class="cardsub">Guru/Dosen jadi pendorong utama gap data instansi</div>
+      <div class="chart-wrap"><canvas id="cdbKosongJobChart"></canvas></div>
+    </div>
+    <div class="card"><div style="overflow-x:auto; max-height:520px;"><table class="dt" id="cdbInstansiTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: ALERTS ========== -->
@@ -2593,7 +2627,7 @@ function renderOverview(f){
       {label:'H2', data:lRows.map(r=>r.h2?+(r.h2*100).toFixed(1):null), backgroundColor:COLORS.navy, borderRadius:6},
       {label:'H3', data:lRows.map(r=>r.h3?+(r.h3*100).toFixed(1):null), backgroundColor:COLORS.gold, borderRadius:6},
     ]},
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterCityOnly, interaction: { mode: 'index', intersect: false },  responsive:true, maintainAspectRatio:false,
       scales:{ y:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} },
       plugins:{legend:{display:false}} }
   });
@@ -2930,13 +2964,13 @@ function renderRadarTab(f){
 const CONSUMER_LOCATIONS = []; // <-- isi data konsumen asli di sini nanti
 
 // ============================================================
-// LOOKUP KOORDINAT KECAMATAN — progres bertahap (28 dari 845 total
+// LOOKUP KOORDINAT KECAMATAN — progres bertahap (291 dari 845 total
 // kecamatan yang dikirim user, per 28 Agustus 2026). confidence:
 // "tinggi" = match resmi administrative_area_level_3 di Google Places,
 // "sedang"/"rendah" = match kurang presisi (nyasar ke POI terdekat,
 // bukan koordinat pasti kecamatan) — perlu diverifikasi ulang nanti.
 // ============================================================
-const KECAMATAN_COORDS = [{nama:"Abepura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.6813971,lng:140.7662871,confidence:"tinggi"},{nama:"Aifat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2568532,lng:132.5001338,confidence:"tinggi"},{nama:"Aimas",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.9569666,lng:131.3070473,confidence:"tinggi"},{nama:"Aitinyo",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.4413734,lng:132.3839209,confidence:"tinggi"},{nama:"Ayamaru",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2754068,lng:132.1954691,confidence:"tinggi"},{nama:"Arso",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-3.0833868,lng:140.5964124,confidence:"tinggi"},{nama:"Biak Kota",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.1837602,lng:136.0797406,confidence:"tinggi"},{nama:"Bintuni",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.1270389,lng:133.55121,confidence:"tinggi"},{nama:"Dogiyai",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-4.0117207,lng:135.9963258,confidence:"tinggi"},{nama:"Fakfak",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.9301404,lng:132.3024382,confidence:"tinggi"},{nama:"Aitinyo Barat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3919485,lng:132.2658282,confidence:"tinggi"},{nama:"Amberbaken",kabupaten:"Tambrauw Regency",provinsi:"West Papua",lat:-0.5186292,lng:133.0490734,confidence:"tinggi"},{nama:"Anggi",kabupaten:"Arfak Mountains Regency",provinsi:"West Papua",lat:-1.3260424,lng:133.9158721,confidence:"tinggi"},{nama:"Agats",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.5392614,lng:138.1355877,confidence:"tinggi"},{nama:"Agimuga",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.6377699,lng:137.4882762,confidence:"tinggi"},{nama:"Atsj",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.7789952,lng:138.4787258,confidence:"tinggi"},{nama:"Ilaga",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-4.0460389,lng:137.5275422,confidence:"tinggi"},{nama:"Aitinyo Utara",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3033463,lng:132.3116515,confidence:"tinggi"},{nama:"Angkaisera",kabupaten:"Yapen Islands Regency",provinsi:"Papua",lat:-1.8591376,lng:136.3115961,confidence:"tinggi"},{nama:"Animha",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.8733132,lng:140.4308159,confidence:"tinggi"},{nama:"Apalapsili",kabupaten:"Yalimo Regency",provinsi:"Highland Papua",lat:-3.9198211,lng:139.3044253,confidence:"tinggi"},{nama:"Apawer Hulu",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.0469798,lng:138.3589086,confidence:"tinggi"},{nama:"Aradide",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.8150328,lng:136.4790748,confidence:"tinggi"},{nama:"Ardipura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.5551017,lng:140.7035004,confidence:"sedang"},{nama:"Arguni",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.6450999,lng:132.5583138,confidence:"sedang"},{nama:"Aroba",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.6623708,lng:133.4066618,confidence:"tinggi"},{nama:"Anotaurei",kabupaten:"Kepulauan Yapen",provinsi:"Papua",lat:-1.8791323,lng:136.2419494,confidence:"rendah"},{nama:"Arimop",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.0972184,lng:140.3091796,confidence:"rendah"}];
+const KECAMATAN_COORDS = [{nama:"Abepura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.6813971,lng:140.7662871,confidence:"tinggi"},{nama:"Aifat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2568532,lng:132.5001338,confidence:"tinggi"},{nama:"Aimas",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.9569666,lng:131.3070473,confidence:"tinggi"},{nama:"Aitinyo",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.4413734,lng:132.3839209,confidence:"tinggi"},{nama:"Ayamaru",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2754068,lng:132.1954691,confidence:"tinggi"},{nama:"Arso",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-3.0833868,lng:140.5964124,confidence:"tinggi"},{nama:"Biak Kota",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.1837602,lng:136.0797406,confidence:"tinggi"},{nama:"Bintuni",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.1270389,lng:133.55121,confidence:"tinggi"},{nama:"Dogiyai",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-4.0117207,lng:135.9963258,confidence:"tinggi"},{nama:"Fakfak",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.9301404,lng:132.3024382,confidence:"tinggi"},{nama:"Aitinyo Barat",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3919485,lng:132.2658282,confidence:"tinggi"},{nama:"Amberbaken",kabupaten:"Tambrauw Regency",provinsi:"West Papua",lat:-0.5186292,lng:133.0490734,confidence:"tinggi"},{nama:"Anggi",kabupaten:"Arfak Mountains Regency",provinsi:"West Papua",lat:-1.3260424,lng:133.9158721,confidence:"tinggi"},{nama:"Agats",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.5392614,lng:138.1355877,confidence:"tinggi"},{nama:"Agimuga",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.6377699,lng:137.4882762,confidence:"tinggi"},{nama:"Atsj",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.7789952,lng:138.4787258,confidence:"tinggi"},{nama:"Ilaga",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-4.0460389,lng:137.5275422,confidence:"tinggi"},{nama:"Aitinyo Utara",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3033463,lng:132.3116515,confidence:"tinggi"},{nama:"Angkaisera",kabupaten:"Yapen Islands Regency",provinsi:"Papua",lat:-1.8591376,lng:136.3115961,confidence:"tinggi"},{nama:"Animha",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.8733132,lng:140.4308159,confidence:"tinggi"},{nama:"Apalapsili",kabupaten:"Yalimo Regency",provinsi:"Highland Papua",lat:-3.9198211,lng:139.3044253,confidence:"tinggi"},{nama:"Apawer Hulu",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.0469798,lng:138.3589086,confidence:"tinggi"},{nama:"Aradide",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.8150328,lng:136.4790748,confidence:"tinggi"},{nama:"Ardipura",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.5551017,lng:140.7035004,confidence:"sedang"},{nama:"Arguni",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.6450999,lng:132.5583138,confidence:"sedang"},{nama:"Aroba",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.6623708,lng:133.4066618,confidence:"tinggi"},{nama:"Anotaurei",kabupaten:"Kepulauan Yapen",provinsi:"Papua",lat:-1.8791323,lng:136.2419494,confidence:"rendah"},{nama:"Arimop",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.0972184,lng:140.3091796,confidence:"rendah"},{nama:"Fakfak Tengah",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.9352442,lng:132.3183355,confidence:"tinggi"},{nama:"Fakfak Timur Tengah",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-3.0285426,lng:132.5901672,confidence:"sedang"},{nama:"Manokwari Barat",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8614758,lng:134.0620169,confidence:"tinggi"},{nama:"Abenaho",kabupaten:"Yalimo Regency",provinsi:"Papua Pegunungan",lat:-3.8525383,lng:139.11627,confidence:"sedang"},{nama:"Abun",kabupaten:"Tambrauw Regency",provinsi:"West Papua",lat:-0.4695379,lng:132.7466993,confidence:"tinggi"},{nama:"Agisiga",kabupaten:"Intan Jaya Regency",provinsi:"Central Papua",lat:-3.7319536,lng:137.0926922,confidence:"tinggi"},{nama:"Aifat Selatan",kabupaten:"Maybrat Regency",provinsi:"West Papua",lat:-1.4185595,lng:132.5043916,confidence:"tinggi"},{nama:"Aifat Timur",kabupaten:"Maybrat Regency",provinsi:"West Papua",lat:-1.3591179,lng:132.59276,confidence:"tinggi"},{nama:"Aifat Timur Jauh",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3662571,lng:132.6146565,confidence:"rendah"},{nama:"Aifat Utara",kabupaten:"Maybrat Regency",provinsi:"West Papua",lat:-1.1588544,lng:132.4643784,confidence:"tinggi"},{nama:"Aimando Padaido",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.2143849,lng:136.5981595,confidence:"tinggi"},{nama:"Aimasi",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8782813,lng:133.8132942,confidence:"rendah"},{nama:"Aitinyo Besar",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.4413734,lng:132.3839209,confidence:"rendah"},{nama:"Andey",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-0.8632296,lng:135.9457066,confidence:"tinggi"},{nama:"Aweku",kabupaten:"Tolikara Regency",provinsi:"Highland Papua",lat:-3.6039131,lng:138.3642641,confidence:"tinggi"},{nama:"Ayamaru Jaya",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.240888,lng:132.1225897,confidence:"tinggi"},{nama:"Ayamaru Selatan",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.3053761,lng:132.1485942,confidence:"tinggi"},{nama:"Ayamaru Tengah",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2884148,lng:132.2172648,confidence:"tinggi"},{nama:"Ayamaru Timur",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.2951177,lng:132.27456,confidence:"tinggi"},{nama:"Ayamaru Utara",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.1983051,lng:132.2165112,confidence:"tinggi"},{nama:"Ayau",kabupaten:"Raja Ampat Regency",provinsi:"Southwest Papua",lat:0.3635672,lng:131.0512644,confidence:"tinggi"},{nama:"Ayawasi",kabupaten:"Maybrat Regency",provinsi:"Southwest Papua",lat:-1.186464,lng:132.4626367,confidence:"sedang"},{nama:"Babo",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-2.5410944,lng:133.4455624,confidence:"tinggi"},{nama:"Balingga",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-4.130659,lng:138.3589086,confidence:"tinggi"},{nama:"Bamusbama",kabupaten:"Tambrauw Regency",provinsi:"Southwest Papua",lat:-0.6840508,lng:132.2953964,confidence:"sedang"},{nama:"Benawa",kabupaten:"Yalimo Regency",provinsi:"Papua",lat:-3.6675868,lng:139.609512,confidence:"tinggi"},{nama:"Bewani",kabupaten:"Tolikara Regency",provinsi:"Papua",lat:-3.3985904,lng:138.6790007,confidence:"tinggi"},{nama:"Biak Barat",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.0586287,lng:135.8664748,confidence:"tinggi"},{nama:"Biak Timur",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-1.1687247,lng:136.2239427,confidence:"tinggi"},{nama:"Biak Utara",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-0.9044366,lng:136.0432318,confidence:"tinggi"},{nama:"Bogabaida",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.6182898,lng:136.265602,confidence:"rendah"},{nama:"Bokondini",kabupaten:"Tolikara Regency",provinsi:"Highland Papua",lat:-3.6881747,lng:138.6803657,confidence:"tinggi"},{nama:"Bokoneri",kabupaten:"Tolikara Regency",provinsi:"Highland Papua",lat:-3.6849588,lng:138.6436435,confidence:"tinggi"},{nama:"Bolakme",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.8537009,lng:138.7225212,confidence:"tinggi"},{nama:"Bomakia",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-5.8066667,lng:139.8676667,confidence:"rendah"},{nama:"Bomberay",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-2.9067292,lng:133.2521507,confidence:"tinggi"},{nama:"Bonggo",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.2794737,lng:139.5455801,confidence:"tinggi"},{nama:"Bonggo Timur",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.3646918,lng:139.6790312,confidence:"tinggi"},{nama:"Bowi Subur",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8135765,lng:133.7238296,confidence:"sedang"},{nama:"Citak Mitak",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-5.8202155,lng:139.3247147,confidence:"tinggi"},{nama:"Depapre",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.4624962,lng:140.3668623,confidence:"tinggi"},{nama:"Dipa",kabupaten:"Nabire Regency",provinsi:"Central Papua",lat:-3.7166521,lng:135.7142063,confidence:"tinggi"},{nama:"Dirwemna",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2171694,lng:139.7319925,confidence:"tinggi"},{nama:"Anggi Gida",kabupaten:"Arfak Mountains Regency",provinsi:"West Papua",lat:-1.3668114,lng:133.9609514,confidence:"tinggi"},{nama:"Asolokobal",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1326299,lng:138.9528278,confidence:"tinggi"},{nama:"Wamena",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0921497,lng:138.9461887,confidence:"tinggi"},{nama:"Beoga",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-3.8205622,lng:137.426146,confidence:"tinggi"},{nama:"Gome",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-3.5432139,lng:137.3706554,confidence:"tinggi"},{nama:"Paniai Barat",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.8762058,lng:136.2436357,confidence:"tinggi"},{nama:"Hubikiak",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0583185,lng:138.9051723,confidence:"sedang"},{nama:"Hubikosi",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0490104,lng:138.8577544,confidence:"tinggi"},{nama:"Inanwatan",kabupaten:"South Sorong Regency",provinsi:"Southwest Papua",lat:-2.1273304,lng:132.1663024,confidence:"tinggi"},{nama:"Jagebob",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.9103659,lng:140.7624493,confidence:"tinggi"},{nama:"Jair",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.5066501,lng:140.5964124,confidence:"tinggi"},{nama:"Jila",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.295348,lng:137.5275422,confidence:"tinggi"},{nama:"Kaimana",kabupaten:"Kaimana Regency",provinsi:"West Papua",lat:-3.6679404,lng:133.7641624,confidence:"sedang"},{nama:"Iwaka",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.5263188,lng:136.7610461,confidence:"sedang"},{nama:"Kais",kabupaten:"South Sorong Regency",provinsi:"West Papua",lat:-1.7657744,lng:132.1572702,confidence:"tinggi"},{nama:"Karas",kabupaten:"Fakfak Regency",provinsi:"West Papua",lat:-3.3952572,lng:133.0971625,confidence:"tinggi"},{nama:"Karubaga",kabupaten:"Tolikara Regency",provinsi:"Highland Papua",lat:-3.6837789,lng:138.4763233,confidence:"tinggi"},{nama:"Kebar",kabupaten:"Tambrauw Regency",provinsi:"West Papua",lat:-0.8069094,lng:133.0560008,confidence:"sedang"},{nama:"Kenyam",kabupaten:"Nduga Regency",provinsi:"Highland Papua",lat:-4.6049794,lng:138.3863687,confidence:"tinggi"},{nama:"Kiwirok",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.7151742,lng:140.7444135,confidence:"tinggi"},{nama:"Klabot",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-1.3398522,lng:131.7726302,confidence:"tinggi"},{nama:"Kokoda",kabupaten:"South Sorong Regency",provinsi:"West Papua",lat:-2.1274352,lng:132.4263464,confidence:"tinggi"},{nama:"Konda",kabupaten:"South Sorong Regency",provinsi:"Southwest Papua",lat:-1.5668216,lng:131.9553383,confidence:"tinggi"},{nama:"Korupun",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.477961,lng:139.6502748,confidence:"tinggi"},{nama:"Kosarek",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2243256,lng:139.5891233,confidence:"tinggi"},{nama:"Kouh",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-5.8051734,lng:140.2132761,confidence:"tinggi"},{nama:"Kurima",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2110641,lng:139.02832,confidence:"tinggi"},{nama:"Kurulu",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.9656195,lng:138.9506295,confidence:"tinggi"},{nama:"Kuyawage",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-4.01763,lng:138.2047116,confidence:"tinggi"},{nama:"Langda",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4536835,lng:139.4159571,confidence:"tinggi"},{nama:"Makbon",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.7584809,lng:131.586328,confidence:"tinggi"},{nama:"Malind",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.3496082,lng:140.2226315,confidence:"tinggi"},{nama:"Mamberamo Hilir",kabupaten:"Mamberamo Raya Regency",provinsi:"Papua",lat:-2.1407557,lng:137.8501141,confidence:"sedang"},{nama:"Mamberamo Hulu",kabupaten:"Mamberamo Raya Regency",provinsi:"Papua",lat:-3.1182377,lng:138.6388879,confidence:"sedang"},{nama:"Mandobo",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.0694004,lng:140.265662,confidence:"tinggi"},{nama:"Manokwari Selatan",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8912103,lng:134.046322,confidence:"tinggi"},{nama:"Manokwari Timur",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8720191,lng:134.1010233,confidence:"tinggi"},{nama:"Manokwari Utara",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.7545947,lng:133.9845162,confidence:"tinggi"},{nama:"Mapia",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-3.9611613,lng:135.9437422,confidence:"tinggi"},{nama:"Mapia Barat",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-4.0494504,lng:135.7394361,confidence:"tinggi"},{nama:"Mapia Tengah",kabupaten:"Dogiyai Regency",provinsi:"Central Papua",lat:-4.1114953,lng:135.8199147,confidence:"tinggi"},{nama:"Masni",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.7868548,lng:133.728488,confidence:"tinggi"},{nama:"Mayamuk",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-1.0590548,lng:131.2851406,confidence:"tinggi"},{nama:"Mimika Barat",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.4553134,lng:136.2857516,confidence:"tinggi"},{nama:"Mimika Baru",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.5671869,lng:136.8873528,confidence:"tinggi"},{nama:"Mimika Timur",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.6732036,lng:136.8265517,confidence:"sedang"},{nama:"Mimika Tengah",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.7887136,lng:136.5698868,confidence:"tinggi"},{nama:"Mindiptana",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-5.8729212,lng:140.7006239,confidence:"tinggi"},{nama:"Minyambouw",kabupaten:"Arfak Mountains Regency",provinsi:"West Papua",lat:-0.8672622,lng:134.0282462,confidence:"tinggi"},{nama:"Moraid",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.6590992,lng:131.9791516,confidence:"tinggi"},{nama:"Moskona Barat",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-1.7525507,lng:132.6293446,confidence:"tinggi"},{nama:"Moskona Timur",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-1.311813,lng:132.9806087,confidence:"tinggi"},{nama:"Moskona Utara",kabupaten:"Teluk Bintuni Regency",provinsi:"West Papua",lat:-1.368612,lng:132.7270105,confidence:"tinggi"},{nama:"Moswaren",kabupaten:"South Sorong Regency",provinsi:"Southwest Papua",lat:-1.4917637,lng:132.2410573,confidence:"tinggi"},{nama:"Muara Tami",kabupaten:"Jayapura City",provinsi:"Papua",lat:-2.6724683,lng:140.804037,confidence:"tinggi"},{nama:"Mubrani",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.762388,lng:133.427668,confidence:"sedang"},{nama:"Nalca",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4158336,lng:139.8137871,confidence:"tinggi"},{nama:"Namblong",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.6034625,lng:140.2053281,confidence:"sedang"},{nama:"Naukenjerai",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.8010064,lng:140.8040271,confidence:"tinggi"},{nama:"Ninia",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.3157712,lng:139.3301478,confidence:"tinggi"},{nama:"Nimboran",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.5963423,lng:140.1662573,confidence:"tinggi"},{nama:"Nimbokrang",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.5482824,lng:140.1340831,confidence:"tinggi"},{nama:"Numfor Barat",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-0.9682629,lng:134.8055314,confidence:"tinggi"},{nama:"Numfor Timur",kabupaten:"Biak Numfor Regency",provinsi:"Papua",lat:-0.9371465,lng:134.8613219,confidence:"tinggi"},{nama:"Okbab",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.4591074,lng:140.3986638,confidence:"tinggi"},{nama:"Okbape",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.7079703,lng:140.534262,confidence:"tinggi"},{nama:"Oksibil",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-5.080177,lng:140.635803,confidence:"tinggi"},{nama:"Oksop",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.7324178,lng:140.4101474,confidence:"tinggi"},{nama:"Oransbari",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8912103,lng:134.046322,confidence:"sedang"},{nama:"Sugapa",kabupaten:"Intan Jaya Regency",provinsi:"Central Papua",lat:-3.7397323,lng:137.0417997,confidence:"tinggi"},{nama:"Paniai Timur",kabupaten:"Paniai Regency",provinsi:"Central Papua",lat:-3.9293592,lng:136.3780656,confidence:"tinggi"},{nama:"Passue Bawah",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.062941,lng:139.514775,confidence:"rendah"},{nama:"Pirime",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.9709066,lng:138.5398554,confidence:"tinggi"},{nama:"Pisugi",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0391877,lng:138.9551439,confidence:"tinggi"},{nama:"Prafi",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8781986,lng:133.8274668,confidence:"tinggi"},{nama:"Ransiki",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-1.5059231,lng:134.1688136,confidence:"tinggi"},{nama:"Salawati",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-1.1878386,lng:131.2481347,confidence:"tinggi"},{nama:"Salawati Barat",kabupaten:"Raja Ampat Regency",provinsi:"Southwest Papua",lat:-1.0980561,lng:130.7040528,confidence:"tinggi"},{nama:"Salawati Selatan",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-1.2811542,lng:130.8951476,confidence:"tinggi"},{nama:"Sarmi",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-1.8899839,lng:138.753058,confidence:"tinggi"},{nama:"Sausapor",kabupaten:"Tambrauw Regency",provinsi:"Southwest Papua",lat:-0.496052,lng:132.0874738,confidence:"tinggi"},{nama:"Sayosa",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-0.9604647,lng:131.8402054,confidence:"tinggi"},{nama:"Seget",kabupaten:"Sorong Regency",provinsi:"Southwest Papua",lat:-1.396913,lng:131.0888774,confidence:"tinggi"},{nama:"Senggi",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-3.4644931,lng:140.5964124,confidence:"tinggi"},{nama:"Senopi",kabupaten:"Manokwari Regency",provinsi:"West Papua",lat:-0.8350712,lng:132.930721,confidence:"sedang"},{nama:"Sentani",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.5648168,lng:140.5056744,confidence:"tinggi"},{nama:"Sentani Barat",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.5176173,lng:140.4047969,confidence:"tinggi"},{nama:"Sentani Timur",kabupaten:"Jayapura Regency",provinsi:"Papua",lat:-2.5821797,lng:140.5755233,confidence:"tinggi"},{nama:"Sinak",kabupaten:"Puncak Regency",provinsi:"Central Papua",lat:-3.8109317,lng:137.8469825,confidence:"tinggi"},{nama:"Siriwo",kabupaten:"Nabire Regency",provinsi:"Central Papua",lat:-3.3800854,lng:136.0944845,confidence:"tinggi"},{nama:"Skanto",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-2.8184236,lng:140.6227737,confidence:"tinggi"},{nama:"Sota",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.3128958,lng:140.8872648,confidence:"tinggi"},{nama:"Supiori Barat",kabupaten:"Supiori Regency",provinsi:"Papua",lat:-0.6869326,lng:135.506339,confidence:"tinggi"},{nama:"Supiori Selatan",kabupaten:"Supiori Regency",provinsi:"Papua",lat:-0.837294,lng:135.5890065,confidence:"tinggi"},{nama:"Supiori Timur",kabupaten:"Supiori Regency",provinsi:"Papua",lat:-0.7338901,lng:135.7362281,confidence:"tinggi"},{nama:"Supiori Utara",kabupaten:"Supiori Regency",provinsi:"Papua",lat:-0.6732508,lng:135.6191212,confidence:"tinggi"},{nama:"Tanah Miring",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.3393441,lng:140.4913089,confidence:"tinggi"},{nama:"Teminabuan",kabupaten:"South Sorong Regency",provinsi:"Southwest Papua",lat:-1.4418184,lng:132.0109997,confidence:"tinggi"},{nama:"Tigi",kabupaten:"Deiyai Regency",provinsi:"Central Papua",lat:-4.0451767,lng:136.278207,confidence:"tinggi"},{nama:"Tigi Barat",kabupaten:"Deiyai Regency",provinsi:"Central Papua",lat:-4.0839036,lng:136.2228747,confidence:"tinggi"},{nama:"Tiom",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.9277573,lng:138.4557817,confidence:"tinggi"},{nama:"Waris",kabupaten:"Keerom Regency",provinsi:"Papua",lat:-3.1419716,lng:140.8603956,confidence:"tinggi"},{nama:"Waropen Bawah",kabupaten:"Waropen Regency",provinsi:"Papua",lat:-2.2420315,lng:136.3794418,confidence:"tinggi"},{nama:"Waropen Atas",kabupaten:"Mamberamo Raya Regency",provinsi:"Papua",lat:-2.4516885,lng:137.2142417,confidence:"tinggi"},{nama:"Wasior",kabupaten:"Teluk Wondama Regency",provinsi:"West Papua",lat:-2.726099,lng:134.506737,confidence:"tinggi"},{nama:"Windesi",kabupaten:"Teluk Wondama Regency",provinsi:"West Papua",lat:-2.601077,lng:134.1340439,confidence:"tinggi"},{nama:"Edera",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.9984344,lng:138.8312335,confidence:"sedang"},{nama:"Fayit",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-6.0610672,lng:138.3835427,confidence:"tinggi"},{nama:"Joerat",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.4922847,lng:138.0855542,confidence:"tinggi"},{nama:"Kolf Braza",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.2017018,lng:139.0009403,confidence:"tinggi"},{nama:"Sawa Erma",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.1382956,lng:138.1995591,confidence:"tinggi"},{nama:"Suator",kabupaten:"Asmat Regency",provinsi:"South Papua",lat:-5.1911556,lng:139.284143,confidence:"tinggi"},{nama:"Suru Suru",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.6811776,lng:139.0223198,confidence:"tinggi"},{nama:"Wusama",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4818415,lng:138.9178396,confidence:"tinggi"},{nama:"Yahuliambut",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.0739933,lng:139.619709,confidence:"tinggi"},{nama:"Puldama",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.3415756,lng:139.9161886,confidence:"tinggi"},{nama:"Sela",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.5453889,lng:139.8137871,confidence:"tinggi"},{nama:"Sumo",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.7710232,lng:139.3247147,confidence:"tinggi"},{nama:"Kabianggama",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4073801,lng:139.3145691,confidence:"tinggi"},{nama:"Soba",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.3806668,lng:139.1524819,confidence:"tinggi"},{nama:"Ubahak",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.26605,lng:139.4872858,confidence:"tinggi"},{nama:"Ubalihi",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.044366,lng:139.7933279,confidence:"tinggi"},{nama:"Ukha",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.3082011,lng:138.9001364,confidence:"tinggi"},{nama:"Panggema",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.1476205,lng:139.3856256,confidence:"tinggi"},{nama:"Musaik",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.6777295,lng:138.9202828,confidence:"tinggi"},{nama:"Werima",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2391824,lng:139.0879724,confidence:"tinggi"},{nama:"Obio",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.6303541,lng:139.1625989,confidence:"tinggi"},{nama:"Silimo",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4648706,lng:138.9453684,confidence:"tinggi"},{nama:"Endomen",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2124749,lng:139.9161886,confidence:"tinggi"},{nama:"Hereapini",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-3.9459772,lng:139.7524306,confidence:"tinggi"},{nama:"Anggruk",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2006235,lng:139.4318012,confidence:"tinggi"},{nama:"Duram",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.511476,lng:139.5483671,confidence:"tinggi"},{nama:"Waropko",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-5.4810101,lng:140.8872648,confidence:"tinggi"},{nama:"Kombut",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-5.8111842,lng:140.8040271,confidence:"tinggi"},{nama:"Fofi",kabupaten:"Boven Digoel Regency",provinsi:"South Papua",lat:-6.2111813,lng:139.855567,confidence:"tinggi"},{nama:"Pantai Timur Bagian Barat",kabupaten:"Sarmi Regency",provinsi:"Papua",lat:-2.0398396,lng:139.1288914,confidence:"tinggi"},{nama:"Elelim",kabupaten:"Yalimo Regency",provinsi:"Highland Papua",lat:-3.7680532,lng:139.3868081,confidence:"tinggi"},{nama:"Welarek",kabupaten:"Yalimo Regency",provinsi:"Highland Papua",lat:-3.9512159,lng:139.5687416,confidence:"tinggi"},{nama:"Holuwon",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4281185,lng:139.2638678,confidence:"tinggi"},{nama:"Talambo",kabupaten:"Yahukimo Regency",provinsi:"Papua",lat:-3.8127706,lng:139.9366899,confidence:"tinggi"},{nama:"Batom",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.4466638,lng:140.8794807,confidence:"tinggi"},{nama:"Iwur",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-5.0132803,lng:140.8872648,confidence:"tinggi"},{nama:"Okhika",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.6641089,lng:140.6782097,confidence:"tinggi"},{nama:"Weime",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.3975064,lng:140.2862819,confidence:"tinggi"},{nama:"Kalomdol",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.9670754,lng:140.5860497,confidence:"tinggi"},{nama:"Bime",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.488256,lng:140.2199566,confidence:"tinggi"},{nama:"Aboy",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.237846,lng:140.5964124,confidence:"tinggi"},{nama:"Alemsom",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.7239845,lng:140.2862819,confidence:"tinggi"},{nama:"Serambakon",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.8557903,lng:140.5009203,confidence:"tinggi"},{nama:"Kiwirok Timur",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.743346,lng:140.8487154,confidence:"tinggi"},{nama:"Pepera",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.8872459,lng:140.7305111,confidence:"tinggi"},{nama:"Ok Aom",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-4.8531394,lng:140.6404082,confidence:"sedang"},{nama:"Tarup",kabupaten:"Pegunungan Bintang Regency",provinsi:"Highland Papua",lat:-5.1570425,lng:140.9757647,confidence:"tinggi"},{nama:"Asologaima",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.9852898,lng:138.8097572,confidence:"tinggi"},{nama:"Wamena Kota",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0921406,lng:138.946159,confidence:"sedang"},{nama:"Walesi",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.2041187,lng:138.8900659,confidence:"sedang"},{nama:"Napua",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1177602,lng:138.8922792,confidence:"sedang"},{nama:"Wouma",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1101953,lng:138.9429561,confidence:"sedang"},{nama:"Trikora",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1115517,lng:138.9170683,confidence:"sedang"},{nama:"Tembagapura",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.1430904,lng:137.090491,confidence:"tinggi"},{nama:"Kuala Kencana",kabupaten:"Mimika Regency",provinsi:"Central Papua",lat:-4.3653215,lng:136.7478493,confidence:"tinggi"},{nama:"Mambioman Bapai",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.7713033,lng:139.1221414,confidence:"tinggi"},{nama:"Obaa",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.5336517,lng:139.4466005,confidence:"tinggi"},{nama:"Venaha",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.7168056,lng:139.9366899,confidence:"tinggi"},{nama:"Haju",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.2564518,lng:139.0009403,confidence:"tinggi"},{nama:"Passue",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.3845424,lng:139.6503106,confidence:"tinggi"},{nama:"Minyamur",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.5749178,lng:138.8397403,confidence:"tinggi"},{nama:"Bamgi",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.9040338,lng:139.5081534,confidence:"tinggi"},{nama:"Yakomi",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-7.0968657,lng:139.9777136,confidence:"tinggi"},{nama:"Kaibar",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-5.648821,lng:139.6503106,confidence:"tinggi"},{nama:"Syahcame",kabupaten:"Mappi Regency",provinsi:"South Papua",lat:-6.92665,lng:139.6493658,confidence:"tinggi"},{nama:"Waan",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.1569479,lng:138.1597946,confidence:"tinggi"},{nama:"Ilwayab",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.4504081,lng:139.1221414,confidence:"tinggi"},{nama:"Elikobel",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.6298349,lng:140.7624493,confidence:"tinggi"},{nama:"Kimaam",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.9613539,lng:138.7995122,confidence:"tinggi"},{nama:"Kurik",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.2803301,lng:140.2897098,confidence:"tinggi"},{nama:"Muting",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.3162208,lng:140.4308159,confidence:"tinggi"},{nama:"Okaba",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.0915867,lng:139.7178159,confidence:"tinggi"},{nama:"Semangga",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-8.4364694,lng:140.4446978,confidence:"tinggi"},{nama:"Tabonji",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.3998223,lng:138.8188212,confidence:"sedang"},{nama:"Ulilin",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.0730155,lng:140.7624493,confidence:"tinggi"},{nama:"Tubang",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.7617804,lng:139.4466005,confidence:"tinggi"},{nama:"Ngguti",kabupaten:"Merauke Regency",provinsi:"South Papua",lat:-7.5043722,lng:139.609512,confidence:"tinggi"},{nama:"Dekai",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.8638158,lng:139.4837298,confidence:"tinggi"},{nama:"Kwelamdua",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.7142399,lng:139.6707205,confidence:"tinggi"},{nama:"Nipsan",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.1331326,lng:139.6707205,confidence:"tinggi"},{nama:"Walma",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2522348,lng:139.3957836,confidence:"tinggi"},{nama:"Kwikma",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.5328124,lng:139.3856256,confidence:"tinggi"},{nama:"Seredela",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-5.0222492,lng:139.9274723,confidence:"sedang"},{nama:"Yogosem",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2220265,lng:139.1294918,confidence:"tinggi"},{nama:"Kayo",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.4855306,lng:139.2409009,confidence:"tinggi"},{nama:"Bomela",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.71637,lng:139.9366899,confidence:"tinggi"},{nama:"Kona",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.0195759,lng:139.9161886,confidence:"tinggi"},{nama:"Mugi",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2980378,lng:139.0184902,confidence:"tinggi"},{nama:"Tangma",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2347279,lng:139.0094652,confidence:"tinggi"},{nama:"Walelagama",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1007417,lng:138.9842397,confidence:"tinggi"},{nama:"Pronggoli",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.2039144,lng:139.2638678,confidence:"tinggi"},{nama:"Sobaham",kabupaten:"Yahukimo Regency",provinsi:"Highland Papua",lat:-4.3232167,lng:139.2537329,confidence:"tinggi"},{nama:"Bugi",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0737862,lng:138.9350934,confidence:"tinggi"},{nama:"Musatfak",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0029267,lng:138.8661179,confidence:"tinggi"},{nama:"Wollo",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.8452753,lng:138.865767,confidence:"tinggi"},{nama:"Tagime",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.8151532,lng:138.7291822,confidence:"tinggi"},{nama:"Taelarek",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0836337,lng:138.7325242,confidence:"sedang"},{nama:"Yalengga",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.8816184,lng:138.7966334,confidence:"tinggi"},{nama:"Molagalome",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.8400647,lng:138.6960242,confidence:"tinggi"},{nama:"Wame",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0666609,lng:138.9808187,confidence:"tinggi"},{nama:"Wadangku",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.9241388,lng:138.9665477,confidence:"tinggi"},{nama:"Wesaput",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.9286661,lng:138.8697184,confidence:"tinggi"},{nama:"Walaik",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.2075591,lng:138.8196226,confidence:"sedang"},{nama:"Hom Hom",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0824967,lng:138.9395249,confidence:"sedang"},{nama:"Usilimo",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-3.9275897,lng:138.8674138,confidence:"sedang"},{nama:"Wita Waya",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.0312588,lng:138.9118188,confidence:"tinggi"},{nama:"Piramid",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.1036554,lng:138.9482374,confidence:"tinggi"},{nama:"Libarek",kabupaten:"Jayawijaya Regency",provinsi:"Highland Papua",lat:-4.003446,lng:138.9572614,confidence:"sedang"},{nama:"Poga",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.8191274,lng:138.5288912,confidence:"tinggi"},{nama:"Tiomneri",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.8761181,lng:138.4009177,confidence:"tinggi"},{nama:"Wereka",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.8731031,lng:138.3993368,confidence:"sedang"},{nama:"Melagineri",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.9824061,lng:138.3663998,confidence:"tinggi"},{nama:"Gamelia",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.8864208,lng:138.6713122,confidence:"tinggi"},{nama:"Nogi",kabupaten:"Lanny Jaya Regency",provinsi:"Highland Papua",lat:-3.9019659,lng:138.4628747,confidence:"rendah"}];
 
 const PAPUA_PROVINCES = [
   {nama:'Papua', ibukota:'Jayapura', lat:-2.5334, lng:140.7181},
@@ -3025,6 +3059,18 @@ function renderPetaKonsumenTab(f){
       CONSUMER_LOCATIONS.map(c=>`<tr><td>${c.nama||'-'}</td><td>${c.provinsi||'-'}</td><td>${c.kota||'-'}</td><td>${c.kecamatan||'-'}</td><td>${c.kelurahan||'-'}</td><td>${c.dealer||'-'}</td></tr>`).join('');
   }
 }
+
+// ============================================================
+// KUALITAS DATA INSTANSI — Tarikan SAP YTD Juli 2026
+// Definisi "pekerjaan ber-instansi": Pekerjaan mengandung kata PEGAWAI,
+// GURU, atau DOSEN (contoh dari user: Karyawan/Pegawai, Guru/Dosen) —
+// jenis pekerjaan yang SEHARUSNYA selalu punya Nama Instansi (kolom CK).
+// "Kosong" mencakup: benar-benar kosong, ATAU diisi placeholder yang
+// bukan nama instansi asli (mis. "N", "0", "-", ".", "N/A") — pola ini
+// terdeteksi konsisten sebagai konvensi "tidak diisi" di file SAP ini.
+// ============================================================
+const CDB_INSTANSI_PER_DEALER = [{dealer:"Astra Motor Aimas",total:1089,instansiJob:637,kosong:48},{dealer:"Fajar Terus Bersinar Timika",total:1301,instansiJob:802,kosong:64},{dealer:"Astra Motor Timika",total:1538,instansiJob:854,kosong:72},{dealer:"Budi Jaya Wamena",total:63,instansiJob:18,kosong:18},{dealer:"Sinar Wagom Intiraya",total:79,instansiJob:47,kosong:8},{dealer:"Fajar Terus Bersinar Jayapura",total:1168,instansiJob:506,kosong:61},{dealer:"Astra Motor Tanah Hitam",total:2307,instansiJob:1066,kosong:102},{dealer:"Astra Motor Entrop",total:1568,instansiJob:847,kosong:64},{dealer:"Astra Motor Sentani",total:1572,instansiJob:721,kosong:89},{dealer:"Arui makmur",total:119,instansiJob:67,kosong:5},{dealer:"Sinar Pagi Nabire",total:1331,instansiJob:485,kosong:110},{dealer:"Astra Motor Manokwari",total:2053,instansiJob:1064,kosong:115},{dealer:"Astra Motor Sorong 1",total:1350,instansiJob:820,kosong:75},{dealer:"Sulawesi Manokwari",total:433,instansiJob:188,kosong:18},{dealer:"Astra Motor Sorong 2",total:1412,instansiJob:802,kosong:59},{dealer:"Astra Motor Merauke",total:2814,instansiJob:1249,kosong:160},{dealer:"Astra Motor Nabire",total:1196,instansiJob:585,kosong:38},{dealer:"Senja Indah Kaimana",total:56,instansiJob:33,kosong:7},{dealer:"Sinar Pagi Biak",total:560,instansiJob:281,kosong:50}];
+const CDB_INSTANSI_PER_JOB = [{pekerjaan:"Pegawai Swasta Jasa",job:4982,kosong:147},{pekerjaan:"Pegawai Swasta Pertambangan",job:263,kosong:7},{pekerjaan:"Pegawai Swasta Perdagangan (retail)",job:1241,kosong:53},{pekerjaan:"Guru/ dosen",job:874,kosong:831},{pekerjaan:"Pegawai Negeri",job:2906,kosong:92},{pekerjaan:"Pegawai Swasta Pertanian/Perkebunan/Kehutanan",job:316,kosong:16},{pekerjaan:"Pegawai Swasta Kontuksi",job:271,kosong:14},{pekerjaan:"Pegawai Swasta Industri",job:219,kosong:3}];
 
 function renderCdbTab(f){
   f = f || getFilters();
@@ -3198,7 +3244,7 @@ function renderCdbTab(f){
       { label:'Valid', data: dealerValNames.map(d=>byDealerVal[d].valid), backgroundColor:'#1E8E5A', borderRadius:4 },
       { label:'Tidak Valid', data: dealerValNames.map(d=>byDealerVal[d].invalid), backgroundColor:'#D64545', borderRadius:4 },
     ]},
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterChartOnClick, interaction: { mode: 'index', intersect: false },  indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
       scales:{ x:{stacked:true, beginAtZero:true, ticks:{stepSize:2}, grid:{color:'#E3E7EE'}}, y:{stacked:true, grid:{display:false}, ticks:{font:{size:9.5}}} } }
   });
@@ -3224,6 +3270,78 @@ function renderCdbTab(f){
         <td><b style="color:${r.valid?'#1E8E5A':'#D64545'};">${r.valid?'✓ Valid':'✕ Tidak Valid'}</b></td>
         <td style="font-size:12px;">${r.diffs.length? r.diffs.join(', ') : '-'}</td>
       </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada data yang cocok dengan filter ini.</td></tr>`);
+
+  // ============================================================
+  // KUALITAS DATA INSTANSI — Tarikan SAP YTD Juli 2026
+  // ============================================================
+  const instansiScoped = CDB_INSTANSI_PER_DEALER.filter(d=>{
+    if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(d.dealer, f.dealer)) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(d.dealer) !== f.wilayah) return false;
+    return true;
+  });
+  const totJualan = instansiScoped.reduce((s,d)=>s+d.total,0);
+  const totJob = instansiScoped.reduce((s,d)=>s+d.instansiJob,0);
+  const totKosong = instansiScoped.reduce((s,d)=>s+d.kosong,0);
+  document.getElementById('cdbInstansiKpiRow').innerHTML = [
+    {label:'Total Data Jualan', value: totJualan.toLocaleString('id-ID'), delta:'sesuai filter Dealer/Wilayah aktif'},
+    {label:'Pekerjaan Ber-Instansi', value: totJob.toLocaleString('id-ID'), delta: totJualan? (totJob/totJualan*100).toFixed(1)+'% dari total data' : '-'},
+    {label:'Nama Instansi Kosong', value: totKosong.toLocaleString('id-ID'), delta: totJob? (totKosong/totJob*100).toFixed(1)+'% dari pekerjaan ber-instansi' : '-'},
+    {label:'Guru/Dosen — %Kosong', value: '95.1%', delta:'831 dari 874 data (pendorong utama gap)'},
+  ].map(k=>`
+    <div class="kpi good">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="delta good">${k.delta}</div>
+    </div>`).join('');
+
+  // Chart: Jumlah Data Jualan per Dealer
+  const jualanSorted = [...instansiScoped].sort((a,b)=>b.total-a.total);
+  destroyChart('cdbJualanDealerChart');
+  charts.cdbJualanDealerChart = new Chart(document.getElementById('cdbJualanDealerChart'), {
+    type:'bar',
+    data:{ labels: jualanSorted.map(d=>d.dealer), datasets:[{ label:'Jumlah Data Jualan', data: jualanSorted.map(d=>d.total), backgroundColor: COLORS.navy, borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+      interaction: { mode: 'index', intersect: false }, onClick: crossFilterChartOnClick,
+      scales:{ x:{beginAtZero:true, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
+  // Chart: %Kosong Nama Instansi per Dealer
+  const kosongSorted = [...instansiScoped].map(d=>({...d, pct: d.instansiJob? d.kosong/d.instansiJob*100 : 0})).sort((a,b)=>b.pct-a.pct);
+  destroyChart('cdbKosongDealerChart');
+  charts.cdbKosongDealerChart = new Chart(document.getElementById('cdbKosongDealerChart'), {
+    type:'bar',
+    data:{ labels: kosongSorted.map(d=>d.dealer), datasets:[{ label:'%Kosong', data: kosongSorted.map(d=>+d.pct.toFixed(1)),
+      backgroundColor: kosongSorted.map(d=> d.pct>=15?'#D64545':d.pct>=10?'#B7862E':'#1E8E5A'), borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.x+'%'}} },
+      interaction: { mode: 'index', intersect: false }, onClick: crossFilterChartOnClick,
+      scales:{ x:{beginAtZero:true, max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:9.5}}} } }
+  });
+
+  // Chart: %Kosong per Kategori Pekerjaan
+  const jobSorted = [...CDB_INSTANSI_PER_JOB].map(d=>({...d, pct: d.job? d.kosong/d.job*100 : 0})).sort((a,b)=>b.pct-a.pct);
+  destroyChart('cdbKosongJobChart');
+  charts.cdbKosongJobChart = new Chart(document.getElementById('cdbKosongJobChart'), {
+    type:'bar',
+    data:{ labels: jobSorted.map(d=>d.pekerjaan), datasets:[{ label:'%Kosong', data: jobSorted.map(d=>+d.pct.toFixed(1)),
+      backgroundColor: jobSorted.map(d=> d.pct>=50?'#D64545':d.pct>=10?'#B7862E':'#1E8E5A'), borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.x+'%'}} },
+      scales:{ x:{beginAtZero:true, max:100, ticks:{callback:v=>v+'%'}, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}, ticks:{font:{size:10}}} } }
+  });
+
+  // Tabel detail per dealer
+  const instansiTbl = document.getElementById('cdbInstansiTable');
+  instansiTbl.innerHTML = `<tr><th>Nama Dealer</th><th>Total Data Jualan</th><th>Pekerjaan Ber-Instansi</th><th>Nama Instansi Kosong</th><th>%Kosong</th></tr>` +
+    (jualanSorted.length ? jualanSorted.map(d=>{
+      const pct = d.instansiJob? (d.kosong/d.instansiJob*100) : 0;
+      const color = pct>=15?'#D64545':pct>=10?'#B7862E':'#1E8E5A';
+      return `<tr>
+        <td>${d.dealer}</td>
+        <td>${d.total.toLocaleString('id-ID')}</td>
+        <td>${d.instansiJob.toLocaleString('id-ID')}</td>
+        <td>${d.kosong.toLocaleString('id-ID')}</td>
+        <td><b style="color:${color};">${pct.toFixed(1)}%</b></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada data yang cocok dengan filter ini.</td></tr>`);
 }
 
 // ============================================================
@@ -3388,7 +3506,7 @@ function renderDiagnostikTab(f){
       backgroundColor: quadPts.map(p=> (p.x<tgtH1 && p.y<tgtH2) ? COLORS.red : (p.x<tgtH1||p.y<tgtH2) ? COLORS.gold : COLORS.green),
       pointRadius:7, pointHoverRadius:9
     }]},
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterScatterOnClick,  responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
         tooltip:{ callbacks:{ label:(c)=> quadPts[c.dataIndex].label+' — H1 '+c.parsed.x+'%, H2 '+c.parsed.y+'%' } },
         quadrantLines:{ x:tgtH1, y:tgtH2, lineColor:'#94A3B8', labelColor:'#7A8CA6',
@@ -3548,7 +3666,7 @@ function renderPrediktifTab(f){
       backgroundColor: riskRows.map(r=> r.idx>66?COLORS.red : r.idx>33?COLORS.gold : COLORS.green),
       borderRadius:8
     }]},
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterCityOnly, interaction: { mode: 'index', intersect: false },  indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'Indeks: '+c.parsed.x}} },
       scales:{ x:{min:0,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
@@ -4623,7 +4741,7 @@ function renderNosTab(f){
           backgroundColor: GRADE_COLOR[g], borderRadius:4,
         }))
       },
-      options:{ responsive:true, maintainAspectRatio:false,
+      options:{ onClick: crossFilterTipeOnly,  responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
         scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{stepSize:1}} } }
     });
@@ -4689,7 +4807,7 @@ function renderNosTab(f){
         borderRadius: 4,
       }))
     },
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterTipeOnly,  responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
       scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{stepSize:1}} } }
   });
@@ -4906,6 +5024,37 @@ function crossFilterCityOnly(evt, elements, chart){
   const label = chart.data.labels[idx];
   if(!label) return;
   applyWilayahCrossFilter(label);
+}
+
+// Khusus scatter chart (titik per dealer, label ada di tiap data point,
+// bukan di chart.data.labels) — mis. Diagnostik Kuadran H1 vs H2.
+function crossFilterScatterOnClick(evt, elements, chart){
+  if(!elements.length) return;
+  const { datasetIndex, index } = elements[0];
+  const point = chart.data.datasets[datasetIndex].data[index];
+  if(!point || !point.label) return;
+  applyDealerCrossFilter(point.label);
+}
+
+// Khusus chart yang labelnya PASTI nama Tipe/Channel (Reguler H123/Wing/
+// AHASS H23) — arahkan ke filter Tipe Layer global, bukan Dealer/Wilayah.
+function crossFilterTipeOnly(evt, elements, chart){
+  if(!elements.length) return;
+  const idx = elements[0].index;
+  const label = chart.data.labels[idx];
+  if(!label) return;
+  const map = { 'Reguler H123':'REGULER', 'Wing':'WING', 'AHASS H23':'AHASS' };
+  const value = map[label];
+  if(!value) return;
+  const tipeSel = document.getElementById('fTipe');
+  if(tipeSel.value === value) return;
+  tipeSel.value = value;
+  setTimeout(()=>{
+    renderAll();
+    tipeSel.style.transition = 'box-shadow 0.15s';
+    tipeSel.style.boxShadow = '0 0 0 3px rgba(11,37,69,0.35)';
+    setTimeout(()=>{ tipeSel.style.boxShadow=''; }, 900);
+  }, 0);
 }
 
 document.addEventListener('click', function(e){
@@ -6018,6 +6167,59 @@ function renderGmbTab(f){
         <td style="font-size:11px;">${r.dariTanggal} → ${r.keTanggal}</td>
       </tr>`;
     }).join('') : `<tr><td colspan="8" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Belum ada snapshot dengan breakdown bintang.</td></tr>`);
+
+  // ============================================================
+  // REKAP PERFORMA GMB PER DEALER — format standar GBP
+  // Menggabungkan data snapshot terkini (J.Review All, GMB Score) dengan
+  // breakdown bintang BULAN INI (dari delta antar-snapshot di atas).
+  // Kolom Feedback (Jumlah/Belum/%ACH) BELUM ADA sumber datanya — dashboard
+  // ini cuma melacak rating/jumlah ulasan, bukan status balasan dealer atas
+  // tiap ulasan di Google Maps. Ditandai jujur "Belum Ada Data".
+  // ============================================================
+  const deltaByDealer = {};
+  deltaRows.forEach(r=>{ deltaByDealer[r.dealer] = r; });
+  const rekapTbl = document.getElementById('gmbRekapTable');
+  const rekapRows = dealerList.map(d=>{
+    const h = latestByDealer[d.dealer];
+    const dl = deltaByDealer[d.dealer];
+    const jReviewAll = h && h.jumlahUlasan!=null ? h.jumlahUlasan : null;
+    const gmbScore = h && h.rating!=null ? Number(h.rating) : null;
+    const isBaseline = !dl || dl.baseline;
+    const reviewMonthly = isBaseline ? null : dl.total;
+    const r1 = isBaseline ? null : dl.d1, r2 = isBaseline ? null : dl.d2, r3 = isBaseline ? null : dl.d3, r4 = isBaseline ? null : dl.d4, r5 = isBaseline ? null : dl.d5;
+    const cont13 = (!isBaseline && reviewMonthly) ? ((r1+r2+r3)/reviewMonthly*100) : null;
+    const cont45 = (!isBaseline && reviewMonthly) ? ((r4+r5)/reviewMonthly*100) : null;
+    return { dealer: d.dealer, tutupPermanen: d.tutupPermanen, jReviewAll, reviewMonthly, gmbScore, r1,r2,r3,r4,r5, cont13, cont45, isBaseline };
+  });
+  const scoreIcon = v => v==null ? '' : (v>=4.8 ? '<span style="color:#1E8E5A;">✔</span>' : '<span style="color:#B7862E;">⚠</span>');
+  const negIcon = (v,cnt) => (cnt && cnt>0) ? ' <span style="color:#B7862E;">⚠</span>' : '';
+  const contIcon = v => v==null ? '' : (v>15 ? ' <span style="color:#C0152A;">✖</span>' : '');
+  rekapTbl.innerHTML = `<tr>
+      <th>Nama Dealer</th><th>J.Review All</th><th>Review Monthly</th><th>GMB Score</th>
+      <th>Rating 1</th><th>Rating 2</th><th>Rating 3</th><th>Rating 4</th><th>Rating 5</th>
+      <th>%Cont Rating 1-3</th><th>%Cont Rating 4-5</th>
+      <th>Jumlah Feedback</th><th>Belum Feedback</th><th>%ACH Feedback</th>
+    </tr>` +
+    (rekapRows.length ? rekapRows.map(r=>{
+      const tutupBadge = r.tutupPermanen ? ' <span style="background:#FDE8E8; color:#B42318; padding:1px 6px; border-radius:4px; font-size:9px; font-weight:800;">TUTUP</span>' : '';
+      const dash = '<span style="color:var(--grey);">-</span>';
+      return `<tr>
+        <td>${r.dealer}${tutupBadge}</td>
+        <td>${r.jReviewAll ?? dash}</td>
+        <td>${r.reviewMonthly!=null ? r.reviewMonthly : '<span style="color:var(--grey); font-style:italic;" title="Belum ada snapshot pembanding bulan lalu">Baseline</span>'}</td>
+        <td>${r.gmbScore!=null ? r.gmbScore.toFixed(2)+' '+scoreIcon(r.gmbScore) : dash}</td>
+        <td>${r.r1!=null ? r.r1+negIcon(r.r1,r.r1) : dash}</td>
+        <td>${r.r2!=null ? r.r2 : dash}</td>
+        <td>${r.r3!=null ? r.r3 : dash}</td>
+        <td>${r.r4!=null ? r.r4 : dash}</td>
+        <td>${r.r5!=null ? r.r5 : dash}</td>
+        <td style="background:#FBEAEE;">${r.cont13!=null ? r.cont13.toFixed(2)+'%'+contIcon(r.cont13) : dash}</td>
+        <td style="background:#E7F5EE;">${r.cont45!=null ? r.cont45.toFixed(2)+'%' : dash}</td>
+        <td style="color:var(--grey); font-style:italic;">Belum Ada Data</td>
+        <td style="color:var(--grey); font-style:italic;">Belum Ada Data</td>
+        <td style="color:var(--grey); font-style:italic;">Belum Ada Data</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="14" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Tidak ada data.</td></tr>`);
 
   // ---- Jelajah Ulasan per Bintang ----
   const reviewDealerSel = document.getElementById('gmbFReviewDealer');
