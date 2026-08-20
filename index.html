@@ -1420,7 +1420,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <!-- ========== TAB: CUSTOMER DEMOGRAFI ========== -->
   <section class="tab-content" id="tab-demografi">
     <div class="section-title"><span class="bar"></span><h2>Customer Demografi</h2><span class="tag" id="demoTag"></span></div>
-    <div class="methodnote"><b>Catatan data:</b> Profil demografi (usia, gender, pekerjaan, tipe motor) belum tersedia pada dataset CSL H1/H2/H3 asli — data di bawah adalah <b>data ilustratif/dummy pelengkap</b> untuk melengkapi gambaran pelanggan. Ganti dengan data riil dari form registrasi/CRM dealer apabila tersedia agar akurat.</div>
+    <div class="methodnote"><b>Sumber data:</b> Profil demografi (usia, gender, pekerjaan, tipe motor) dihitung langsung dari data mentah responden survei CSL H1/H2/H3 (Semester 1 2026, Week 01–17) — bukan lagi data ilustratif.</div>
     <div class="kpi-row" id="demoKpiRow"></div>
     <div class="grid">
       <div class="card">
@@ -1442,7 +1442,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </div>
       <div class="card">
         <h3>Tipe Sepeda Motor</h3>
-        <div class="cardsub">Matic, Bebek, Sport, Trail/Adventure — relevan dengan medan Papua</div>
+        <div class="cardsub">Matic, Sport, Cub/Bebek — sesuai kategori pada data survei</div>
         <div class="chart-wrap"><canvas id="demoMotorChart"></canvas></div>
       </div>
     </div>
@@ -1451,7 +1451,29 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="cardsub" id="demoTableSub"></div>
       <div style="max-height:380px; overflow:auto;"><table class="dt" id="demoTable"></table></div>
     </div>
+
+    <div class="section-title"><span class="bar"></span><h2>📣 NPS — Net Promoter Score</h2><span class="tag" id="npsTag"></span></div>
+    <div class="methodnote"><b>Cara hitung:</b> Tiap respons pertanyaan "seberapa mungkin merekomendasikan" (skala 0–10) dikelompokkan jadi <b>Promoter</b> (9–10), <b>Passive</b> (7–8), <b>Detractor</b> (0–6). <b>NPS = %Promoter − %Detractor</b>, rentang -100 s/d +100. Dihitung dari data mentah responden CSL Week 01–17.</div>
+    <div class="kpi-row" id="npsKpiRow"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>NPS per Wilayah</h3>
+        <div class="cardsub" id="npsWilSub">NPS Unit (motor Honda) — per wilayah</div>
+        <div class="chart-wrap"><canvas id="npsWilChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Komposisi Promoter / Passive / Detractor</h3>
+        <div class="cardsub">Z11 gabungan, per touchpoint</div>
+        <div class="chart-wrap"><canvas id="npsCompChart"></canvas></div>
+      </div>
+    </div>
+    <div class="section-title"><span class="bar"></span><h2>NPS per Dealer</h2></div>
+    <div class="card">
+      <div class="cardsub" id="npsTableSub"></div>
+      <div style="max-height:420px; overflow:auto;"><table class="dt" id="npsTable"></table></div>
+    </div>
   </section>
+
 
   <!-- ========== TAB: DIAGNOSTIK ========== -->
   <section class="tab-content" id="tab-diagnostik">
@@ -2353,7 +2375,8 @@ const PALETTE = [COLORS.navy, COLORS.red, COLORS.gold, COLORS.navy3, COLORS.gree
 // CUSTOMER DEMOGRAFI — data ilustratif/dummy pelengkap
 // (belum tersedia pada dataset CSL H1/H2/H3 asli)
 // ============================================================
-const DEMO = {"labels": {"age": ["17-24", "25-34", "35-44", "45+"], "occupation": ["Karyawan Swasta", "Wiraswasta/Pedagang", "PNS/ASN/TNI-Polri", "Petani/Nelayan", "Mahasiswa/Pelajar", "Lainnya"], "motorType": ["Matic", "Bebek", "Sport", "Trail/Adventure"]}, "dealers": {"ASTRA MOTOR AIMAS": {"city": "Sorong", "n": 88, "age": [46.6, 30.6, 15.9, 6.8], "genderMalePct": 50.8, "occupation": [42.6, 23.1, 6.2, 13.1, 5.7, 9.3], "motorType": [28.9, 25.4, 42.7, 3.0]}, "ASTRA MOTOR ENTROP": {"city": "Jayapura", "n": 77, "age": [25.1, 38.5, 30.8, 5.7], "genderMalePct": 65.2, "occupation": [26.7, 31.0, 33.6, 4.4, 0.8, 3.6], "motorType": [34.4, 49.7, 0.2, 15.7]}, "ASTRA MOTOR MANOKWARI": {"city": "Manokwari", "n": 89, "age": [26.5, 38.3, 29.2, 6.0], "genderMalePct": 65.2, "occupation": [17.3, 23.7, 9.0, 18.3, 20.3, 11.4], "motorType": [18.9, 37.7, 8.6, 34.8]}, "ASTRA MOTOR MERAUKE": {"city": "Merauke", "n": 147, "age": [31.8, 23.8, 18.2, 26.2], "genderMalePct": 57.1, "occupation": [27.4, 19.5, 11.2, 11.0, 9.6, 21.3], "motorType": [59.2, 27.7, 10.1, 3.0]}, "ASTRA MOTOR NABIRE": {"city": "Nabire", "n": 104, "age": [45.1, 21.6, 31.6, 1.8], "genderMalePct": 63.0, "occupation": [15.8, 17.5, 30.5, 21.1, 13.7, 1.4], "motorType": [53.9, 31.1, 1.3, 13.7]}, "ASTRA MOTOR SORONG 1": {"city": "Sorong", "n": 89, "age": [20.1, 44.1, 22.3, 13.4], "genderMalePct": 50.4, "occupation": [15.7, 25.8, 4.1, 27.2, 25.4, 1.6], "motorType": [56.6, 39.0, 2.1, 2.2]}, "ASTRA MOTOR SORONG 2": {"city": "Sorong", "n": 87, "age": [33.4, 33.1, 25.5, 8.0], "genderMalePct": 60.5, "occupation": [25.7, 19.5, 14.7, 11.3, 2.1, 26.7], "motorType": [45.7, 26.8, 9.9, 17.6]}, "ASTRA MOTOR TANAH HITAM": {"city": "Jayapura", "n": 69, "age": [17.6, 30.0, 43.5, 8.9], "genderMalePct": 52.7, "occupation": [23.7, 21.8, 19.8, 9.1, 12.9, 12.7], "motorType": [40.3, 39.0, 20.1, 0.6]}, "CV FAJAR BARU JAYAPURA": {"city": "Jayapura", "n": 70, "age": [46.8, 23.5, 24.9, 4.8], "genderMalePct": 68.3, "occupation": [29.1, 19.9, 16.0, 5.8, 18.2, 11.0], "motorType": [64.6, 23.3, 3.6, 8.4]}, "CV FAJAR BARU TIMIKA": {"city": "Timika", "n": 152, "age": [31.0, 49.7, 16.2, 3.2], "genderMalePct": 66.3, "occupation": [22.5, 36.2, 13.1, 8.4, 11.5, 8.4], "motorType": [43.6, 55.0, 1.2, 0.2]}, "CV SULAWESI MANOKWARI": {"city": "Manokwari", "n": 97, "age": [24.8, 50.6, 14.2, 10.4], "genderMalePct": 61.7, "occupation": [41.5, 28.2, 4.1, 10.0, 16.2, 0.1], "motorType": [13.0, 85.5, 1.4, 0.0]}, "AHASS Turbo Motor": {"city": "Jayapura", "n": 72, "age": [13.9, 53.4, 20.5, 12.1], "genderMalePct": 56.2, "occupation": [14.0, 20.4, 13.8, 10.5, 3.3, 38.0], "motorType": [66.9, 28.7, 4.4, 0.0]}, "AHASS Harkat Abadi Motor": {"city": "Jayapura", "n": 68, "age": [23.2, 55.4, 17.1, 4.3], "genderMalePct": 70.2, "occupation": [35.3, 14.0, 13.7, 0.0, 11.9, 25.0], "motorType": [84.5, 3.5, 11.9, 0.1]}, "AHASS Metro Motor": {"city": "Jayapura", "n": 60, "age": [9.5, 40.3, 37.3, 12.8], "genderMalePct": 63.8, "occupation": [37.2, 14.7, 12.0, 13.4, 4.2, 18.5], "motorType": [72.3, 20.6, 2.4, 4.7]}}};
+const DEMO = {"labels":{"age":["17-25","26-35","36-45","46+"],"occupation":["Pegawai Swasta","Wiraswasta/Pedagang","Pegawai Negeri/TNI-Polri","Mahasiswa/Pelajar","Ibu/Bapak Rumah Tangga","Petani/Nelayan","Guru/Dosen","Lainnya"],"motorType":["Matic","Sport","Cub/Bebek"]},"dealers":{"CV SINAR PAGI NABIRE":{"city":"Nabire","n":40,"age":[52.5,45.0,2.5,0.0],"genderMalePct":50.0,"occupation":[62.5,0.0,17.5,15.0,5.0,0.0,0.0,0.0],"motorType":[95.0,5.0,0.0]},"CV FAJAR BARU TIMIKA":{"city":"Timika","n":39,"age":[12.8,79.5,7.7,0.0],"genderMalePct":38.5,"occupation":[94.9,0.0,0.0,0.0,5.1,0.0,0.0,0.0],"motorType":[92.3,5.1,2.6]},"CV FAJAR BARU JAYAPURA":{"city":"Jayapura","n":64,"age":[39.1,57.8,3.1,0.0],"genderMalePct":53.1,"occupation":[62.5,25.0,3.1,6.2,0.0,3.1,0.0,0.0],"motorType":[96.9,3.1,0.0]},"ASTRA MOTOR ENTROP":{"city":"Jayapura","n":62,"age":[56.5,33.9,8.1,1.6],"genderMalePct":56.5,"occupation":[69.4,16.1,3.2,4.8,0.0,1.6,1.6,3.2],"motorType":[93.5,6.5,0.0]},"ASTRA MOTOR TANAH HITAM":{"city":"Jayapura","n":90,"age":[63.3,25.6,7.8,3.3],"genderMalePct":45.6,"occupation":[35.6,6.7,5.6,31.1,5.6,1.1,2.2,12.2],"motorType":[93.3,5.6,1.1]},"ASTRA MOTOR MANOKWARI":{"city":"Manokwari","n":88,"age":[60.2,28.4,11.4,0.0],"genderMalePct":30.7,"occupation":[34.1,0.0,8.0,31.8,21.6,0.0,4.5,0.0],"motorType":[85.2,11.4,3.4]},"ASTRA MOTOR SORONG 1":{"city":"Sorong","n":90,"age":[58.9,36.7,3.3,1.1],"genderMalePct":58.9,"occupation":[63.3,2.2,4.4,26.7,3.3,0.0,0.0,0.0],"motorType":[97.8,2.2,0.0]},"ASTRA MOTOR TIMIKA":{"city":"Timika","n":36,"age":[19.4,80.6,0.0,0.0],"genderMalePct":55.6,"occupation":[100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"ASTRA MOTOR NABIRE":{"city":"Nabire","n":36,"age":[72.2,22.2,0.0,5.6],"genderMalePct":36.1,"occupation":[69.4,0.0,0.0,19.4,11.1,0.0,0.0,0.0],"motorType":[91.7,5.6,2.8]},"ASTRA MOTOR MERAUKE":{"city":"Merauke","n":110,"age":[74.5,23.6,1.8,0.0],"genderMalePct":61.8,"occupation":[13.6,47.3,0.9,6.4,0.0,19.1,7.3,5.5],"motorType":[83.6,10.9,5.5]},"ASTRA MOTOR SORONG 2":{"city":"Sorong","n":87,"age":[54.0,35.6,6.9,3.4],"genderMalePct":42.5,"occupation":[70.1,3.4,4.6,20.7,1.1,0.0,0.0,0.0],"motorType":[98.9,0.0,1.1]},"AHASS Turbo Motor":{"city":"Jayapura","n":27,"age":[33.3,59.3,7.4,0.0],"genderMalePct":81.5,"occupation":[66.7,7.4,7.4,18.5,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"AHASS Harkat Abadi Motor":{"city":"Timika","n":21,"age":[38.1,52.4,0.0,9.5],"genderMalePct":42.9,"occupation":[90.5,0.0,0.0,0.0,0.0,0.0,0.0,9.5],"motorType":[100.0,0.0,0.0]},"AHASS Metro Motor":{"city":"Nabire","n":32,"age":[75.0,25.0,0.0,0.0],"genderMalePct":59.4,"occupation":[15.6,34.4,0.0,0.0,0.0,3.1,0.0,46.9],"motorType":[100.0,0.0,0.0]},"AHASS Cenderawasih Motor 3":{"city":"Jayapura","n":27,"age":[51.9,33.3,14.8,0.0],"genderMalePct":74.1,"occupation":[18.5,7.4,0.0,59.3,14.8,0.0,0.0,0.0],"motorType":[92.6,0.0,7.4]}}};
+const NPS_DATA = {"H1_DEALER":{"dealers":{"CV SINAR PAGI NABIRE":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":30,"P":29,"N":1,"D":0,"promoterPct":96.7,"passivePct":3.3,"detractorPct":0.0,"nps":96.7},"ASTRA MOTOR ENTROP":{"n":29,"P":27,"N":2,"D":0,"promoterPct":93.1,"passivePct":6.9,"detractorPct":0.0,"nps":93.1},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MANOKWARI":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":42,"P":42,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":31,"P":31,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":278,"P":275,"N":3,"D":0,"promoterPct":98.9,"passivePct":1.1,"detractorPct":0.0,"nps":98.9}},"H2_AHASS":{"dealers":{"CV SINAR PAGI NABIRE":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":12,"P":12,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR ENTROP":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":28,"N":2,"D":0,"promoterPct":93.3,"passivePct":6.7,"detractorPct":0.0,"nps":93.3},"ASTRA MOTOR MANOKWARI":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":11,"P":11,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":10,"P":10,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":287,"P":285,"N":2,"D":0,"promoterPct":99.3,"passivePct":0.7,"detractorPct":0.0,"nps":99.3}},"H3_PART":{"dealers":{"CV SINAR PAGI NABIRE":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":12,"P":12,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR ENTROP":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MANOKWARI":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":10,"P":10,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":11,"P":11,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":7,"P":7,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":38,"P":38,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":284,"P":284,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"UNIT":{"dealers":{"CV SINAR PAGI NABIRE":{"n":40,"P":40,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":39,"P":39,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":64,"P":63,"N":1,"D":0,"promoterPct":98.4,"passivePct":1.6,"detractorPct":0.0,"nps":98.4},"ASTRA MOTOR ENTROP":{"n":62,"P":59,"N":3,"D":0,"promoterPct":95.2,"passivePct":4.8,"detractorPct":0.0,"nps":95.2},"ASTRA MOTOR TANAH HITAM":{"n":90,"P":85,"N":5,"D":0,"promoterPct":94.4,"passivePct":5.6,"detractorPct":0.0,"nps":94.4},"ASTRA MOTOR MANOKWARI":{"n":88,"P":88,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":90,"P":90,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":36,"P":36,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":36,"P":36,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":110,"P":110,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":87,"P":87,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":21,"P":21,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":32,"P":32,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":849,"P":840,"N":9,"D":0,"promoterPct":98.9,"passivePct":1.1,"detractorPct":0.0,"nps":98.9}}};
 
 // ============================================================
 // PETA INDONESIA — koordinat kota (proyeksi ilustratif, bukan presisi geografis)
@@ -4033,7 +4056,7 @@ function renderCustomerDemoTab(f){
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, cutout:'55%' }
   });
 
-  document.getElementById('demoTableSub').textContent = dealerSet.length+' dealer · data ilustratif/dummy pelengkap';
+  document.getElementById('demoTableSub').textContent = dealerSet.length+' dealer · dihitung dari data mentah responden CSL';
   document.getElementById('demoTable').innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>N</th><th>Usia Dominan</th><th>% Laki-laki</th><th>Pekerjaan Dominan</th><th>Motor Dominan</th></tr>` +
     dealerSet.map(d=>{
       const dd = DEMO.dealers[d];
@@ -4044,6 +4067,95 @@ function renderCustomerDemoTab(f){
         <td>${DEMO.labels.age[ai]} (${dd.age[ai].toFixed(0)}%)</td><td>${dd.genderMalePct.toFixed(0)}%</td>
         <td>${DEMO.labels.occupation[oi]} (${dd.occupation[oi].toFixed(0)}%)</td>
         <td>${DEMO.labels.motorType[mi]} (${dd.motorType[mi].toFixed(0)}%)</td></tr>`;
+    }).join('');
+
+  renderNpsSection(f);
+}
+
+// ============================================================
+// NPS — Net Promoter Score (dihitung dari data mentah CSL)
+// ============================================================
+function npsGradeColor(v){
+  if(v==null) return 'var(--grey)';
+  if(v>=50) return '#1E8E5A';
+  if(v>=0) return '#B7830A';
+  return '#C8102E';
+}
+function aggregateNpsPND(metricKey, dealerSet){
+  const byDealer = NPS_DATA[metricKey].dealers;
+  let P=0,N=0,D=0;
+  dealerSet.forEach(d=>{
+    const rec = byDealer[d];
+    if(!rec || !rec.n) return;
+    P+=rec.P; N+=rec.N; D+=rec.D;
+  });
+  const total = P+N+D;
+  if(total===0) return {n:0, promoterPct:null, passivePct:null, detractorPct:null, nps:null};
+  const pp=P/total*100, np_=N/total*100, dp=D/total*100;
+  return {n:total, promoterPct:+pp.toFixed(1), passivePct:+np_.toFixed(1), detractorPct:+dp.toFixed(1), nps:+(pp-dp).toFixed(1)};
+}
+function renderNpsSection(f){
+  document.getElementById('npsTag').textContent = (f.wilayah==='ALL'?'Semua Wilayah':f.wilayah) + (f.dealer!=='ALL' ? ' · '+f.dealer : '');
+  const dealerSet = getDealerSet(f.wilayah, f.dealer, f.tipe);
+
+  const metrics = [
+    {key:'UNIT', label:'NPS Unit (Motor Honda)'},
+    {key:'H1_DEALER', label:'NPS Dealer (Sales/H1)'},
+    {key:'H2_AHASS', label:'NPS AHASS (Service/H2)'},
+    {key:'H3_PART', label:'NPS Part (Spare Part/H3)'},
+  ];
+  const kpis = metrics.map(m=>({...m, res: aggregateNpsPND(m.key, dealerSet)}));
+
+  document.getElementById('npsKpiRow').innerHTML = kpis.map(k=>{
+    const v = k.res.nps;
+    const good = v!=null && v>=50;
+    return `<div class="kpi ${good?'good':(v!=null&&v<0?'bad':'good')}">
+      <div class="label">${k.label}</div>
+      <div class="value" style="color:${npsGradeColor(v)};">${v!=null? (v>=0?'+':'')+v : '-'}</div>
+      <div class="delta good">${k.res.n? k.res.n+' respons · '+k.res.promoterPct+'% promoter' : 'data tidak tersedia'}</div>
+    </div>`;
+  }).join('');
+
+  // NPS per wilayah (pakai metrik UNIT, mengabaikan filter wilayah agar bisa dibandingkan — konsisten dgn chart ranking lain)
+  destroyChart('npsWilChart');
+  const wilRows = AREA_LIST.map(w=>{
+    const ds = getDealerSet(w, 'ALL', f.tipe);
+    const res = aggregateNpsPND('UNIT', ds);
+    return {name:w, val: res.nps, n: res.n};
+  }).filter(r=>r.val!=null).sort((a,b)=>a.val-b.val);
+  charts.npsWilChart = new Chart(document.getElementById('npsWilChart'), {
+    type:'bar',
+    data:{ labels: wilRows.map(r=>r.name), datasets:[{ label:'NPS', data: wilRows.map(r=>r.val),
+      backgroundColor: wilRows.map(r=> r.val>=50?COLORS.green:(r.val>=0?COLORS.gold:COLORS.red)), borderRadius:8 }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'NPS '+(c.parsed.x>=0?'+':'')+c.parsed.x}}},
+      scales:{ x:{min:-100,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
+  });
+
+  // Komposisi Promoter/Passive/Detractor per touchpoint (Z11 gabungan sesuai filter tipe/wilayah aktif)
+  destroyChart('npsCompChart');
+  charts.npsCompChart = new Chart(document.getElementById('npsCompChart'), {
+    type:'bar',
+    data:{ labels: kpis.map(k=>k.label.replace(/\s*\(.*\)/,'')),
+      datasets:[
+        {label:'Promoter', data: kpis.map(k=>k.res.promoterPct), backgroundColor:COLORS.green, stack:'s'},
+        {label:'Passive', data: kpis.map(k=>k.res.passivePct), backgroundColor:COLORS.gold, stack:'s'},
+        {label:'Detractor', data: kpis.map(k=>k.res.detractorPct), backgroundColor:COLORS.red, stack:'s'},
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}},
+      scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, min:0, max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}} } }
+  });
+
+  document.getElementById('npsTableSub').textContent = dealerSet.length+' dealer · NPS = %Promoter − %Detractor';
+  document.getElementById('npsTable').innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>NPS Unit</th><th>NPS Dealer (H1)</th><th>NPS AHASS (H2)</th><th>NPS Part (H3)</th></tr>` +
+    dealerSet.map(d=>{
+      const city = RAW.dealers[d] ? RAW.dealers[d].city : '-';
+      const cell = (metricKey)=>{
+        const rec = NPS_DATA[metricKey].dealers[d];
+        if(!rec || !rec.n) return '<td>-</td>';
+        return `<td style="color:${npsGradeColor(rec.nps)}; font-weight:700;">${rec.nps>=0?'+':''}${rec.nps} <span style="color:var(--grey); font-weight:400; font-size:11px;">(n=${rec.n})</span></td>`;
+      };
+      return `<tr><td>${d}</td><td><span class="badge-city">${city}</span></td>${cell('UNIT')}${cell('H1_DEALER')}${cell('H2_AHASS')}${cell('H3_PART')}</tr>`;
     }).join('');
 }
 
