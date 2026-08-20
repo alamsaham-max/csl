@@ -1179,7 +1179,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <div class="fitem"><label>Tipe Layer / Channel</label>
     <select id="fTipe">
       <option value="ALL">Semua Tipe</option>
-      <option value="REGULER">Reguler (Dealer H123)</option>
+      <option value="ASTRA">Astra Motor</option>
+      <option value="REGULER">Reguler (CV)</option>
       <option value="WING">Wing</option>
       <option value="AHASS">AHASS H23</option>
     </select>
@@ -1427,6 +1428,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <h3>Distribusi Usia</h3>
         <div class="cardsub">Persentase responden per kelompok usia</div>
         <div class="chart-wrap"><canvas id="demoAgeChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Generasi</h3>
+        <div class="cardsub">Gen Z, Gen Y/Milenial, Gen X, Baby Boomer — dihitung dari usia responden</div>
+        <div class="chart-wrap"><canvas id="demoGenChart"></canvas></div>
       </div>
       <div class="card">
         <h3>Gender</h3>
@@ -2375,7 +2381,7 @@ const PALETTE = [COLORS.navy, COLORS.red, COLORS.gold, COLORS.navy3, COLORS.gree
 // CUSTOMER DEMOGRAFI — data ilustratif/dummy pelengkap
 // (belum tersedia pada dataset CSL H1/H2/H3 asli)
 // ============================================================
-const DEMO = {"labels":{"age":["17-25","26-35","36-45","46+"],"occupation":["Pegawai Swasta","Wiraswasta/Pedagang","Pegawai Negeri/TNI-Polri","Mahasiswa/Pelajar","Ibu/Bapak Rumah Tangga","Petani/Nelayan","Guru/Dosen","Lainnya"],"motorType":["Matic","Sport","Cub/Bebek"]},"dealers":{"CV SINAR PAGI NABIRE":{"city":"Nabire","n":40,"age":[52.5,45.0,2.5,0.0],"genderMalePct":50.0,"occupation":[62.5,0.0,17.5,15.0,5.0,0.0,0.0,0.0],"motorType":[95.0,5.0,0.0]},"CV FAJAR BARU TIMIKA":{"city":"Timika","n":39,"age":[12.8,79.5,7.7,0.0],"genderMalePct":38.5,"occupation":[94.9,0.0,0.0,0.0,5.1,0.0,0.0,0.0],"motorType":[92.3,5.1,2.6]},"CV FAJAR BARU JAYAPURA":{"city":"Jayapura","n":64,"age":[39.1,57.8,3.1,0.0],"genderMalePct":53.1,"occupation":[62.5,25.0,3.1,6.2,0.0,3.1,0.0,0.0],"motorType":[96.9,3.1,0.0]},"ASTRA MOTOR ENTROP":{"city":"Jayapura","n":62,"age":[56.5,33.9,8.1,1.6],"genderMalePct":56.5,"occupation":[69.4,16.1,3.2,4.8,0.0,1.6,1.6,3.2],"motorType":[93.5,6.5,0.0]},"ASTRA MOTOR TANAH HITAM":{"city":"Jayapura","n":90,"age":[63.3,25.6,7.8,3.3],"genderMalePct":45.6,"occupation":[35.6,6.7,5.6,31.1,5.6,1.1,2.2,12.2],"motorType":[93.3,5.6,1.1]},"ASTRA MOTOR MANOKWARI":{"city":"Manokwari","n":88,"age":[60.2,28.4,11.4,0.0],"genderMalePct":30.7,"occupation":[34.1,0.0,8.0,31.8,21.6,0.0,4.5,0.0],"motorType":[85.2,11.4,3.4]},"ASTRA MOTOR SORONG 1":{"city":"Sorong","n":90,"age":[58.9,36.7,3.3,1.1],"genderMalePct":58.9,"occupation":[63.3,2.2,4.4,26.7,3.3,0.0,0.0,0.0],"motorType":[97.8,2.2,0.0]},"ASTRA MOTOR TIMIKA":{"city":"Timika","n":36,"age":[19.4,80.6,0.0,0.0],"genderMalePct":55.6,"occupation":[100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"ASTRA MOTOR NABIRE":{"city":"Nabire","n":36,"age":[72.2,22.2,0.0,5.6],"genderMalePct":36.1,"occupation":[69.4,0.0,0.0,19.4,11.1,0.0,0.0,0.0],"motorType":[91.7,5.6,2.8]},"ASTRA MOTOR MERAUKE":{"city":"Merauke","n":110,"age":[74.5,23.6,1.8,0.0],"genderMalePct":61.8,"occupation":[13.6,47.3,0.9,6.4,0.0,19.1,7.3,5.5],"motorType":[83.6,10.9,5.5]},"ASTRA MOTOR SORONG 2":{"city":"Sorong","n":87,"age":[54.0,35.6,6.9,3.4],"genderMalePct":42.5,"occupation":[70.1,3.4,4.6,20.7,1.1,0.0,0.0,0.0],"motorType":[98.9,0.0,1.1]},"AHASS Turbo Motor":{"city":"Jayapura","n":27,"age":[33.3,59.3,7.4,0.0],"genderMalePct":81.5,"occupation":[66.7,7.4,7.4,18.5,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"AHASS Harkat Abadi Motor":{"city":"Timika","n":21,"age":[38.1,52.4,0.0,9.5],"genderMalePct":42.9,"occupation":[90.5,0.0,0.0,0.0,0.0,0.0,0.0,9.5],"motorType":[100.0,0.0,0.0]},"AHASS Metro Motor":{"city":"Nabire","n":32,"age":[75.0,25.0,0.0,0.0],"genderMalePct":59.4,"occupation":[15.6,34.4,0.0,0.0,0.0,3.1,0.0,46.9],"motorType":[100.0,0.0,0.0]},"AHASS Cenderawasih Motor 3":{"city":"Jayapura","n":27,"age":[51.9,33.3,14.8,0.0],"genderMalePct":74.1,"occupation":[18.5,7.4,0.0,59.3,14.8,0.0,0.0,0.0],"motorType":[92.6,0.0,7.4]}}};
+const DEMO = {"labels":{"age":["17-25","26-35","36-45","46+"],"generation":["Gen Z (≤29 th)","Gen Y / Milenial (30-45 th)","Gen X (46-61 th)","Baby Boomer (62+ th)"],"occupation":["Pegawai Swasta","Wiraswasta/Pedagang","Pegawai Negeri/TNI-Polri","Mahasiswa/Pelajar","Ibu/Bapak Rumah Tangga","Petani/Nelayan","Guru/Dosen","Lainnya"],"motorType":["Matic","Sport","Cub/Bebek"]},"dealers":{"CV SINAR PAGI NABIRE":{"city":"Nabire","n":40,"age":[52.5,45.0,2.5,0.0],"generation":[82.5,17.5,0.0,0.0],"genderMalePct":50.0,"occupation":[62.5,0.0,17.5,15.0,5.0,0.0,0.0,0.0],"motorType":[95.0,5.0,0.0]},"CV FAJAR BARU TIMIKA":{"city":"Timika","n":39,"age":[12.8,79.5,7.7,0.0],"generation":[59.0,41.0,0.0,0.0],"genderMalePct":38.5,"occupation":[94.9,0.0,0.0,0.0,5.1,0.0,0.0,0.0],"motorType":[92.3,5.1,2.6]},"CV FAJAR BARU JAYAPURA":{"city":"Jayapura","n":64,"age":[39.1,57.8,3.1,0.0],"generation":[71.9,28.1,0.0,0.0],"genderMalePct":53.1,"occupation":[62.5,25.0,3.1,6.2,0.0,3.1,0.0,0.0],"motorType":[96.9,3.1,0.0]},"ASTRA MOTOR ENTROP":{"city":"Jayapura","n":62,"age":[56.5,33.9,8.1,1.6],"generation":[75.8,22.6,1.6,0.0],"genderMalePct":56.5,"occupation":[69.4,16.1,3.2,4.8,0.0,1.6,1.6,3.2],"motorType":[93.5,6.5,0.0]},"ASTRA MOTOR TANAH HITAM":{"city":"Jayapura","n":90,"age":[63.3,25.6,7.8,3.3],"generation":[78.9,15.6,5.6,0.0],"genderMalePct":45.6,"occupation":[35.6,6.7,5.6,31.1,5.6,1.1,2.2,12.2],"motorType":[93.3,5.6,1.1]},"ASTRA MOTOR MANOKWARI":{"city":"Manokwari","n":88,"age":[60.2,28.4,11.4,0.0],"generation":[81.8,18.2,0.0,0.0],"genderMalePct":30.7,"occupation":[34.1,0.0,8.0,31.8,21.6,0.0,4.5,0.0],"motorType":[85.2,11.4,3.4]},"ASTRA MOTOR SORONG 1":{"city":"Sorong","n":90,"age":[58.9,36.7,3.3,1.1],"generation":[81.1,17.8,1.1,0.0],"genderMalePct":58.9,"occupation":[63.3,2.2,4.4,26.7,3.3,0.0,0.0,0.0],"motorType":[97.8,2.2,0.0]},"ASTRA MOTOR TIMIKA":{"city":"Timika","n":36,"age":[19.4,80.6,0.0,0.0],"generation":[77.8,22.2,0.0,0.0],"genderMalePct":55.6,"occupation":[100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"ASTRA MOTOR NABIRE":{"city":"Nabire","n":36,"age":[72.2,22.2,0.0,5.6],"generation":[88.9,5.6,5.6,0.0],"genderMalePct":36.1,"occupation":[69.4,0.0,0.0,19.4,11.1,0.0,0.0,0.0],"motorType":[91.7,5.6,2.8]},"ASTRA MOTOR MERAUKE":{"city":"Merauke","n":110,"age":[74.5,23.6,1.8,0.0],"generation":[90.9,9.1,0.0,0.0],"genderMalePct":61.8,"occupation":[13.6,47.3,0.9,6.4,0.0,19.1,7.3,5.5],"motorType":[83.6,10.9,5.5]},"ASTRA MOTOR SORONG 2":{"city":"Sorong","n":87,"age":[54.0,35.6,6.9,3.4],"generation":[82.8,13.8,3.4,0.0],"genderMalePct":42.5,"occupation":[70.1,3.4,4.6,20.7,1.1,0.0,0.0,0.0],"motorType":[98.9,0.0,1.1]},"AHASS Turbo Motor":{"city":"Jayapura","n":27,"age":[33.3,59.3,7.4,0.0],"generation":[70.4,29.6,0.0,0.0],"genderMalePct":81.5,"occupation":[66.7,7.4,7.4,18.5,0.0,0.0,0.0,0.0],"motorType":[100.0,0.0,0.0]},"AHASS Harkat Abadi Motor":{"city":"Timika","n":21,"age":[38.1,52.4,0.0,9.5],"generation":[71.4,19.0,9.5,0.0],"genderMalePct":42.9,"occupation":[90.5,0.0,0.0,0.0,0.0,0.0,0.0,9.5],"motorType":[100.0,0.0,0.0]},"AHASS Metro Motor":{"city":"Nabire","n":32,"age":[75.0,25.0,0.0,0.0],"generation":[90.6,9.4,0.0,0.0],"genderMalePct":59.4,"occupation":[15.6,34.4,0.0,0.0,0.0,3.1,0.0,46.9],"motorType":[100.0,0.0,0.0]},"AHASS Cenderawasih Motor 3":{"city":"Jayapura","n":27,"age":[51.9,33.3,14.8,0.0],"generation":[77.8,22.2,0.0,0.0],"genderMalePct":74.1,"occupation":[18.5,7.4,0.0,59.3,14.8,0.0,0.0,0.0],"motorType":[92.6,0.0,7.4]}}};
 const NPS_DATA = {"H1_DEALER":{"dealers":{"CV SINAR PAGI NABIRE":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":30,"P":29,"N":1,"D":0,"promoterPct":96.7,"passivePct":3.3,"detractorPct":0.0,"nps":96.7},"ASTRA MOTOR ENTROP":{"n":29,"P":27,"N":2,"D":0,"promoterPct":93.1,"passivePct":6.9,"detractorPct":0.0,"nps":93.1},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MANOKWARI":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":42,"P":42,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":31,"P":31,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":278,"P":275,"N":3,"D":0,"promoterPct":98.9,"passivePct":1.1,"detractorPct":0.0,"nps":98.9}},"H2_AHASS":{"dealers":{"CV SINAR PAGI NABIRE":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":12,"P":12,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR ENTROP":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":28,"N":2,"D":0,"promoterPct":93.3,"passivePct":6.7,"detractorPct":0.0,"nps":93.3},"ASTRA MOTOR MANOKWARI":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":11,"P":11,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":10,"P":10,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":15,"P":15,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":29,"P":29,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":287,"P":285,"N":2,"D":0,"promoterPct":99.3,"passivePct":0.7,"detractorPct":0.0,"nps":99.3}},"H3_PART":{"dealers":{"CV SINAR PAGI NABIRE":{"n":14,"P":14,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":12,"P":12,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":17,"P":17,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR ENTROP":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TANAH HITAM":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MANOKWARI":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":30,"P":30,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":10,"P":10,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":16,"P":16,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":11,"P":11,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":7,"P":7,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":38,"P":38,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":13,"P":13,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":284,"P":284,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"UNIT":{"dealers":{"CV SINAR PAGI NABIRE":{"n":40,"P":40,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU TIMIKA":{"n":39,"P":39,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"CV FAJAR BARU JAYAPURA":{"n":64,"P":63,"N":1,"D":0,"promoterPct":98.4,"passivePct":1.6,"detractorPct":0.0,"nps":98.4},"ASTRA MOTOR ENTROP":{"n":62,"P":59,"N":3,"D":0,"promoterPct":95.2,"passivePct":4.8,"detractorPct":0.0,"nps":95.2},"ASTRA MOTOR TANAH HITAM":{"n":90,"P":85,"N":5,"D":0,"promoterPct":94.4,"passivePct":5.6,"detractorPct":0.0,"nps":94.4},"ASTRA MOTOR MANOKWARI":{"n":88,"P":88,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 1":{"n":90,"P":90,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR TIMIKA":{"n":36,"P":36,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR NABIRE":{"n":36,"P":36,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR MERAUKE":{"n":110,"P":110,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"ASTRA MOTOR SORONG 2":{"n":87,"P":87,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Turbo Motor":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Harkat Abadi Motor":{"n":21,"P":21,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Metro Motor":{"n":32,"P":32,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0},"AHASS Cenderawasih Motor 3":{"n":27,"P":27,"N":0,"D":0,"promoterPct":100.0,"passivePct":0.0,"detractorPct":0.0,"nps":100.0}},"z11":{"n":849,"P":840,"N":9,"D":0,"promoterPct":98.9,"passivePct":1.1,"detractorPct":0.0,"nps":98.9}}};
 
 // ============================================================
@@ -2422,11 +2428,15 @@ const ISLAND_LABELS = [
 
 function isWing(d){ return WING_DEALERS.includes(d); }
 function isAhass(d){ return d.toUpperCase().startsWith('AHASS'); }
-function isReguler(d){ return !isAhass(d) && !isWing(d); }
+// Dealer ber-brand "ASTRA MOTOR ..." (milik langsung Astra Motor) dipisah dari
+// dealer Reguler lain (mis. berbadan usaha CV) yang bukan Wing/AHASS.
+function isAstra(d){ return !isWing(d) && d.toUpperCase().startsWith('ASTRA MOTOR'); }
+function isReguler(d){ return !isAhass(d) && !isWing(d) && !isAstra(d); }
 function matchesTipe(d, tipe){
   if(tipe==='ALL') return true;
   if(tipe==='AHASS') return isAhass(d);
   if(tipe==='WING') return isWing(d);
+  if(tipe==='ASTRA') return isAstra(d);
   if(tipe==='REGULER') return isReguler(d);
   return true;
 }
@@ -2783,7 +2793,8 @@ function renderOvPerTipeTable(f){
   const tbl = document.getElementById('ovPerTipeTable');
   const tipes = [
     {key:'ALL', label:'Semua Tipe'},
-    {key:'REGULER', label:'Reguler (Dealer H123)'},
+    {key:'ASTRA', label:'Astra Motor'},
+    {key:'REGULER', label:'Reguler (CV)'},
     {key:'WING', label:'Wing'},
     {key:'AHASS', label:'AHASS H23'},
   ];
@@ -2855,7 +2866,7 @@ function renderOvPerAreaTable(f){
 function getTargetForOverview(layer, tipe){ return layer==='H123' ? targetH123(tipe) : getTargetMean(layer, tipe); }
 // Target resmi milik dealer itu sendiri berdasarkan tipenya (Wing/Reguler/AHASS) — dipakai
 // untuk highlight per-baris supaya benar walau tabel sedang menampilkan campuran semua tipe.
-function getTipeForDealer(d){ return isWing(d) ? 'WING' : isAhass(d) ? 'AHASS' : 'REGULER'; }
+function getTipeForDealer(d){ return isWing(d) ? 'WING' : isAhass(d) ? 'AHASS' : isAstra(d) ? 'ASTRA' : 'REGULER'; }
 function getTargetForDealer(dealer, layer){
   const tipe = getTipeForDealer(dealer);
   return getTargetForOverview(layer, tipe);
@@ -2915,7 +2926,7 @@ function renderDealerTab(f){
     const h1=overallForDealer(d,'H1'), h2=overallForDealer(d,'H2'), h3=overallForDealer(d,'H3'), h123=overallH123ForDealer(d);
     const t1=getTargetForDealer(d,'H1'), t2=getTargetForDealer(d,'H2'), t3=getTargetForDealer(d,'H3'), t123=getTargetForDealer(d,'H123');
     const cell = (v,t)=> v==null? '-' : `${pct(v)} ${v<t?'🚩':''}`;
-    const tipeTag = isWing(d)?'Wing':isAhass(d)?'AHASS H23':'Reguler';
+    const tipeTag = isWing(d)?'Wing':isAhass(d)?'AHASS H23':isAstra(d)?'Astra Motor':'Reguler (CV)';
     return `<tr>
       <td>${d}<div class="badge-city">${RAW.dealers[d].city} · ${tipeTag}</div></td>
       <td>${cell(h1,t1)}</td><td>${cell(h2,t2)}</td><td>${cell(h3,t3)}</td>
@@ -4013,15 +4024,17 @@ function renderCustomerDemoTab(f){
   const ageAgg = DEMO.labels.age.map((_,i)=> dealerSet.reduce((s,d)=>s+DEMO.dealers[d].age[i]*DEMO.dealers[d].n,0)/totalN);
   const occAgg = DEMO.labels.occupation.map((_,i)=> dealerSet.reduce((s,d)=>s+DEMO.dealers[d].occupation[i]*DEMO.dealers[d].n,0)/totalN);
   const motorAgg = DEMO.labels.motorType.map((_,i)=> dealerSet.reduce((s,d)=>s+DEMO.dealers[d].motorType[i]*DEMO.dealers[d].n,0)/totalN);
+  const genAgg = DEMO.labels.generation.map((_,i)=> dealerSet.reduce((s,d)=>s+DEMO.dealers[d].generation[i]*DEMO.dealers[d].n,0)/totalN);
   const maleAgg = dealerSet.reduce((s,d)=>s+DEMO.dealers[d].genderMalePct*DEMO.dealers[d].n,0)/totalN;
 
   const topAgeIdx = ageAgg.indexOf(Math.max(...ageAgg));
   const topOccIdx = occAgg.indexOf(Math.max(...occAgg));
   const topMotorIdx = motorAgg.indexOf(Math.max(...motorAgg));
+  const topGenIdx = genAgg.indexOf(Math.max(...genAgg));
 
   document.getElementById('demoKpiRow').innerHTML = `
     <div class="kpi good"><div class="label">Total Responden (demografi)</div><div class="value">${totalN.toLocaleString('id-ID')}</div><div class="delta good">${dealerSet.length} dealer tercakup</div></div>
-    <div class="kpi good"><div class="label">Kelompok Usia Dominan</div><div class="value">${DEMO.labels.age[topAgeIdx]}</div><div class="delta good">${ageAgg[topAgeIdx].toFixed(1)}% dari total</div></div>
+    <div class="kpi good"><div class="label">Generasi Dominan</div><div class="value">${DEMO.labels.generation[topGenIdx].split(' (')[0]}</div><div class="delta good">${genAgg[topGenIdx].toFixed(1)}% dari total</div></div>
     <div class="kpi good"><div class="label">Gender</div><div class="value">${maleAgg.toFixed(0)}% : ${(100-maleAgg).toFixed(0)}%</div><div class="delta good">Laki-laki : Perempuan</div></div>
     <div class="kpi good"><div class="label">Tipe Motor Dominan</div><div class="value">${DEMO.labels.motorType[topMotorIdx]}</div><div class="delta good">${motorAgg[topMotorIdx].toFixed(1)}% dari total</div></div>
   `;
@@ -4031,6 +4044,16 @@ function renderCustomerDemoTab(f){
     type:'bar',
     data:{ labels: DEMO.labels.age, datasets:[{ data: ageAgg.map(v=>+v.toFixed(1)), backgroundColor: PALETTE.slice(0,4), borderRadius:8, maxBarThickness:60 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} } }
+  });
+
+  destroyChart('demoGenChart');
+  charts.demoGenChart = new Chart(document.getElementById('demoGenChart'), {
+    type:'bar',
+    data:{ labels: DEMO.labels.generation.map(l=>l.split(' (')[0]), datasets:[{ data: genAgg.map(v=>+v.toFixed(1)),
+      backgroundColor:[COLORS.navy, COLORS.red, COLORS.gold, COLORS.green], borderRadius:8, maxBarThickness:60 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:c=>DEMO.labels.generation[c[0].dataIndex]}}},
       scales:{ y:{grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} } }
   });
 
@@ -4057,13 +4080,15 @@ function renderCustomerDemoTab(f){
   });
 
   document.getElementById('demoTableSub').textContent = dealerSet.length+' dealer · dihitung dari data mentah responden CSL';
-  document.getElementById('demoTable').innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>N</th><th>Usia Dominan</th><th>% Laki-laki</th><th>Pekerjaan Dominan</th><th>Motor Dominan</th></tr>` +
+  document.getElementById('demoTable').innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>N</th><th>Generasi Dominan</th><th>Usia Dominan</th><th>% Laki-laki</th><th>Pekerjaan Dominan</th><th>Motor Dominan</th></tr>` +
     dealerSet.map(d=>{
       const dd = DEMO.dealers[d];
       const ai = dd.age.indexOf(Math.max(...dd.age));
+      const gi = dd.generation.indexOf(Math.max(...dd.generation));
       const oi = dd.occupation.indexOf(Math.max(...dd.occupation));
       const mi = dd.motorType.indexOf(Math.max(...dd.motorType));
       return `<tr><td>${d}</td><td><span class="badge-city">${dd.city}</span></td><td>${dd.n}</td>
+        <td>${DEMO.labels.generation[gi].split(' (')[0]} (${dd.generation[gi].toFixed(0)}%)</td>
         <td>${DEMO.labels.age[ai]} (${dd.age[ai].toFixed(0)}%)</td><td>${dd.genderMalePct.toFixed(0)}%</td>
         <td>${DEMO.labels.occupation[oi]} (${dd.occupation[oi].toFixed(0)}%)</td>
         <td>${DEMO.labels.motorType[mi]} (${dd.motorType[mi].toFixed(0)}%)</td></tr>`;
@@ -4666,7 +4691,10 @@ function nosCityFor(nosName){
   return found;
 }
 function nosChannelForTipe(tipe){
-  return tipe==='REGULER' ? 'Reguler H123' : tipe==='WING' ? 'Wing' : tipe==='AHASS' ? 'AHASS H23' : null;
+  // Dataset NOS tidak memisahkan Astra Motor vs CV (keduanya sama-sama "Reguler H123"
+  // di sistem NOS) — jadi filter tipe ASTRA dipetakan ke channel yang sama dgn REGULER
+  // supaya tab NOS/People tidak tampil kosong saat tipe ini dipilih.
+  return (tipe==='REGULER' || tipe==='ASTRA') ? 'Reguler H123' : tipe==='WING' ? 'Wing' : tipe==='AHASS' ? 'AHASS H23' : null;
 }
 function filterNosList(list, f, channelOf){
   return list.filter(d=>{
