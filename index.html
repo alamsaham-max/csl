@@ -224,6 +224,15 @@ table.dt th.sort-asc::after{ content:' ▲'; font-size:9px; }
 table.dt th.sort-desc::after{ content:' ▼'; font-size:9px; }
 table.dt td{ padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
 table.dt tr:hover td{ background:#F8F9FC; }
+/* Affordance umum: kolom pertama tabel biasanya berisi nama dealer/wilayah yang
+   bisa diklik untuk cross-filter (listener global menangani ini otomatis). */
+table.dt td:first-child{ cursor:pointer; }
+table.dt td:first-child:hover{ text-decoration:underline; text-decoration-color:#B9C2D4; text-underline-offset:2px; }
+/* Baris tabel yang bisa diklik untuk cross-filter (Wilayah/Dealer) */
+table.dt tr.row-xf{ cursor:pointer; }
+table.dt tr.row-xf:hover td{ background:#E9EEF9; }
+table.dt tr.row-xf td:first-child{ position:relative; }
+table.dt tr.row-xf:hover td:first-child::before{ content:'⌖'; color:var(--navy); margin-right:4px; font-weight:700; }
 .pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800; }
 .pill.pos{ background:var(--green-soft); color:var(--green); }
 .pill.neg{ background:var(--red-soft); color:var(--red-dark); }
@@ -1194,6 +1203,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <div class="fitem" style="min-width:220px;">
     <label>&nbsp;</label>
     <div id="weekRangeInfo" style="font-size:12px; color:#666; padding:6px 0;">Menampilkan data Week 1–17 (semua data)</div>
+  </div>
+  <div class="fitem">
+    <label>&nbsp;</label>
+    <button id="btnResetMainFilter" type="button" title="Kembalikan Wilayah/Dealer/Tipe ke Semua (berguna setelah klik cross-filter di chart/tabel)"
+      style="height:38px; padding:0 14px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-weight:700; color:var(--navy); cursor:pointer;">↺ Reset Filter</button>
   </div>
   <div class="alert-chip" id="alertChip">⚠ 0 item di bawah target</div>
 </div>
@@ -2691,7 +2705,7 @@ function renderOverview(f){
       {label:'H2', data:lRows.map(r=>r.h2?+(r.h2*100).toFixed(1):null), backgroundColor:COLORS.navy, borderRadius:6},
       {label:'H3', data:lRows.map(r=>r.h3?+(r.h3*100).toFixed(1):null), backgroundColor:COLORS.gold, borderRadius:6},
     ]},
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterCityOnly, responsive:true, maintainAspectRatio:false,
       scales:{ y:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} },
       plugins:{legend:{display:false}} }
   });
@@ -2807,7 +2821,7 @@ function renderOvPerTipeTable(f){
       const h3 = overallSimpleLayer('H3', f.wilayah, 'ALL', t.key);
       const h123 = overallH123(f.wilayah, 'ALL', t.key);
       const h1cell = (t.key==='AHASS') ? '<td>-</td>' : ovCell(h1, tgt.H1!=null?tgt.H1:tgtDefault.H1);
-      return `<tr><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
+      return `<tr class="row-xf" onclick="crossFilter('fTipe','${t.key}')" title="Klik untuk filter Tipe = ${t.label}"><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
     }).join('');
 }
 
@@ -2850,7 +2864,7 @@ function renderOvPerDealerTable(f){
     t1: getTargetForDealer(d,'H1'), t2: getTargetForDealer(d,'H2'), t3: getTargetForDealer(d,'H3'), t123: getTargetForDealer(d,'H123'),
   })).sort((a,b)=> (b.h123||0) - (a.h123||0));
   tbl.innerHTML = `<tr><th>Dealer</th><th>Kota</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
-    rows.map(r=>`<tr><td>${r.d}</td><td>${r.city}</td>${ovCell(r.h1,r.t1)}${ovCell(r.h2,r.t2)}${ovCell(r.h3,r.t3)}${ovCell(r.h123,r.t123)}</tr>`).join('');
+    rows.map(r=>`<tr class="row-xf" onclick="crossFilter('fDealer','${r.d.replace(/'/g,"\\'")}')" title="Klik untuk filter Dealer = ${r.d}"><td>${r.d}</td><td>${r.city}</td>${ovCell(r.h1,r.t1)}${ovCell(r.h2,r.t2)}${ovCell(r.h3,r.t3)}${ovCell(r.h123,r.t123)}</tr>`).join('');
 }
 
 function renderOvPerAreaTable(f){
@@ -2861,7 +2875,7 @@ function renderOvPerAreaTable(f){
     h1: overallWilayah(w,'H1',f.tipe), h2: overallWilayah(w,'H2',f.tipe), h3: overallWilayah(w,'H3',f.tipe), h123: overallWilayah(w,'H123',f.tipe),
   })).sort((a,b)=> (b.h123||0) - (a.h123||0));
   tbl.innerHTML = `<tr><th>Wilayah</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
-    rows.map(r=>`<tr><td>${r.w}</td>${ovCell(r.h1,tgt1)}${ovCell(r.h2,tgt2)}${ovCell(r.h3,tgt3)}${ovCell(r.h123,tgt123)}</tr>`).join('');
+    rows.map(r=>`<tr class="row-xf" onclick="crossFilter('fWilayah','${r.w}')" title="Klik untuk filter Wilayah = ${r.w}"><td>${r.w}</td>${ovCell(r.h1,tgt1)}${ovCell(r.h2,tgt2)}${ovCell(r.h3,tgt3)}${ovCell(r.h123,tgt123)}</tr>`).join('');
 }
 function getTargetForOverview(layer, tipe){ return layer==='H123' ? targetH123(tipe) : getTargetMean(layer, tipe); }
 // Target resmi milik dealer itu sendiri berdasarkan tipenya (Wing/Reguler/AHASS) — dipakai
@@ -3306,7 +3320,7 @@ function renderCdbTab(f){
       { label:'Valid', data: dealerValNames.map(d=>byDealerVal[d].valid), backgroundColor:'#1E8E5A', borderRadius:4 },
       { label:'Tidak Valid', data: dealerValNames.map(d=>byDealerVal[d].invalid), backgroundColor:'#D64545', borderRadius:4 },
     ]},
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterChartOnClick, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
       scales:{ x:{stacked:true, beginAtZero:true, ticks:{stepSize:2}, grid:{color:'#E3E7EE'}}, y:{stacked:true, grid:{display:false}, ticks:{font:{size:9.5}}} } }
   });
@@ -3656,7 +3670,7 @@ function renderPrediktifTab(f){
       backgroundColor: riskRows.map(r=> r.idx>66?COLORS.red : r.idx>33?COLORS.gold : COLORS.green),
       borderRadius:8
     }]},
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'Indeks: '+c.parsed.x}} },
       scales:{ x:{min:0,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
@@ -4152,7 +4166,7 @@ function renderNpsSection(f){
     type:'bar',
     data:{ labels: wilRows.map(r=>r.name), datasets:[{ label:'NPS', data: wilRows.map(r=>r.val),
       backgroundColor: wilRows.map(r=> r.val>=50?COLORS.green:(r.val>=0?COLORS.gold:COLORS.red)), borderRadius:8 }]},
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'NPS '+(c.parsed.x>=0?'+':'')+c.parsed.x}}},
       scales:{ x:{min:-100,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
@@ -5083,11 +5097,17 @@ function applyDealerCrossFilter(text, highlightEl){
   return true;
 }
 
-function applyWilayahCrossFilter(text){
+function applyWilayahCrossFilter(text, highlightEl){
   if(!text) return false;
   const wilayahSel = document.getElementById('fWilayah');
   const opt = Array.from(wilayahSel.options).find(o => normName(o.value)===normName(text) || normName(o.textContent)===normName(text));
   if(!opt || opt.value==='ALL') return false;
+  if(highlightEl){
+    const prevBg = highlightEl.style.background, prevTransition = highlightEl.style.transition;
+    highlightEl.style.transition = 'background 0.2s';
+    highlightEl.style.background = '#FFF3C4';
+    setTimeout(()=>{ highlightEl.style.background = prevBg; highlightEl.style.transition = prevTransition; }, 700);
+  }
   if(wilayahSel.value === opt.value) return true;
   wilayahSel.value = opt.value;
   setTimeout(()=>{
@@ -5128,7 +5148,11 @@ document.addEventListener('click', function(e){
   if(e.target.closest('button')) return; // jangan bentrok sama tombol di dalam sel (mis. link "Buka ↗")
   const text = cell.textContent.trim();
   if(!text || text.length < 4 || text.length > 120) return;
-  applyDealerCrossFilter(text, cell);
+  // Coba cocokkan sebagai nama dealer dulu; kalau tidak ketemu, coba sebagai nama wilayah/kota.
+  // Ini membuat cross-filter otomatis aktif di HAMPIR SEMUA tabel dashboard, tanpa perlu
+  // menandai setiap tabel satu per satu — cukup isi selnya berupa nama dealer atau kota.
+  if(applyDealerCrossFilter(text, cell)) return;
+  applyWilayahCrossFilter(text, cell);
 });
 
 
@@ -6429,6 +6453,28 @@ refreshDealerDropdown();
 });
 
 // --- Week range filter (S1 2026, Week 1-17) ---
+// ============================================================
+// CROSS-FILTER — klik chart/tabel untuk otomatis mengubah filter
+// global (Wilayah/Dealer/Tipe) lalu me-refresh seluruh dashboard.
+// ============================================================
+// Klik 2x nilai yang sama pada filter aktif = toggle balik ke "Semua" (ALL).
+function crossFilter(filterId, value){
+  const el = document.getElementById(filterId);
+  if(!el) return;
+  const next = (el.value === value) ? 'ALL' : value;
+  el.value = next;
+  crossFilterFlash(filterId);
+  renderAll();
+}
+function crossFilterFlash(filterId){
+  const el = document.getElementById(filterId);
+  if(!el) return;
+  el.style.transition = 'box-shadow .15s';
+  el.style.boxShadow = '0 0 0 3px rgba(30,73,159,.35)';
+  setTimeout(()=>{ el.style.boxShadow = ''; }, 700);
+}
+
+
 function populateWeekFilters(){
   const selMin = document.getElementById('fWeekMin');
   const selMax = document.getElementById('fWeekMax');
@@ -6462,6 +6508,10 @@ function applyWeekFilter(){
 populateWeekFilters();
 document.getElementById('fWeekMin').addEventListener('change', applyWeekFilter);
 document.getElementById('fWeekMax').addEventListener('change', applyWeekFilter);
+document.getElementById('btnResetMainFilter').addEventListener('click', function(){
+  ['fWilayah','fDealer','fTipe'].forEach(id=>{ document.getElementById(id).value = 'ALL'; });
+  renderAll();
+});
 
 document.getElementById('radarA').addEventListener('change', ()=>renderRadarTab(getFilters()));
 document.getElementById('radarB').addEventListener('change', ()=>renderRadarTab(getFilters()));
