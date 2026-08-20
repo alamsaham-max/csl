@@ -206,7 +206,12 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; posit
 .focus-modal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:22px; cursor:pointer; color:var(--grey); line-height:1; }
 .focus-modal-close:hover{ color:var(--red-dark); }
 .focus-modal-body{ flex:1; overflow:auto; min-height:0; }
-.focus-modal-body table.dt{ font-size:13px; }
+.focus-modal-body table.dt{ font-size:13px; table-layout:fixed; width:100%; }
+/* Di dalam modal Detail, header & sel dibiarkan wrap ke beberapa baris (bukan
+   nowrap+scroll) supaya seluruh kolom otomatis menyesuaikan lebar modal. */
+.focus-modal-body table.dt th{ white-space:normal; word-break:break-word; overflow-wrap:break-word; line-height:1.35; vertical-align:bottom; }
+.focus-modal-body table.dt td{ white-space:normal; word-break:break-word; overflow-wrap:break-word; }
+.focus-modal-body table.dt th:first-child, .focus-modal-body table.dt td:first-child{ width:15%; }
 .card h3{ font-size:13.5px; margin:0 0 3px; font-weight:800; color:var(--navy); }
 .card .cardsub{ font-size:11px; color:var(--grey); margin-bottom:10px; }
 .chart-wrap{ position:relative; height:290px; }
