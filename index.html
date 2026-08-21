@@ -3201,6 +3201,9 @@ function renderPetaKonsumenTab(f){
     // Data asli sudah ada — plot per titik konsumen, warna sesuai dealer/provinsi bisa disesuaikan nanti
     const scoped = CONSUMER_LOCATIONS.filter(c=>{
       if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(c.dealer||'', f.dealer)) return false;
+      if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(c.dealer||'') !== f.wilayah) return false;
+      if(f.tipe && f.tipe!=='ALL' && !matchesTipe(c.dealer||'', f.tipe)) return false;
+      if(f.group && f.group!=='ALL' && !matchesGroup(c.dealer||'', f.group)) return false;
       return true;
     });
     scoped.forEach(c=>{
@@ -3233,6 +3236,8 @@ function renderCdbTab(f){
   const scoped = CDB_DATA.filter(r=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.d, f.dealer)) return false;
     if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.d) !== f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.d, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.d, f.group)) return false;
     return true;
   });
   const periodFiltered = scoped.filter(r=>{
@@ -3364,6 +3369,8 @@ function renderCdbTab(f){
   const valScoped = CDB_VALIDATION.filter(r=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.dealer, f.dealer)) return false;
     if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer) !== f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(selYear && selYear!==2026) return false; // data validasi individual cuma tersedia utk 2026
     if(selMonth && r.bulan!==selMonth) return false;
     return true;
@@ -4798,6 +4805,9 @@ function filterNosList(list, f, channelOf){
       const city = nosCityFor(d.name);
       if(city !== f.wilayah) return false;
     }
+    // Group (Asmo/FTB/Sinar Pagi) dicocokkan lewat nama dealer, sama seperti tab-tab
+    // lain — supaya tab NOS/People/Demografi FLP juga ikut ter-filter oleh Group.
+    if(f.group && f.group!=='ALL' && !matchesGroup(d.name, f.group)) return false;
     return true;
   });
 }
@@ -5356,6 +5366,8 @@ function flpMatches(r, f, skipDim){
   const tenureBinSel = document.getElementById('flpFTenureBin').value;
   return (!f.dealer || f.dealer==='ALL' || matchesDealerFilter(r.dealer, f.dealer)) &&
     (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(r.dealer)===f.wilayah) &&
+    (!f.tipe || f.tipe==='ALL' || matchesTipe(r.dealer, f.tipe)) &&
+    (!f.group || f.group==='ALL' || matchesGroup(r.dealer, f.group)) &&
     (skipDim==='group' || group==='ALL' || r.group===group) &&
     (skipDim==='kategori' || kategori==='ALL' || r.kategori===kategori) &&
     (skipDim==='gender' || gender==='ALL' || r.gender===gender) &&
@@ -5438,6 +5450,10 @@ function renderKomposisiTab(f){
     if(groupFilter!=='ALL' && r.group!==groupFilter) return false;
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.dealer, f.dealer)) return false;
     if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer) !== f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
+    // Group dealer (Asmo/FTB/Sinar Pagi) dari filterbar utama — beda dari filter
+    // "Group" lokal tab ini (kategori HR internal, field r.group di atas).
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     return true;
   }
   const scoped = HONDA_PEOPLE_FULL.filter(r=>matchesKomp(r, null));
@@ -5848,6 +5864,8 @@ function renderPeopleDevTab(f){
   const scopedData = PEOPLE_DEV_DATA.filter(d=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(d.dealer, f.dealer)) return false;
     if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(d.dealer) !== f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(d.dealer, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(d.dealer, f.group)) return false;
     return true;
   });
   const dealers = [...new Set(scopedData.map(d=>d.dealer))].sort();
@@ -6137,7 +6155,10 @@ function renderGmbTab(f){
   const histFiltered = GMB_HISTORY.filter(h =>
     (selectedDealer==='ALL' || h.dealer===selectedDealer) &&
     (selectedTahun==='ALL' || h.tanggal.slice(0,4)===selectedTahun) &&
-    (selectedBulan==='ALL' || h.tanggal.slice(5,7)===selectedBulan)
+    (selectedBulan==='ALL' || h.tanggal.slice(5,7)===selectedBulan) &&
+    (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(h.dealer)===f.wilayah) &&
+    (!f.tipe || f.tipe==='ALL' || matchesTipe(h.dealer, f.tipe)) &&
+    (!f.group || f.group==='ALL' || matchesGroup(h.dealer, f.group))
   );
   const sorted = [...histFiltered].sort((a,b)=> a.tanggal.localeCompare(b.tanggal));
   const periodLabel = (selectedBulan!=='ALL' ? BULAN_NAMES[Number(selectedBulan)-1]+' ' : '') + (selectedTahun!=='ALL' ? selectedTahun : (selectedBulan!=='ALL' ? '(semua tahun)' : ''));
@@ -6150,6 +6171,9 @@ function renderGmbTab(f){
   // ============================================================
   const reviewsForPeriodKpi = GMB_REVIEWS.filter(r=>{
     if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(!r.periodeTahun) return false; // periode tidak diketahui -> tidak ikut dihitung ke breakdown periode
     if(selectedTahun!=='ALL' && r.periodeTahun!==selectedTahun) return false;
     if(selectedBulan!=='ALL' && r.periodeBulan!==selectedBulan) return false;
@@ -6178,6 +6202,9 @@ function renderGmbTab(f){
   // the Dealer filter) — sorted chronologically for the two period charts.
   const reviewsForChart = GMB_REVIEWS.filter(r=>{
     if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     return !!r.periodeTahun;
   });
   const byYm = {};
@@ -6349,6 +6376,9 @@ function renderGmbTab(f){
   const filteredReviews = GMB_REVIEWS.filter(r => {
     if(bintangFilter!=='ALL' && String(r.bintang)!==bintangFilter) return false;
     if(reviewDealerFilter!=='ALL' && r.dealer!==reviewDealerFilter) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(periodActive){
       if(!r.periodeTahun) return false; // periode tidak diketahui (belum ada tanggal/waktu relatif) -> tidak bisa dicocokkan
       if(selectedTahun!=='ALL' && r.periodeTahun!==selectedTahun) return false;
