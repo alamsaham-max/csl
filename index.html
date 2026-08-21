@@ -2849,23 +2849,41 @@ const TIPE_TARGETS = {
 
 function renderOvPerTipeTable(f){
   const tbl = document.getElementById('ovPerTipeTable');
+  // Baris "Reguler H123" di tabel ini SENGAJA tetap menggabungkan dealer Astra Motor
+  // & CV jadi satu (persis seperti sebelum ada pemisahan tipe ASTRA) — sesuai
+  // permintaan: tabel ini tetap 4 kategori: Semua Tipe, Reguler H123, Wing, AHASS H23.
+  // Pemisahan Astra Motor/Reguler(CV) tetap ada di filter dropdown & tabel Group,
+  // hanya TIDAK ditampilkan sebagai baris terpisah di tabel ringkasan ini.
+  function dealerSetReguler123(wilayah){
+    return ALL_DEALERS.filter(d=>{
+      const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
+      return cityOk && !isWing(d) && !isAhass(d); // Astra Motor + CV digabung
+    });
+  }
+  function layerForSet(ds, layer){ return rdFinal(mean(getAttrsForScope(layer, ds))); }
+  function h123ForSet(ds){
+    const vals = ['H1','H2','H3'].map(l=>layerForSet(ds,l)).filter(v=>v!=null);
+    return vals.length? rdFinal(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  }
   const tipes = [
     {key:'ALL', label:'Semua Tipe'},
-    {key:'ASTRA', label:'Astra Motor'},
-    {key:'REGULER', label:'Reguler (CV)'},
+    {key:'REGULER123', label:'Reguler H123'},
     {key:'WING', label:'Wing'},
     {key:'AHASS', label:'AHASS H23'},
   ];
   const tgtDefault = { H1:getTargetMean('H1'), H2:getTargetMean('H2'), H3:getTargetMean('H3'), H123:targetH123() };
   tbl.innerHTML = `<tr><th>Tipe / Channel</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
     tipes.map(t=>{
-      const tgt = TIPE_TARGETS[t.key] || tgtDefault;
-      const h1 = overallSimpleLayer('H1', f.wilayah, 'ALL', t.key);
-      const h2 = overallSimpleLayer('H2', f.wilayah, 'ALL', t.key);
-      const h3 = overallSimpleLayer('H3', f.wilayah, 'ALL', t.key);
-      const h123 = overallH123(f.wilayah, 'ALL', t.key);
+      const isReg123 = t.key==='REGULER123';
+      const tgt = isReg123 ? (TIPE_TARGETS.REGULER || tgtDefault) : (TIPE_TARGETS[t.key] || tgtDefault);
+      const ds = isReg123 ? dealerSetReguler123(f.wilayah) : getDealerSet(f.wilayah, 'ALL', t.key);
+      const h1 = layerForSet(ds,'H1'), h2 = layerForSet(ds,'H2'), h3 = layerForSet(ds,'H3'), h123 = h123ForSet(ds);
       const h1cell = (t.key==='AHASS') ? '<td>-</td>' : ovCell(h1, tgt.H1!=null?tgt.H1:tgtDefault.H1);
-      return `<tr class="row-xf ${xfRowClass(t.key, f.tipe)}" onclick="crossFilter('fTipe','${t.key}')" title="Klik untuk filter Tipe = ${t.label}"><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
+      // Baris "Reguler H123" gabungan tidak dijadikan cross-filter (tidak ada satu
+      // nilai fTipe tunggal yang persis merepresentasikan gabungan Astra+CV ini).
+      const clickable = !isReg123;
+      const rowAttrs = clickable ? `class="row-xf ${xfRowClass(t.key, f.tipe)}" onclick="crossFilter('fTipe','${t.key}')" title="Klik untuk filter Tipe = ${t.label}"` : '';
+      return `<tr ${rowAttrs}><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
     }).join('');
 }
 
