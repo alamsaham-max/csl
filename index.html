@@ -1198,6 +1198,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <option value="AHASS">AHASS H23</option>
     </select>
   </div>
+  <div class="fitem"><label>Group Dealer</label>
+    <select id="fGroup">
+      <option value="ALL">Semua Group</option>
+      <option value="ASMO">Group Asmo</option>
+      <option value="FTB">Group FTB</option>
+      <option value="SINAR_PAGI">Group Sinar Pagi</option>
+    </select>
+  </div>
   <div class="fitem"><label>Dari Minggu</label>
     <select id="fWeekMin"></select>
   </div>
@@ -1373,6 +1381,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="section-title"><span class="bar"></span><h2>Result CSL per Tipe / Channel</h2></div>
     <div class="methodnote"><b>Klasifikasi Tipe/Channel:</b> Wing = ASTRA MOTOR TANAH HITAM &amp; ASTRA MOTOR SORONG 1 · Reguler (H123) = seluruh dealer H123 selain kedua dealer Wing tsb · AHASS H23 = dealer dengan nama diawali "AHASS". <b>Target per tipe berbeda-beda</b> (bukan target rata-rata umum) — Wing: H1 94,4%/H2 94,7%/H3 94,1%/H123 94,4% · Reguler: H1 93,9%/H2 95,2%/H3 95,5%/H123 94,9% · AHASS H23: H2 95,1%/H3 95,2%/H123 95,2%.</div>
     <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerTipeTable"></table></div></div>
+
+    <div class="section-title"><span class="bar"></span><h2>Result CSL per Group Dealer</h2></div>
+    <div class="methodnote"><b>Group</b> = pengelompokan dealer berdasarkan grup usaha/pemilik (independen dari Tipe/Channel — bisa berbeda pemilik walau Tipe sama, atau dikombinasikan lewat filter di atas). <b>Group Asmo</b> = seluruh dealer ber-nama "ASTRA MOTOR..." · <b>Group FTB</b> = dealer Fajar Terus Bersinar / Fajar Baru · <b>Group Sinar Pagi</b> = dealer Sinar Pagi Biak / Sinar Pagi Nabire.</div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="ovPerGroupTable"></table></div></div>
   </section>
 
   <!-- ========== TAB: WILAYAH ========== -->
@@ -2458,6 +2470,27 @@ function matchesTipe(d, tipe){
   if(tipe==='REGULER') return isReguler(d);
   return true;
 }
+
+// ============================================================
+// GROUP — pengelompokan dealer berdasarkan grup usaha/pemilik,
+// independen dari Tipe (Wing/Astra/Reguler/AHASS) — bisa dipakai
+// bersamaan. Dicocokkan via nama (case-insensitive, substring),
+// jadi otomatis menangkap dealer baru yang namanya cocok tanpa
+// perlu diedit manual (mis. kalau "Sinar Pagi Biak" muncul nanti).
+// ============================================================
+const DEALER_GROUPS = [
+  { key:'ASMO', label:'Group Asmo', test: d => d.toUpperCase().startsWith('ASTRA MOTOR') },
+  { key:'FTB', label:'Group FTB (Fajar Terus Bersinar / Fajar Baru)', test: d => /FAJAR/i.test(d) },
+  { key:'SINAR_PAGI', label:'Group Sinar Pagi', test: d => /SINAR\s*PAGI/i.test(d) },
+];
+function getGroupForDealer(d){
+  const g = DEALER_GROUPS.find(g=>g.test(d));
+  return g ? g.key : null;
+}
+function matchesGroup(d, group){
+  if(!group || group==='ALL') return true;
+  return getGroupForDealer(d) === group;
+}
 function mean(arr){ const v=(arr||[]).filter(x=>typeof x==='number'); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null; }
 function pct(x){ return x==null? '-' : (x*100).toFixed(1)+'%'; }
 function fmtGap(g){ return (g>=0?'+':'')+(g*100).toFixed(1)+'%'; }
@@ -2475,9 +2508,14 @@ function rdFinal(x){ return x==null ? null : Math.round(x*1000)/1000; }
 // ---- Dealer set resolution based on filters ----
 function getDealerSet(wilayah, dealerSel, tipe){
   if(dealerSel !== 'ALL') return [dealerSel];
+  // Filter Group dibaca langsung dari dropdown di sini (bukan parameter baru) supaya
+  // otomatis berlaku ke SEMUA fungsi yang sudah memanggil getDealerSet tanpa perlu
+  // mengubah signature/ke-19 titik pemanggilannya satu per satu.
+  const groupEl = document.getElementById('fGroup');
+  const group = groupEl ? groupEl.value : 'ALL';
   return ALL_DEALERS.filter(d=>{
     const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
-    return cityOk && matchesTipe(d, tipe);
+    return cityOk && matchesTipe(d, tipe) && matchesGroup(d, group);
   });
 }
 
@@ -2558,6 +2596,7 @@ function getFilters(){
     dealer: document.getElementById('fDealer').value,
     layer: document.getElementById('fLayer').value,
     tipe: document.getElementById('fTipe').value,
+    group: document.getElementById('fGroup').value,
   };
 }
 
@@ -2735,6 +2774,7 @@ function renderOverview(f){
   renderOvPerDealerTable(f);
   renderOvPerAreaTable(f);
   renderOvPerTipeTable(f);
+  renderOvPerGroupTable(f);
 }
 
 function ovCell(v, t){
@@ -2826,6 +2866,39 @@ function renderOvPerTipeTable(f){
       const h123 = overallH123(f.wilayah, 'ALL', t.key);
       const h1cell = (t.key==='AHASS') ? '<td>-</td>' : ovCell(h1, tgt.H1!=null?tgt.H1:tgtDefault.H1);
       return `<tr class="row-xf ${xfRowClass(t.key, f.tipe)}" onclick="crossFilter('fTipe','${t.key}')" title="Klik untuk filter Tipe = ${t.label}"><td>${t.label}</td>${h1cell}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
+    }).join('');
+}
+
+// Dealer set untuk sebuah GROUP tertentu (bypass dropdown fGroup) — dipakai supaya
+// tabel ringkasan ini bisa menampilkan SEMUA baris group sekaligus, terlepas dari
+// filter Group mana yang sedang aktif dipilih user (sama seperti pola tabel per-Tipe).
+function dealerSetForGroup(wilayah, tipe, group){
+  return ALL_DEALERS.filter(d=>{
+    const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
+    return cityOk && matchesTipe(d, tipe) && matchesGroup(d, group);
+  });
+}
+function renderOvPerGroupTable(f){
+  const tbl = document.getElementById('ovPerGroupTable');
+  const groups = [
+    {key:'ALL', label:'Semua Dealer'},
+    {key:'ASMO', label:'Group Asmo'},
+    {key:'FTB', label:'Group FTB'},
+    {key:'SINAR_PAGI', label:'Group Sinar Pagi'},
+  ];
+  const tgt = { H1:getTargetMean('H1',f.tipe), H2:getTargetMean('H2',f.tipe), H3:getTargetMean('H3',f.tipe), H123:targetH123(f.tipe) };
+  function layerFor(ds, layer){ return rdFinal(mean(getAttrsForScope(layer, ds))); }
+  function h123For(ds){
+    const vals = ['H1','H2','H3'].map(l=>layerFor(ds,l)).filter(v=>v!=null);
+    return vals.length? rdFinal(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  }
+  tbl.innerHTML = `<tr><th>Group</th><th>N Dealer</th><th>Result CSL H1</th><th>Result CSL H2</th><th>Result CSL H3</th><th>Result CSL H123</th></tr>` +
+    groups.map(g=>{
+      const ds = dealerSetForGroup(f.wilayah, f.tipe, g.key);
+      if(g.key!=='ALL' && ds.length===0) return ''; // sembunyikan group yg blm punya dealer di data saat ini
+      const h1=layerFor(ds,'H1'), h2=layerFor(ds,'H2'), h3=layerFor(ds,'H3'), h123=h123For(ds);
+      return `<tr class="row-xf ${xfRowClass(g.key, f.group)}" onclick="crossFilter('fGroup','${g.key}')" title="Klik untuk filter Group = ${g.label}">
+        <td>${g.label}</td><td>${ds.length}</td>${ovCell(h1,tgt.H1)}${ovCell(h2,tgt.H2)}${ovCell(h3,tgt.H3)}${ovCell(h123,tgt.H123)}</tr>`;
     }).join('');
 }
 
@@ -6452,7 +6525,7 @@ function refreshDealerDropdown(){
 }
 refreshDealerDropdown();
 
-['fTahun','fBulan','fSemester','fWilayah','fDealer','fLayer','fTipe'].forEach(id=>{
+['fTahun','fBulan','fSemester','fWilayah','fDealer','fLayer','fTipe','fGroup'].forEach(id=>{
   document.getElementById(id).addEventListener('change', renderAll);
 });
 
@@ -6536,7 +6609,7 @@ populateWeekFilters();
 document.getElementById('fWeekMin').addEventListener('change', applyWeekFilter);
 document.getElementById('fWeekMax').addEventListener('change', applyWeekFilter);
 document.getElementById('btnResetMainFilter').addEventListener('click', function(){
-  ['fWilayah','fDealer','fTipe'].forEach(id=>{ document.getElementById(id).value = 'ALL'; });
+  ['fWilayah','fDealer','fTipe','fGroup'].forEach(id=>{ document.getElementById(id).value = 'ALL'; });
   renderAll();
 });
 
