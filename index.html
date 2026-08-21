@@ -2709,7 +2709,7 @@ function renderOverview(f){
       {label:'H2', data:lRows.map(r=>r.h2?+(r.h2*100).toFixed(1):null), backgroundColor:xfColors(lRows.map(r=>r.w), f.wilayah, COLORS.navy), borderRadius:6},
       {label:'H3', data:lRows.map(r=>r.h3?+(r.h3*100).toFixed(1):null), backgroundColor:xfColors(lRows.map(r=>r.w), f.wilayah, COLORS.gold), borderRadius:6},
     ]},
-    options:{ onClick: crossFilterCityOnly, responsive:true, maintainAspectRatio:false,
+    options:{ interaction: { mode: 'index', intersect: false }, onClick: crossFilterCityOnly, responsive:true, maintainAspectRatio:false,
       scales:{ y:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} },
       plugins:{legend:{display:false}} }
   });
@@ -3324,7 +3324,7 @@ function renderCdbTab(f){
       { label:'Valid', data: dealerValNames.map(d=>byDealerVal[d].valid), backgroundColor:xfColors(dealerValNames, f.dealer, '#1E8E5A'), borderRadius:4 },
       { label:'Tidak Valid', data: dealerValNames.map(d=>byDealerVal[d].invalid), backgroundColor:xfColors(dealerValNames, f.dealer, '#D64545'), borderRadius:4 },
     ]},
-    options:{ onClick: crossFilterChartOnClick, indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ interaction: { mode: 'index', intersect: false }, onClick: crossFilterChartOnClick, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{position:'bottom', labels:{boxWidth:9,font:{size:9.5}}} },
       scales:{ x:{stacked:true, beginAtZero:true, ticks:{stepSize:2}, grid:{color:'#E3E7EE'}}, y:{stacked:true, grid:{display:false}, ticks:{font:{size:9.5}}} } }
   });
@@ -3674,7 +3674,7 @@ function renderPrediktifTab(f){
       backgroundColor: xfColors(riskRows.map(r=>r.w), f.wilayah, riskRows.map(r=> r.idx>66?COLORS.red : r.idx>33?COLORS.gold : COLORS.green)),
       borderRadius:8
     }]},
-    options:{ onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ interaction: { mode: 'index', intersect: false }, onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'Indeks: '+c.parsed.x}} },
       scales:{ x:{min:0,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
@@ -4170,7 +4170,7 @@ function renderNpsSection(f){
     type:'bar',
     data:{ labels: wilRows.map(r=>r.name), datasets:[{ label:'NPS', data: wilRows.map(r=>r.val),
       backgroundColor: xfColors(wilRows.map(r=>r.name), f.wilayah, wilRows.map(r=> r.val>=50?COLORS.green:(r.val>=0?COLORS.gold:COLORS.red))), borderRadius:8 }]},
-    options:{ onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    options:{ interaction: { mode: 'index', intersect: false }, onClick: crossFilterCityOnly, indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'NPS '+(c.parsed.x>=0?'+':'')+c.parsed.x}}},
       scales:{ x:{min:-100,max:100, grid:{color:'#E3E7EE'}}, y:{grid:{display:false}} } }
   });
@@ -6462,13 +6462,19 @@ refreshDealerDropdown();
 // global (Wilayah/Dealer/Tipe) lalu me-refresh seluruh dashboard.
 // ============================================================
 // Klik 2x nilai yang sama pada filter aktif = toggle balik ke "Semua" (ALL).
+// Render ditunda 1 tick (bukan synchronous) — konsisten dengan pola aman yang
+// sudah dipakai applyDealerCrossFilter/applyWilayahCrossFilter, supaya tidak
+// bentrok kalau elemen yang diklik ada di dalam alur event Chart.js/DOM lain.
 function crossFilter(filterId, value){
   const el = document.getElementById(filterId);
   if(!el) return;
   const next = (el.value === value) ? 'ALL' : value;
+  if(el.value === next) return;
   el.value = next;
-  crossFilterFlash(filterId);
-  renderAll();
+  setTimeout(()=>{
+    renderAll();
+    crossFilterFlash(filterId);
+  }, 0);
 }
 function crossFilterFlash(filterId){
   const el = document.getElementById(filterId);
