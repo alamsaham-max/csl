@@ -236,6 +236,13 @@ table.dt tr.row-xf:hover td:first-child::before{ content:'⌖'; color:var(--navy
 /* Efek fokus: saat cross-filter aktif, baris yang cocok disorot, sisanya diredupkan. */
 table.dt tr.row-dim{ opacity:.32; filter:grayscale(45%); transition:opacity .2s, filter .2s; }
 table.dt tr.row-active td{ background:#EAF0FB !important; font-weight:700; box-shadow:inset 3px 0 0 var(--navy); }
+/* Efek glow (samar/blur) di bawah bubble inti peta sebaran konsumen */
+.consumer-glow{ filter: blur(7px); pointer-events: none; }
+.consumer-glow-lg{ filter: blur(13px); pointer-events: none; }
+.map-legend{ background:rgba(255,255,255,.95); padding:10px 12px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.15); font-size:11.5px; color:#333; line-height:1.5; }
+.map-legend b{ display:block; margin-bottom:4px; color:var(--navy); font-size:12px; }
+.map-legend .grad-bar{ height:10px; border-radius:5px; background:linear-gradient(90deg,#FFEDA0,#FEB24C,#FC4E2A,#B10026); margin:4px 0; }
+.map-legend .grad-labels{ display:flex; justify-content:space-between; font-size:10px; color:#777; }
 table.dt tr.row-active:hover td{ background:#DCE7F8 !important; }
 .pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800; }
 .pill.pos{ background:var(--green-soft); color:var(--green); }
@@ -3409,22 +3416,52 @@ function renderPetaKonsumenTab(f){
     if(layer instanceof L.Marker || layer instanceof L.CircleMarker) petaKonsumenMapInstance.removeLayer(layer);
   });
 
-  // Bubble map: radius proporsional ke akar jumlah transaksi (supaya kecamatan
-  // sekecil apapun tetap kelihatan, tapi yang ramai tidak menutupi seluruh peta).
-  // Hanya kecamatan confidence "tinggi"/"sedang" yang diplot (lihat catatan di atas).
+  // Bubble map "heat-glow": ukuran & warna sama-sama mencerminkan intensitas
+  // jumlah konsumen — makin ramai, bubble makin besar DAN makin merah/pekat,
+  // dengan lingkaran glow blur di baliknya supaya kesannya menyala/samar,
+  // bukan cuma lingkaran solid biasa. Hanya kecamatan confidence tinggi/sedang.
+  function heatColor(t){
+    const stops = [[0,[255,237,160]],[0.35,[254,178,76]],[0.65,[252,78,42]],[1,[177,0,38]]];
+    for(let i=0;i<stops.length-1;i++){
+      const [t0,c0]=stops[i], [t1,c1]=stops[i+1];
+      if(t<=t1){ const f=(t-t0)/(t1-t0||1); return `rgb(${c0.map((v,j)=>Math.round(v+(c1[j]-v)*Math.max(0,f))).join(',')})`; }
+    }
+    return 'rgb(177,0,38)';
+  }
   const maxCount = Math.max(1, ...plottable.map(a=>a.count));
   plottable.forEach(a=>{
-    const radius = 4 + 22 * Math.sqrt(a.count / maxCount);
+    const ratio = Math.sqrt(a.count / maxCount); // sqrt supaya kecamatan kecil tetap terlihat
+    const radius = 5 + 24 * ratio;
+    const color = heatColor(ratio);
     const topDealers = Object.entries(a.byDealer).sort((x,y)=>y[1]-x[1]).slice(0,5);
     const dealerHtml = topDealers.map(([d,c])=>`${d}: <b>${c.toLocaleString('id-ID')}</b>`).join('<br>');
-    L.circleMarker([a.lat, a.lng], {
-      radius, color:'#0B2545', fillColor:'#1E4A9F', fillOpacity:0.55, weight:1.2,
-    })
+    const popupHtml = `<b>Kec. ${a.kecamatan}</b><br>${a.kabupaten}, ${a.provinsi}<br>
+        <b style="font-size:15px; color:${color};">${a.count.toLocaleString('id-ID')} transaksi</b><br>
+        <div style="font-size:11px; color:#666; margin-top:4px;">${dealerHtml}</div>`;
+    // Lapis 1 & 2: glow blur bertingkat (lebih besar & lebih transparan di luar,
+    // sedikit lebih pekat di tengah) — memberi kesan "menyala samar-samar".
+    L.circleMarker([a.lat, a.lng], { radius: radius*2.6, color:'transparent', weight:0, fillColor:color, fillOpacity:0.12, className:'consumer-glow-lg', interactive:false }).addTo(petaKonsumenMapInstance);
+    L.circleMarker([a.lat, a.lng], { radius: radius*1.6, color:'transparent', weight:0, fillColor:color, fillOpacity:0.22, className:'consumer-glow', interactive:false }).addTo(petaKonsumenMapInstance);
+    // Lapis 3: bubble inti — solid, jelas batasnya, ini yang bisa diklik/hover.
+    L.circleMarker([a.lat, a.lng], { radius, color:'#fff', weight:1.4, fillColor:color, fillOpacity:0.88 })
       .addTo(petaKonsumenMapInstance)
-      .bindPopup(`<b>Kec. ${a.kecamatan}</b><br>${a.kabupaten}, ${a.provinsi}<br>
-        <b style="font-size:15px;">${a.count.toLocaleString('id-ID')} transaksi</b><br>
-        <div style="font-size:11px; color:#666; margin-top:4px;">${dealerHtml}</div>`);
+      .bindPopup(popupHtml);
   });
+
+  // Legenda peta: skala warna (intensitas) + keterangan ukuran bubble.
+  if(!petaKonsumenMapInstance._legendControl){
+    const legend = L.control({position:'bottomright'});
+    legend.onAdd = function(){
+      const div = L.DomUtil.create('div', 'map-legend');
+      div.innerHTML = `<b>Kepadatan Konsumen</b>
+        Ukuran & warna bubble = jumlah transaksi
+        <div class="grad-bar"></div>
+        <div class="grad-labels"><span>Sedikit</span><span>Banyak</span></div>`;
+      return div;
+    };
+    legend.addTo(petaKonsumenMapInstance);
+    petaKonsumenMapInstance._legendControl = legend;
+  }
 
   // Perbaiki ukuran peta setelah tab benar-benar terlihat (penting utk Leaflet)
   setTimeout(()=>{ if(petaKonsumenMapInstance) petaKonsumenMapInstance.invalidateSize(); }, 80);
