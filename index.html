@@ -1057,6 +1057,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button data-tab="wilayah" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 L4 6 V20 L9 18 L15 20 L20 18 V4 L15 6 L9 4 Z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg></span> Wilayah</button>
           <button data-tab="dealer" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 L12 4 L20 9.5"/><path d="M5 9.5 V20 H19 V9.5"/><line x1="10" y1="20" x2="10" y2="14"/><line x1="14" y1="20" x2="14" y2="14"/></svg></span> Dealer</button>
           <button data-tab="atribut" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4.5" width="12" height="16" rx="1.8"/><path d="M9.3 4.5 V3 H14.7 V4.5"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="13.5" x2="15" y2="13.5"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span> Atribut &amp; Gap</button>
+          <button data-tab="demokonsumen" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="10" width="3" height="9"/><rect x="10.5" y="6" width="3" height="13"/><rect x="17.5" y="3" width="3" height="16"/></svg></span> Demografi Konsumen (CDB)</button>
           <button data-tab="demografi" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20 c0-4.2 2.6-6.5 5.5-6.5 s5.5 2.3 5.5 6.5"/><circle cx="17.3" cy="9" r="2.3"/><path d="M15.8 13.6 c2.2 0.3 3.7 2.3 3.7 5.4"/></svg></span> Customer Demografi</button>
           <button data-tab="diagnostik" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 H7.5 L9.5 6.5 L13.5 17.5 L15.5 12 H21"/></svg></span> Diagnostik</button>
           <button data-tab="preskriptif" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span> Preskriptif</button>
@@ -1456,8 +1457,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </section>
 
   <!-- ========== TAB: CUSTOMER DEMOGRAFI ========== -->
-  <section class="tab-content" id="tab-demografi">
-    <div class="section-title"><span class="bar"></span><h2>👥 Customer Demografi — CDB (Sumber Utama)</h2><span class="tag">271.975 transaksi</span></div>
+  <section class="tab-content" id="tab-demokonsumen">
+    <div class="section-title"><span class="bar"></span><h2>👥 Demografi Konsumen (CDB)</h2><span class="tag">271.975 transaksi</span></div>
     <div class="methodnote">
       <b>Sumber data:</b> Customer Database (CDB) Astra Motor Papua, <b>271.975 transaksi nyata</b> (2018–2026, zona Z11) — bukan sampel survei, ini populasi pembeli sesungguhnya. Data pribadi tidak disertakan, semua sudah dalam bentuk agregat.
       <br><b>Catatan jujur:</b> beberapa field di CDB (Pekerjaan, Pendidikan, Pengeluaran, dll) memakai <b>kode internal AHM</b> yang belum ada kamus terjemahannya di sistem ini — ditampilkan apa adanya sebagai kode, bukan dikarang label-nya. Kalau Anda punya daftar kodenya, saya bisa decode jadi label yang mudah dibaca.
@@ -1508,9 +1509,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="chart-wrap"><canvas id="cdbDemoPengeluaranChart"></canvas></div>
       </div>
     </div>
+  </section>
 
-    <div class="section-title"><span class="bar"></span><h2>Demografi dari Survei CSL (Pelengkap)</h2><span class="tag" id="demoTag"></span></div>
-    <div class="methodnote"><b>Sumber data:</b> Profil demografi (usia, gender, pekerjaan, tipe motor) dihitung langsung dari data mentah responden survei CSL H1/H2/H3 (Semester 1 2026, Week 01–17) — bukan lagi data ilustratif. Cakupan jauh lebih kecil (849 responden) dibanding CDB di atas, tapi punya detail yang tidak ada di CDB (mis. tipe motor, pekerjaan berlabel jelas).</div>
+  <section class="tab-content" id="tab-demografi">
+    <div class="section-title"><span class="bar"></span><h2>Customer Demografi (Survei CSL)</h2><span class="tag" id="demoTag"></span></div>
+    <div class="methodnote"><b>Sumber data:</b> Profil demografi (usia, gender, pekerjaan, tipe motor) dihitung langsung dari data mentah responden survei CSL H1/H2/H3 (Semester 1 2026, Week 01–17). Cakupan 849 responden — lebih kecil dari CDB (lihat menu terpisah "Demografi Konsumen"), tapi punya detail yang tidak ada di CDB (mis. tipe motor, pekerjaan berlabel jelas).</div>
     <div class="kpi-row" id="demoKpiRow"></div>
 
     <div class="grid">
@@ -4544,7 +4547,6 @@ function renderCdbDemografiSection(f){
 }
 
 function renderCustomerDemoTab(f){
-  renderCdbDemografiSection(f);
   const layerKey = f.layer==='ALL' ? 'H123' : f.layer; // H1/H2/H3/H123
   const layerLabel = {H1:'H1 — Sales', H2:'H2 — Service', H3:'H3 — Spare Part', H123:'H123 — Gabungan'}[layerKey] || layerKey;
   document.getElementById('demoTag').textContent = (f.wilayah==='ALL'?'Semua Wilayah':f.wilayah) + ' · ' + (f.dealer==='ALL'?'Semua Dealer':f.dealer) + ' · ' + layerLabel;
@@ -6859,6 +6861,7 @@ const TAB_RENDERERS = {
   wilayah: renderWilayahTab,
   dealer: renderDealerTab,
   atribut: renderAtributTab,
+  demokonsumen: renderCdbDemografiSection,
   demografi: renderCustomerDemoTab,
   diagnostik: renderDiagnostikTab,
   preskriptif: renderPreskriptifTab,
