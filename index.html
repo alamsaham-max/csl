@@ -201,17 +201,24 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; posit
 .expand-btn:hover{ background:var(--navy); color:#fff; border-color:var(--navy); }
 #focusModal{ position:fixed; inset:0; z-index:99997; background:rgba(11,37,69,0.78); display:none; align-items:center; justify-content:center; padding:26px; }
 #focusModal.show{ display:flex; }
-.focus-modal-box{ background:#fff; border-radius:16px; padding:22px 26px; width:96%; height:92%; max-width:1500px; display:flex; flex-direction:column; position:relative; box-shadow:0 24px 70px rgba(0,0,0,0.4); }
-.focus-modal-title{ font-weight:800; font-size:15.5px; color:var(--navy); margin:0 34px 14px 0; }
-.focus-modal-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:22px; cursor:pointer; color:var(--grey); line-height:1; }
+.focus-modal-box{ background:#fff; border-radius:12px; padding:10px 14px; width:100vw; height:99vh; max-width:none; display:flex; flex-direction:column; position:relative; box-shadow:0 24px 70px rgba(0,0,0,0.4); }
+.focus-modal-title{ font-weight:800; font-size:14px; color:var(--navy); margin:0 30px 6px 0; flex-shrink:0; }
+.focus-modal-close{ position:absolute; top:10px; right:12px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--grey); line-height:1; }
 .focus-modal-close:hover{ color:var(--red-dark); }
 .focus-modal-body{ flex:1; overflow:auto; min-height:0; }
-.focus-modal-body table.dt{ font-size:13px; table-layout:fixed; width:100%; }
+.focus-modal-body table.dt{ font-size:11px; table-layout:fixed; width:100%; border-collapse:collapse; }
+.focus-modal-body table.dt td, .focus-modal-body table.dt th{ padding:2px 6px; line-height:1.15; }
 /* Di dalam modal Detail, header & sel dibiarkan wrap ke beberapa baris (bukan
    nowrap+scroll) supaya seluruh kolom otomatis menyesuaikan lebar modal. */
-.focus-modal-body table.dt th{ white-space:normal; word-break:break-word; overflow-wrap:break-word; line-height:1.35; vertical-align:bottom; }
-.focus-modal-body table.dt td{ white-space:normal; word-break:break-word; overflow-wrap:break-word; }
-.focus-modal-body table.dt th:first-child, .focus-modal-body table.dt td:first-child{ width:15%; }
+.focus-modal-body table.dt th{ white-space:normal; word-break:break-word; overflow-wrap:break-word; vertical-align:bottom; position:sticky; top:0; background:#fff; z-index:2; }
+.focus-modal-body table.dt td{ white-space:normal; word-break:break-word; overflow-wrap:break-word; vertical-align:middle; }
+.focus-modal-body table.dt th:first-child, .focus-modal-body table.dt td:first-child{ width:22%; }
+/* Tabel padat (CSL Item Achievement dkk): kolom nama item dipaksa SATU BARIS
+   + "..." kalau kepanjangan (bukan wrap 2-3 baris) — ini penghemat tinggi
+   baris paling besar. Arahkan kursor ke teksnya untuk lihat versi lengkap. */
+.focus-modal-body table.itemach-table td:first-child, .focus-modal-body table.itemach-table th:first-child{
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; cursor:help;
+}
 .card h3{ font-size:13.5px; margin:0 0 3px; font-weight:800; color:var(--navy); }
 .card .cardsub{ font-size:11px; color:var(--grey); margin-bottom:10px; }
 .chart-wrap{ position:relative; height:290px; }
@@ -2727,6 +2734,7 @@ function getFilters(){
   return {
     tahun: document.getElementById('fTahun').value,
     bulan: document.getElementById('fBulan').value,
+    semester: document.getElementById('fSemester').value,
     wilayah: document.getElementById('fWilayah').value,
     dealer: document.getElementById('fDealer').value,
     layer: document.getElementById('fLayer').value,
@@ -3282,11 +3290,11 @@ function renderCslItemAchievement(f){
   let thead = `<tr><th rowspan="2">Layer</th>`;
   GROUPS.forEach(g=> thead += `<th colspan="3" class="${g.cls}">${g.label}</th>`);
   thead += `</tr><tr>`;
-  GROUPS.forEach(()=> thead += `<th>Index</th><th>Gap Vs Target</th><th>Trend</th>`);
+  GROUPS.forEach(()=> thead += `<th>Index</th><th title="Gap Vs Target">Gap</th><th>Trend</th>`);
   thead += `</tr>`;
 
   const bodyRows = items.map((label,i)=>{
-    let row = `<tr><td>${String(i+1).padStart(2,'0')}. ${label}</td>`;
+    let row = `<tr><td title="${label.replace(/"/g,'&quot;')}">${String(i+1).padStart(2,'0')}. ${label}</td>`;
     GROUPS.forEach(g=>{
       const gd = data.groups[g.key];
       const idx = gd.current[i], tgt = gd.target[i], prev = gd.previous[i];
