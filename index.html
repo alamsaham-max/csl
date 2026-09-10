@@ -257,6 +257,12 @@ table.dt tr.row-active td{ background:#EAF0FB !important; font-weight:700; box-s
 .itemach-trend-up{ color:#1E8E5A; font-weight:700; }
 .itemach-trend-down{ color:#C8102E; font-weight:700; }
 .itemach-trend-flat{ color:#B7862E; font-weight:700; }
+.beh-hero{ display:flex; align-items:center; gap:14px; padding:18px 20px; }
+.beh-hero-icon{ font-size:32px; }
+.beh-hero-label{ font-weight:700; color:var(--navy); font-size:14px; flex:1; }
+.beh-hero-val{ font-size:26px; font-weight:800; color:var(--navy); }
+.beh-hero.inactive{ opacity:.4; }
+.beh-hero.inactive .beh-hero-val{ font-size:14px; color:var(--grey); font-weight:600; }
 /* Efek glow (samar/blur) di bawah bubble inti peta sebaran konsumen */
 .consumer-glow{ filter: blur(7px); pointer-events: none; }
 .consumer-glow-lg{ filter: blur(13px); pointer-events: none; }
@@ -1087,6 +1093,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
           <button data-tab="voc" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5 H20 V15.5 H9.5 L5.5 19 V15.5 H4 Z"/></svg></span> Voice of Customer</button>
           <button data-tab="bizupdate" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="1.8"/><line x1="3.5" y1="9" x2="20.5" y2="9"/><line x1="7" y1="13" x2="12" y2="13"/><line x1="7" y1="16.5" x2="16" y2="16.5"/></svg></span> Business Update</button>
           <button data-tab="alerts" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 10 a5.5 5.5 0 0 1 11 0 c0 4 1.3 5 1.8 6.2 H4.7 c0.5-1.2 1.8-2.2 1.8-6.2 Z"/><path d="M10.2 18.8 a1.8 1.8 0 0 0 3.6 0"/></svg></span> Alerts</button>
+          <button data-tab="behaviour" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3"/><path d="M2.5 20c0-4 2.5-6.2 5.5-6.2s5.5 2.2 5.5 6.2"/><path d="M14.5 6 l2 2 3.5-4"/></svg></span> Customer Behaviour</button>
         </div>
       </div>
 
@@ -1492,6 +1499,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </div>
     </div>
     <div class="card"><div style="overflow-x:auto; max-height:560px;"><table class="dt itemach-table" id="itemAchDetailTable"></table></div></div>
+
+    <div class="card" id="itemAchHighlightCard" style="margin-top:14px; padding:18px 22px; background:linear-gradient(180deg,#F7F9FD,#fff); border-left:4px solid var(--navy);">
+      <h3 style="margin-bottom:8px;">📝 Highlight — Ringkasan Performa Item</h3>
+      <div id="itemAchHighlightText" style="font-size:13.5px; line-height:1.75; color:#333;"></div>
+    </div>
   </section>
 
   <!-- ========== TAB: CUSTOMER DEMOGRAFI ========== -->
@@ -2306,6 +2318,47 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="card">
       <div class="cardsub">Diurutkan dari gap paling kritis. Mencakup Dealer, Wilayah, dan Atribut sesuai filter aktif di atas.</div>
       <div id="alertsList"></div>
+    </div>
+  </section>
+
+  <!-- ========== TAB: CUSTOMER BEHAVIOUR ========== -->
+  <section class="tab-content" id="tab-behaviour">
+    <div class="section-title"><span class="bar"></span><h2>🧭 Customer Behaviour — Kepuasan per Segmen Demografi</h2><span class="tag" id="behTag"></span></div>
+    <div class="methodnote">Skor kepuasan (%Index) dihitung per-responden lalu dirata-rata per kategori demografi — dari data mentah survei CSL (849 responden). Gunakan filter <b>Layer</b> di atas untuk pindah antar H1/H2/H3.</div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="card beh-hero" id="behHeroH1"><div class="beh-hero-icon">🏍️</div><div class="beh-hero-label">H1 — Sales</div><div class="beh-hero-val" id="behValH1">-</div></div>
+      <div class="card beh-hero" id="behHeroH2"><div class="beh-hero-icon">🔧</div><div class="beh-hero-label">H2 — Service</div><div class="beh-hero-val" id="behValH2">-</div></div>
+      <div class="card beh-hero" id="behHeroH3"><div class="beh-hero-icon">⚙️</div><div class="beh-hero-label">H3 — Spare Part</div><div class="beh-hero-val" id="behValH3">-</div></div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1.3fr 1fr;">
+      <div class="card">
+        <h3>Gender Satisfaction</h3>
+        <div class="chart-wrap"><canvas id="behGenderChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Occupation Satisfaction</h3>
+        <div class="cardsub">Diurutkan dari kepuasan tertinggi</div>
+        <div style="max-height:280px; overflow:auto;"><table class="dt" id="behOccTable"></table></div>
+      </div>
+      <div class="card">
+        <h3>SES Satisfaction</h3>
+        <div class="chart-wrap"><canvas id="behSesChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 0.8fr;">
+      <div class="card">
+        <h3>Age Group Satisfaction</h3>
+        <div class="chart-wrap tall"><canvas id="behAgeChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Education Satisfaction</h3>
+        <div class="chart-wrap tall"><canvas id="behEduChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Segment Satisfaction</h3>
+        <div class="cardsub">Berdasarkan tipe motor</div>
+        <div style="max-height:300px; overflow:auto;"><table class="dt" id="behSegTable"></table></div>
+      </div>
     </div>
   </section>
 
@@ -3309,6 +3362,139 @@ function renderCslItemAchievement(f){
   }).join('');
 
   document.getElementById('itemAchDetailTable').innerHTML = thead + bodyRows;
+
+  // ---- Highlight teks otomatis (dihitung ulang dari data yang sama, bukan dikarang) ----
+  const layerName = {H1:'Sales (H1)', H2:'Service (H2)', H3:'Spare Part (H3)'}[layerKey];
+  function itemStats(groupKey){
+    return items.map((label,i)=>{
+      const gd = data.groups[groupKey];
+      const idx = gd.current[i], tgt = gd.target[i], prev = gd.previous[i];
+      return { label, idx, gap: (idx!=null&&tgt!=null)?idx-tgt:null, trend: (idx!=null&&prev!=null)?idx-prev:null };
+    }).filter(r=>r.idx!=null);
+  }
+  const allStats = itemStats('ALL');
+  const bestItem = [...allStats].sort((a,b)=>b.idx-a.idx)[0];
+  const worstItem = [...allStats].sort((a,b)=>a.idx-b.idx)[0];
+  const belowTarget = allStats.filter(r=>r.gap<0).sort((a,b)=>a.gap-b.gap);
+  const bestTrend = [...allStats].filter(r=>r.trend!=null).sort((a,b)=>b.trend-a.trend)[0];
+  const worstTrend = [...allStats].filter(r=>r.trend!=null).sort((a,b)=>a.trend-b.trend)[0];
+
+  // Bandingkan posisi 3 grup (ALL/Reguler H123/Wing) berdasar rata-rata index
+  const groupAvg = GROUPS.map(g=>{
+    const gd = data.groups[g.key];
+    const v = gd.current.filter(x=>x!=null);
+    return { label:g.label, avg: v.length? v.reduce((a,b)=>a+b,0)/v.length : null };
+  }).filter(g=>g.avg!=null).sort((a,b)=>b.avg-a.avg);
+
+  const fmtPct = v=> v.toFixed(1)+'%';
+  const fmtSigned = v=> (v>=0?'+':'')+v.toFixed(1)+'%';
+
+  let html = `Untuk layer <b>${layerName}</b>, item dengan performa <b>tertinggi</b> adalah <b>"${bestItem.label}"</b> (${fmtPct(bestItem.idx)}),
+    sedangkan item dengan performa <b>terendah</b> adalah <b>"${worstItem.label}"</b> (${fmtPct(worstItem.idx)}).`;
+
+  if(belowTarget.length){
+    html += ` Tercatat <b>${belowTarget.length} dari ${allStats.length} item</b> masih di bawah target, dengan gap terbesar pada
+      <b>"${belowTarget[0].label}"</b> (${fmtSigned(belowTarget[0].gap)} dari target).`;
+  } else {
+    html += ` Seluruh item pada layer ini <b>sudah mencapai atau melampaui target</b> — pertahankan performanya.`;
+  }
+
+  if(bestTrend && worstTrend){
+    html += ` Dibanding SMT2 2025, peningkatan paling signifikan terjadi pada <b>"${bestTrend.label}"</b> (${fmtSigned(bestTrend.trend)}),
+      sementara penurunan paling perlu diwaspadai ada pada <b>"${worstTrend.label}"</b> (${fmtSigned(worstTrend.trend)}).`;
+  }
+
+  if(groupAvg.length >= 2){
+    html += ` Antar grup, <b>${groupAvg[0].label}</b> mencatat rata-rata index tertinggi (${fmtPct(groupAvg[0].avg)}),
+      sedangkan <b>${groupAvg[groupAvg.length-1].label}</b> tercatat paling rendah (${fmtPct(groupAvg[groupAvg.length-1].avg)}) —
+      berpotensi jadi fokus perhatian untuk grup tersebut.`;
+  }
+
+  document.getElementById('itemAchHighlightText').innerHTML = html;
+}
+
+// ============================================================
+// TAB: CUSTOMER BEHAVIOUR — kepuasan per segmen demografi, per Layer
+// ============================================================
+function renderBehaviourTab(f){
+  const layerKey = (f.layer==='H123' || f.layer==='ALL') ? 'H1' : f.layer;
+  document.getElementById('behTag').textContent = 'Layer '+layerKey;
+
+  // 3 kartu hero H1/H2/H3 — semua tampil, yang aktif (sesuai filter Layer) disorot
+  ['H1','H2','H3'].forEach(l=>{
+    const d = CUSTOMER_BEHAVIOUR[l];
+    const hero = document.getElementById('behHero'+l);
+    const valEl = document.getElementById('behVal'+l);
+    const genderVals = Object.values(d.gender).map(x=>x.avg);
+    const overall = genderVals.length ? genderVals.reduce((a,b)=>a+b,0)/genderVals.length : null;
+    if(l === layerKey){
+      hero.classList.remove('inactive');
+      valEl.textContent = overall!=null ? overall.toFixed(1)+'%' : '-';
+    } else {
+      hero.classList.add('inactive');
+      valEl.textContent = '(tidak aktif)';
+    }
+  });
+
+  const d = CUSTOMER_BEHAVIOUR[layerKey];
+
+  // Gender
+  const genderEntries = Object.entries(d.gender).sort((a,b)=>b[1].avg-a[1].avg);
+  destroyChart('behGenderChart');
+  charts.behGenderChart = new Chart(document.getElementById('behGenderChart'), {
+    type:'bar',
+    data:{ labels: genderEntries.map(x=>x[0]), datasets:[{ data: genderEntries.map(x=>+x[1].avg.toFixed(2)), backgroundColor:[COLORS.navy, COLORS.red], borderRadius:8, maxBarThickness:70 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>c.parsed.y+'% (n='+genderEntries[c.dataIndex][1].n+')'}}},
+      scales:{ y:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} } }
+  });
+
+  // Occupation (tabel, diurutkan tertinggi)
+  const occEntries = Object.entries(d.occupation).filter(x=>x[1].n>=2).sort((a,b)=>b[1].avg-a[1].avg);
+  document.getElementById('behOccTable').innerHTML = `<tr><th>Occupation</th><th>Satisfaction</th></tr>` +
+    occEntries.map(([k,v])=>`<tr><td>${k}</td><td style="background:#B9F2E6; font-weight:700;">${v.avg.toFixed(2)}%</td></tr>`).join('');
+
+  // SES
+  const sesOrder = ['A','B','C1','C2','D'];
+  const sesEntries = sesOrder.filter(k=>d.ses[k]).map(k=>[k,d.ses[k]]);
+  destroyChart('behSesChart');
+  charts.behSesChart = new Chart(document.getElementById('behSesChart'), {
+    type:'bar',
+    data:{ labels: sesEntries.map(x=>x[0]), datasets:[{ data: sesEntries.map(x=>+x[1].avg.toFixed(2)), backgroundColor: COLORS.gold, borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>c.parsed.x+'% (n='+sesEntries[c.dataIndex][1].n+')'}}},
+      scales:{ x:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}} } }
+  });
+
+  // Age Group
+  const ageOrder = ["17-20 tahun","21-25 tahun","26-30 tahun","31-35 tahun","36-40 tahun","41-45 tahun","46-50 tahun","51-55 tahun"];
+  const ageEntries = ageOrder.filter(k=>d.age[k]).map(k=>[k,d.age[k]]);
+  destroyChart('behAgeChart');
+  charts.behAgeChart = new Chart(document.getElementById('behAgeChart'), {
+    type:'bar',
+    data:{ labels: ageEntries.map(x=>x[0]), datasets:[{ data: ageEntries.map(x=>+x[1].avg.toFixed(2)), backgroundColor: COLORS.navy, borderRadius:6 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>c.parsed.x+'% (n='+ageEntries[c.dataIndex][1].n+')'}}},
+      scales:{ x:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}} } }
+  });
+
+  // Education (line chart, urut jenjang)
+  const eduOrder = ["SD atau tidak tamat","SLTP","SMU","Akademi/D1/D2/D3","Sarjana/S1","Pasca Sarjana/S2/S3"];
+  const eduEntries = eduOrder.filter(k=>d.education[k]).map(k=>[k,d.education[k]]);
+  destroyChart('behEduChart');
+  charts.behEduChart = new Chart(document.getElementById('behEduChart'), {
+    type:'line',
+    data:{ labels: eduEntries.map(x=>x[0]), datasets:[{ data: eduEntries.map(x=>+x[1].avg.toFixed(2)),
+      borderColor:COLORS.navy, backgroundColor:'rgba(11,37,69,.08)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:COLORS.navy }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>c.parsed.y+'% (n='+eduEntries[c.dataIndex][1].n+')'}}},
+      scales:{ y:{min:80,max:100, grid:{color:'#E3E7EE'}, ticks:{callback:v=>v+'%'}}, x:{ticks:{maxRotation:30,minRotation:20}, grid:{display:false}} } }
+  });
+
+  // Segment (tipe motor)
+  const segEntries = Object.entries(d.motorType).sort((a,b)=>b[1].avg-a[1].avg);
+  document.getElementById('behSegTable').innerHTML = `<tr><th>Segment</th><th>Satisfaction</th></tr>` +
+    segEntries.map(([k,v])=>`<tr><td>${k}</td><td style="background:#B9F2E6; font-weight:700;">${v.avg.toFixed(2)}% <span style="color:var(--grey); font-weight:400; font-size:11px;">(n=${v.n})</span></td></tr>`).join('');
 }
 
 // ============================================================
@@ -4931,6 +5117,14 @@ function renderVocTab(f){
 // bukan per-dealer, supaya perbandingan tetap valid.
 // ============================================================
 const CSL_ITEM_ACHIEVEMENT = {"H1":{"items":["Ease of finding and contacting","Parking Assistance","Cleanliness and neatness","Product information clearly displayed","Salesperson explained features and suggested appropriate product","Explanation of payment scheme","Explanation of Sales People about accessories and apparel","Sales people explanation about community activities","Explanation about location AHASS, service schedule, sales warranty & facilities","Ease of providing required documents and payment process","Similarity of the price offered by the price list","Responsiveness of cashier officer","Timeliness of delivery as promised","Motorcycle delivered in the same type and color","Motorcycle delivered clean and Complete","Motorcycle delivered with quality promised","Delivery man's ability to explain the manual books","Deliveryman give appreciation to Customer","Completeness of vehicle registration (STNK)","Ease of taking STNK","Hospitality & courtesy of dealership officers","Appearance of dealership officers"],"groups":{"ALL":{"target":[94.9,94.1,94.2,94.0,94.7,94.4,93.0,91.5,94.2,94.3,93.6,94.3,94.4,95.0,94.5,94.6,94.0,93.6,93.5,93.6,94.6,94.3],"current":[95.1,94.2,94.1,94.2,94.7,94.8,93.3,91.5,94.3,94.5,93.6,94.6,94.5,95.0,94.5,94.9,94.4,93.7,93.9,94.1,94.9,94.5],"previous":[94.7,94.1,94.3,94.3,94.9,94.4,93.0,91.9,94.2,94.2,93.8,94.3,94.4,94.8,94.5,94.6,94.1,93.6,93.6,93.6,94.6,94.3]},"REGULER":{"target":[94.9,94.1,94.2,94.0,94.7,94.4,93.0,91.5,94.2,94.3,93.6,94.3,94.4,95.0,94.5,94.6,94.0,93.6,93.5,93.6,94.6,94.3],"current":[95.2,93.9,94.2,94.5,94.9,95.0,93.0,91.1,93.9,95.1,93.9,94.2,94.5,95.3,94.8,95.5,94.9,94.5,93.9,94.2,94.8,93.9],"previous":[95.2,94.4,94.9,93.9,93.9,94.7,94.0,91.7,94.6,92.4,95.7,95.2,94.6,93.9,94.0,94.9,94.7,94.4,94.0,92.8,93.9,95.2]},"WING":{"target":[94.9,94.1,94.2,94.0,94.7,94.4,93.0,91.5,94.2,94.3,93.6,94.3,94.4,95.0,94.5,94.6,94.0,93.6,93.5,93.6,94.6,94.3],"current":[94.6,95.3,93.9,92.9,93.9,94.3,94.3,93.2,95.6,92.2,92.2,95.9,94.6,93.6,93.6,92.6,92.9,90.5,94.0,93.6,95.2,96.5],"previous":[93.7,93.4,93.1,95.2,97.0,93.7,91.0,92.5,93.2,96.8,91.1,92.5,94.0,96.7,95.5,94.0,92.8,91.9,92.8,95.2,96.1,92.5]}}},"H2":{"items":["Ease of finding AHASS","Parking Assistance","Convenience of operating hours","Ease of getting much information by phone","Front desk officer appearance","Hospitality of front desk officer","Cleanliness and neatness of the AHASS","Assortment of services provided","Customer get reminder via text/phone about service schedule","Waiting room facilities","Customer get Booking Service reminder as appointed","AHASS attendant's ability to explain the problems","Accuracy of the problems analysis by AHASS attendant","Explanation of Sales People about accessories","Waiting time from coming to the AHASS till served","Queuing system","Waiting time from registered till get into the PIT service","Waiting time from the PIT service till done","The quality of the work performed by mechanic","Fairness of charges by the quality of the work","Explanation of actual work, detailed charges & warranty"],"groups":{"ALL":{"target":[95.7,94.5,94.4,96.0,95.9,95.8,95.6,95.5,94.0,94.6,95.9,95.3,95.8,93.8,94.4,94.0,94.1,95.1,96.0,94.3,94.9],"current":[96.0,95.0,94.7,96.1,95.9,95.9,95.7,95.7,94.3,95.5,96.2,95.4,95.8,94.2,94.5,94.3,94.3,95.1,96.0,94.3,95.2],"previous":[95.9,93.6,94.0,95.8,96.4,95.9,95.8,95.7,93.9,94.5,96.6,94.7,95.6,93.5,93.7,93.3,93.8,95.4,96.0,92.8,95.2]},"REGULER":{"target":[95.7,94.5,94.4,96.0,95.9,95.8,95.6,95.5,94.0,94.6,95.9,95.3,95.8,93.8,94.4,94.0,94.1,95.1,96.0,94.3,94.9],"current":[96.7,95.0,95.1,96.4,96.2,97.5,97.0,95.7,94.2,96.3,96.5,96.5,96.2,94.6,95.6,94.4,95.5,96.2,96.6,94.7,94.9],"previous":[96.4,94.7,94.3,97.1,96.8,95.7,96.3,96.4,94.5,94.9,96.3,94.2,96.4,93.3,93.8,94.7,94.5,96.6,95.9,91.7,94.9]},"WING":{"target":[95.7,94.5,94.4,96.0,95.9,95.8,95.6,95.5,94.0,94.6,95.9,95.3,95.8,93.8,94.4,94.0,94.1,95.1,96.0,94.3,94.9],"current":[92.9,92.6,91.3,94.0,94.6,92.2,94.6,94.6,93.9,92.9,93.3,93.2,94.2,93.3,92.9,93.3,89.6,93.9,92.9,92.2,94.0],"previous":[93.0,92.3,91.9,93.3,96.3,96.0,95.3,92.6,94.0,95.3,97.1,94.3,93.6,94.0,94.0,93.0,93.6,93.6,96.3,94.6,96.0]}}},"H3":{"items":["Ease of finding parts shop","Convenience of operating hours","Responsiveness of salesperson","Hospitality and courtesy of salesperson","Appearance of salesperson","Product knowledge of salesperson","Availability of spare parts","Estimation of arrival time of part","Ease of ways and requirements to order the spare parts","Information about the progress of ordered spare parts","Accuracy of estimated waiting time vs arrival of spare parts","Quality of spare parts","Similarity of the parts price with the price list"],"groups":{"ALL":{"target":[96.1,95.4,95.8,96.0,95.7,96.0,96.0,91.8,93.9,93.9,93.9,96.0,95.7],"current":[96.1,95.5,96.0,96.0,95.6,96.0,96.1,91.8,94.8,94.8,94.0,96.0,95.8],"previous":[95.1,94.6,95.1,95.6,95.4,95.5,95.7,90.0,92.7,92.7,92.7,95.2,94.7]},"REGULER":{"target":[96.1,95.4,95.8,96.0,95.7,96.0,96.0,91.8,93.9,93.9,93.9,96.0,95.7],"current":[97.1,94.8,95.2,96.5,96.3,96.7,95.6,92.2,92.2,92.3,92.3,96.4,96.1],"previous":[95.5,93.8,95.9,96.4,96.2,95.7,95.0,87.2,96.3,92.7,92.7,93.7,93.9]},"WING":{"target":[96.1,95.4,95.8,96.0,95.7,96.0,96.0,91.8,93.9,93.9,93.9,96.0,95.7],"current":[93.4,96.5,95.8,93.8,95.1,94.8,95.8,88.0,98.0,96.0,94.0,93.8,94.0],"previous":[94.6,95.3,93.3,95.0,95.6,95.6,95.6,92.7,89.0,92.7,92.7,95.3,95.6]}}}};
+
+// ============================================================
+// CUSTOMER_BEHAVIOUR — skor kepuasan (%Index) per kategori demografi
+// (gender, usia, pendidikan, SES, tipe motor, pekerjaan), dipecah per
+// Layer H1/H2/H3. Dihitung per-responden dari raw data survei CSL
+// (rata-rata semua atribut per orang), lalu dirata-rata per kategori.
+// ============================================================
+const CUSTOMER_BEHAVIOUR = {"H1":{"gender":{"Pria":{"avg":94.37,"n":123},"Wanita":{"avg":94.49,"n":155}},"age":{"21 - 25 tahun":{"avg":94.57,"n":107},"26 - 30 tahun":{"avg":94.4,"n":80},"17 - 20 tahun":{"avg":94.53,"n":51},"31 - 35 tahun":{"avg":94.51,"n":23},"46 - 50 tahun":{"avg":94.26,"n":5},"41 - 45 tahun":{"avg":95.74,"n":3},"36 - 40 tahun":{"avg":92.21,"n":9}},"education":{"Sarjana/S1":{"avg":94.49,"n":63},"SMU":{"avg":94.48,"n":196},"Akademi/D1/D2/D3":{"avg":92.51,"n":9},"SLTP":{"avg":95.16,"n":9},"Pasca Sarjana/S2/S3":{"avg":93.33,"n":1}},"ses":{"C1":{"avg":94.33,"n":166},"B":{"avg":94.62,"n":74},"A":{"avg":95.45,"n":27},"C2":{"avg":93.12,"n":9},"D":{"avg":88.67,"n":2}},"motorType":{"Matic":{"avg":94.38,"n":253},"Cub/bebek":{"avg":94.56,"n":7},"Sport":{"avg":95.13,"n":18}},"occupation":{"Pegawai swasta":{"avg":94.7,"n":134},"Mahasiswa / pelajar":{"avg":94.52,"n":45},"Pegawai negeri":{"avg":94.14,"n":5},"Pegawai swasta pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":93.12,"n":10},"Wiraswasta / pedagang pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":94.58,"n":7},"Wiraswasta / pedagang pertambangan":{"avg":94.42,"n":2},"TNI/Polri":{"avg":93.96,"n":4},"Wiraswasta / pedagang  pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":94.0,"n":28},"Petani":{"avg":93.34,"n":6},"Wiraswasta / pedagang industri":{"avg":94.72,"n":5},"Pegawai swasta jasa":{"avg":96.67,"n":2},"Bidan":{"avg":86.32,"n":1},"Wiraswasta / pedagang konstruksi":{"avg":94.74,"n":1},"Pegawai swasta perdagangan retail":{"avg":95.24,"n":1},"Nelayan":{"avg":93.04,"n":3},"Ibu/Bapak rumah tangga":{"avg":94.6,"n":11},"Pensiunan/Tidak bekerja":{"avg":97.14,"n":2},"Supir":{"avg":83.33,"n":1},"Lainnya,_________________________ honor dirs Bayangkara":{"avg":93.68,"n":1},"Guru/ Dosen":{"avg":94.29,"n":3},"Wiraswasta / pedagang":{"avg":94.74,"n":1},"Pengacara":{"avg":94.76,"n":2},"Dokter":{"avg":95.24,"n":1},"Petani/ nelayan":{"avg":96.19,"n":1},"Pegawai swasta industri":{"avg":96.19,"n":1}}},"H2":{"gender":{"Pria":{"avg":95.56,"n":154},"Wanita":{"avg":94.99,"n":133}},"age":{"21 - 25 tahun":{"avg":95.65,"n":98},"26 - 30 tahun":{"avg":95.08,"n":91},"17 - 20 tahun":{"avg":96.0,"n":55},"31 - 35 tahun":{"avg":95.09,"n":27},"41 - 45 tahun":{"avg":90.05,"n":5},"36 - 40 tahun":{"avg":94.84,"n":8},"51 - 55 tahun":{"avg":89.52,"n":1},"46 - 50 tahun":{"avg":88.5,"n":2}},"education":{"Sarjana/S1":{"avg":94.72,"n":61},"SMU":{"avg":95.56,"n":212},"Akademi/D1/D2/D3":{"avg":94.79,"n":8},"SLTP":{"avg":93.96,"n":5},"Pasca Sarjana/S2/S3":{"avg":85.26,"n":1}},"ses":{"C1":{"avg":95.62,"n":156},"B":{"avg":95.2,"n":102},"A":{"avg":96.66,"n":14},"C2":{"avg":90.01,"n":13},"D":{"avg":99.05,"n":2}},"motorType":{"Matic":{"avg":95.25,"n":273},"Sport":{"avg":96.24,"n":9},"Cub/bebek":{"avg":95.97,"n":5}},"occupation":{"Pegawai swasta":{"avg":96.15,"n":142},"Mahasiswa / pelajar":{"avg":95.42,"n":51},"Pegawai negeri":{"avg":92.04,"n":8},"Pegawai swasta industri":{"avg":100.0,"n":1},"Pegawai swasta jasa":{"avg":99.3,"n":3},"Wiraswasta / pedagang industri":{"avg":96.32,"n":2},"Ibu/Bapak rumah tangga":{"avg":92.79,"n":12},"Pegawai swasta pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":95.67,"n":4},"Wiraswasta / pedagang  pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":95.59,"n":19},"Pensiunan/Tidak bekerja":{"avg":90.42,"n":3},"TNI/Polri":{"avg":91.84,"n":4},"Lainnya,_________________________ farmasi":{"avg":80.0,"n":1},"Pegawai swasta konstruksi":{"avg":92.38,"n":2},"Lainnya,_________________________ kontrak rumah sakit di dok 2":{"avg":95.79,"n":1},"Petani":{"avg":92.7,"n":6},"Guru/ Dosen":{"avg":94.99,"n":8},"Lainnya,_________________________ saat ini tdk bekerja":{"avg":80.0,"n":1},"Wiraswasta / pedagang":{"avg":94.42,"n":4},"Lainnya,_________________________ karyawan swasta":{"avg":94.39,"n":3},"Lainnya,_________________________ admin":{"avg":94.74,"n":1},"Lainnya,_________________________ pedagang":{"avg":93.68,"n":1},"Lainnya,_________________________ swasta":{"avg":95.56,"n":1},"Supir":{"avg":94.74,"n":1},"Montir":{"avg":95.79,"n":1},"Nelayan":{"avg":94.74,"n":1},"Wiraswasta / Pedagang jasa":{"avg":91.89,"n":3},"Pegawai swasta pertambangan":{"avg":96.84,"n":1},"Wiraswasta / pedagang pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":95.24,"n":1},"Wartawan":{"avg":96.19,"n":1}}},"H3":{"gender":{"Pria":{"avg":96.22,"n":153},"Wanita":{"avg":95.62,"n":128}},"age":{"31 - 35 tahun":{"avg":97.02,"n":30},"26 - 30 tahun":{"avg":96.42,"n":74},"21 - 25 tahun":{"avg":95.96,"n":97},"36 - 40 tahun":{"avg":94.76,"n":14},"17 - 20 tahun":{"avg":95.54,"n":56},"41 - 45 tahun":{"avg":96.67,"n":6},"46 - 50 tahun":{"avg":90.0,"n":3},"51 - 55 tahun":{"avg":80.0,"n":1}},"education":{"Sarjana/S1":{"avg":95.69,"n":50},"SMU":{"avg":96.01,"n":213},"Akademi/D1/D2/D3":{"avg":97.78,"n":4},"SLTP":{"avg":94.84,"n":12},"Pasca Sarjana/S2/S3":{"avg":97.78,"n":1},"SD atau tidak tamat":{"avg":100.0,"n":1}},"ses":{"C1":{"avg":95.78,"n":151},"B":{"avg":95.96,"n":90},"A":{"avg":96.53,"n":32},"C2":{"avg":97.64,"n":6},"D":{"avg":93.33,"n":2}},"motorType":{"Sport":{"avg":95.73,"n":14},"Matic":{"avg":95.96,"n":264},"Cub/bebek":{"avg":95.56,"n":3}},"occupation":{"Pegawai negeri":{"avg":95.04,"n":12},"Pegawai swasta":{"avg":96.46,"n":136},"Pegawai swasta pertambangan":{"avg":97.78,"n":3},"Ibu/Bapak rumah tangga":{"avg":95.15,"n":17},"Mahasiswa / pelajar":{"avg":95.21,"n":50},"Pegawai swasta konstruksi":{"avg":100.0,"n":1},"Wiraswasta / pedagang industri":{"avg":100.0,"n":1},"Pegawai swasta pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":97.22,"n":4},"Wiraswasta / pedagang  pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":96.66,"n":20},"Wiraswasta / pedagang pertanian / perkebunan / kehutanan / perikanan / peternakan":{"avg":97.78,"n":1},"Pensiunan/Tidak bekerja":{"avg":93.28,"n":3},"Guru/ Dosen":{"avg":95.56,"n":3},"TNI/Polri":{"avg":95.56,"n":1},"Lainnya,_________________________ tdk bekerja":{"avg":95.56,"n":1},"Wiraswasta / pedagang":{"avg":95.49,"n":4},"Montir":{"avg":95.56,"n":2},"Lainnya,_________________________ karyawan swasta":{"avg":97.04,"n":3},"Lainnya,_________________________ admin":{"avg":95.56,"n":1},"Lainnya,_________________________ swasta":{"avg":95.56,"n":1},"Supir":{"avg":95.56,"n":1},"Wiraswasta / Pedagang jasa":{"avg":94.44,"n":2},"Nelayan":{"avg":90.0,"n":4},"Dokter":{"avg":95.56,"n":1},"Petani":{"avg":96.44,"n":5},"Wartawan":{"avg":97.78,"n":1},"Pegawai swasta perdagangan retail":{"avg":95.56,"n":1},"Wiraswasta / pedagang konstruksi":{"avg":91.11,"n":2}}}};
 
 const BIZ_UPDATE_DATA = {
   h1: {
@@ -7015,6 +7209,7 @@ const TAB_RENDERERS = {
   atribut: renderAtributTab,
   demokonsumen: renderCdbDemografiSection,
   demografi: renderCustomerDemoTab,
+  behaviour: renderBehaviourTab,
   diagnostik: renderDiagnostikTab,
   preskriptif: renderPreskriptifTab,
   prediktif: renderPrediktifTab,
