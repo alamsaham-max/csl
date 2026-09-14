@@ -2706,6 +2706,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div style="max-height:420px; overflow:auto;"><table class="dt" id="priorityMtdTable"></table></div>
     </div>
 
+    <!-- ========== A2. RENCANA EKSEKUSI BULANAN — KUANTITAS, SEMUA KPI & DEPARTEMEN ========== -->
+    <div class="card" style="margin-top:16px; border:1.5px solid var(--navy3, #1B3A6B);">
+      <h3>🔢 Rencana Eksekusi Bulanan — Berapa Kuantitas yang Harus Dikejar/Dijalankan (Semua KPI, Semua Departemen)</h3>
+      <div class="cardsub">Ini bukan sekadar status "sudah 100%" — kolom Kuantitas Sep/Okt/Nov/Des menampilkan <b>angka/jumlah asli</b> yang harus dijalankan pada bulan tsb (target bulanan tersendiri, bukan kumulatif), sesuai satuan resmi tiap KPI (jumlah unit/leads/kunjungan, indeks, atau persentase — mengikuti satuan aslinya di lembar kerja). Mencakup <b>SELURUH 85 KPI utama di 7 departemen</b> (bukan hanya yang belum tercapai) — KPI yang sudah 🟢 tercapai per Agustus tetap ditampilkan kuantitasnya karena harus terus dijaga/dijalankan tiap bulan, tidak cukup berhenti karena sudah pernah 100%. Dikelompokkan per departemen, di dalam tiap departemen diurutkan dari yang paling butuh perhatian dulu.</div>
+      <div style="max-height:560px; overflow:auto;"><table class="dt" id="monthlyQtyTable"></table></div>
+    </div>
+
     <!-- ========== B. ROADMAP KEJAR TARGET YTD — SEP/OKT/NOV/DES TERPISAH ========== -->
     <div class="section-title" style="margin-top:24px;"><span class="bar"></span><h2>🗺️ Roadmap Kejar Target YTD (Sep–Des), Per Bulan Terpisah</h2></div>
     <div class="methodnote">Hanya menampilkan KPI yang <b>BELUM tercapai per posisi Agustus 2026</b> (Ach. YTD &lt; 100%). "Target Kumulatif s.d. Bulan Ini" = target YTD resmi yang harus dicapai pada akhir bulan tsb. "Kekurangan" dihitung dari posisi actual Agustus — yaitu berapa tambahan (atau penurunan, utk KPI "makin rendah makin baik") yang masih dibutuhkan agar tercapai persis di bulan tsb, dengan asumsi tidak ada pergerakan lain. Diurutkan dari kekurangan terbesar (paling berat dikejar) lebih dulu.</div>
@@ -8962,6 +8969,37 @@ function renderRoadmapAll(catF){
   MONTHS_FUTURE.forEach(m=> renderRoadmapMonth(m.key, 'roadmap_'+m.key, catF));
 }
 
+// ---- A2. Rencana Eksekusi Bulanan (KUANTITAS, bukan cuma % / status tercapai) ----
+// Menampilkan SEMUA KPI utama (bukan hanya yang belum tercapai) — supaya user tahu ANGKA/JUMLAH
+// konkret yang harus dijalankan tiap bulan (Sep/Okt/Nov/Des), apa pun statusnya sekarang (sudah
+// tercapai pun tetap perlu tahu berapa unit/volume yang harus dijaga/dikejar tiap bulan).
+function renderMonthlyQtyPlan(catF){
+  const el = document.getElementById('monthlyQtyTable');
+  if(!el) return;
+  let items = KPI_DATA.z11_todo.map(it=>Object.assign({}, it, { pctScale: isPctScale(it), status: statusOf(it.ytd_ratio) }));
+  if(catF && catF!=='ALL') items = items.filter(it=>it.cat_key===catF);
+  // dikelompokkan per departemen (kategori A-Z), lalu di dalam tiap departemen diurutkan dari yang paling butuh perhatian (Ach YTD Agustus terendah)
+  items.sort((a,b)=> (a.category||'').localeCompare(b.category||'') || ((a.ytd_ratio==null?1:a.ytd_ratio) - (b.ytd_ratio==null?1:b.ytd_ratio)) );
+  const rows = items.map(it=>{
+    const st = it.status;
+    const pill = st==='GREEN'?'pos':st==='NA'?'':'neg';
+    const statusBadge = st==='GREEN' ? '<span class="pill pos">🟢 Sudah tercapai — tetap jaga</span>'
+      : st==='NA' ? '<span class="pill">⚪ Belum ada data</span>'
+      : '<span class="pill neg">🔴 Kejar</span>';
+    return `<tr>
+      <td><span class="badge-city">${CAT_SHORT[it.cat_key]||it.cat_key}</span></td>
+      <td style="max-width:230px;"><b>${it.code}</b> — ${it.name}</td>
+      <td style="font-size:11px;">${it.higher_better? '⬆️ Makin tinggi makin baik':'⬇️ Makin rendah makin baik'}</td>
+      <td>${statusBadge}</td>
+      <td><b>${fmtVal(it.mtd_target_sep, it.pctScale)}</b></td>
+      <td><b>${fmtVal(it.mtd_target_okt, it.pctScale)}</b></td>
+      <td><b>${fmtVal(it.mtd_target_nov, it.pctScale)}</b></td>
+      <td><b>${fmtVal(it.mtd_target_des, it.pctScale)}</b></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<tr><th>Kat.</th><th>KPI</th><th>Arah</th><th>Status per Ags</th><th>Kuantitas Sep</th><th>Kuantitas Okt</th><th>Kuantitas Nov</th><th>Kuantitas Des</th></tr>${rows || '<tr><td colspan="8" style="text-align:center; color:var(--grey); padding:16px;">Tidak ada KPI di departemen ini.</td></tr>'}`;
+}
+
 function renderFokusZ11Tab(){
   initTodoFilterOptions();
   const catF = document.getElementById('todoCatFilter').value;
@@ -8993,6 +9031,7 @@ function renderFokusZ11Tab(){
 
   // ---- Bagian A & B: prioritas bulan berjalan + roadmap per bulan — ikut filter departemen di atas ----
   renderPriorityMtd(catF);
+  renderMonthlyQtyPlan(catF);
   renderRoadmapAll(catF);
 
   if(statusF!=='ALL') items = items.filter(i=>i.status===statusF);
