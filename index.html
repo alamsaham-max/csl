@@ -1074,12 +1074,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <button type="submit">Masuk</button>
       </form>
       <div class="login-denied" id="localLoginError"></div>
-      <button type="button" id="btnShow2faSetup">📷 Tampilkan/Sembunyikan QR Setup 2FA</button>
+      <button type="button" id="btnShow2faSetup">📷 Tampilkan QR Setup 2FA (perlu Username+Password benar)</button>
       <div id="setup2faBox" style="display:none;">
         <div style="font-weight:800; margin-bottom:6px;">Scan QR ini dengan Google Authenticator / Authy:</div>
+        <div id="qrSetupAccountHint" style="font-size:11px; color:var(--grey); margin-bottom:6px;"></div>
+        <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">💡 QR ini cuma tampil kalau Username & Password yang Anda ketik di atas benar — supaya orang lain yang cuma buka dashboard ini tidak bisa lihat QR akun Anda tanpa tahu password-nya.</div>
         <div id="qrcodeContainer"></div>
         <div>Tidak bisa scan? Masukkan manual di app authenticator:<br><span id="totpManualCode"></span></div>
-        <div style="margin-top:8px; color:#9A6B00;">⚠️ Karena file ini statis (tanpa server), username/password/secret 2FA tersimpan di dalam kode file ini — cukup untuk mencegah akses casual, bukan proteksi tingkat enterprise. Segera ganti default-nya (lihat komentar <code>LOCAL_ACCOUNTS</code> di source).</div>
+        <div style="margin-top:8px; color:#9A6B00;">⚠️ Karena file ini statis (tanpa server), secret 2FA tetap tersimpan sbg teks biasa di dalam kode file ini (beda dari password yang di-hash) — pagar password di atas cukup untuk mencegah akses casual, TAPI bukan proteksi mutlak: orang yang paham teknis & buka "View Source" tetap bisa membaca secretnya langsung. Cara yang benar-benar menutup celah ini perlu backend sungguhan (di luar scope file statis ini).</div>
       </div>
     </div>
 
@@ -1222,6 +1224,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <span id="liveDataUpdatedAt" style="font-size:10.5px; color:var(--grey); display:none;"></span>
         <span class="uname">HC3 · Z11 Papua</span>
         <span class="avatar">👤</span>
+        <button id="btnLogout" type="button" title="Keluar / Logout" style="margin-left:4px; height:30px; padding:0 12px; border-radius:20px; border:1.5px solid var(--line); background:#fff; font-weight:700; font-size:12px; color:var(--red,#C8102E); cursor:pointer; display:flex; align-items:center; gap:5px;">🚪 Keluar</button>
       </div>
     </div>
 
@@ -2854,6 +2857,27 @@ function grantAccess(profile){
   const uEl = document.querySelector('.user-chip .uname');
   if(uEl) uEl.textContent = profile.name || profile.email;
 }
+
+// Logout: hapus sesi tersimpan & kembalikan ke layar login. Form login juga
+// dikosongkan supaya password/kode 2FA orang sebelumnya tidak tertinggal
+// kalau perangkat dipakai bergantian.
+function logoutUser(){
+  try{ sessionStorage.removeItem('csl_auth_user'); }catch(e){}
+  document.querySelector('.app-shell').classList.remove('authorized');
+  document.getElementById('loginGate').style.display = '';
+  const form = document.getElementById('localLoginForm');
+  if(form) form.reset();
+  const errBox = document.getElementById('localLoginError');
+  if(errBox){ errBox.classList.remove('show'); errBox.textContent = ''; }
+  const setupBox = document.getElementById('setup2faBox');
+  if(setupBox) setupBox.style.display = 'none';
+}
+(function initLogoutButton(){
+  const btn = document.getElementById('btnLogout');
+  if(btn) btn.addEventListener('click', ()=>{
+    if(confirm('Yakin mau keluar (logout)?')) logoutUser();
+  });
+})();
 
 // ============================================================
 // LOGIN LOKAL — Username & Password + 2FA (TOTP, scan QR)
@@ -5182,6 +5206,33 @@ const LOCAL_ACCOUNTS = [
     // kalau mau reset pairing 2FA (lalu scan ulang QR-nya).
     totpSecret: '3W7YBT4GEJ6H3BW7F7X4BU32VG6BKDYS',
   },
+  {
+    // Akun generik #2 -- ganti username & name sesuai orangnya, password &
+    // secret 2FA lihat file terpisah "Akun_Login_Dashboard_HC3.xlsx" yang
+    // dikirim Claude (JANGAN ditaruh di sini dalam bentuk teks polos).
+    username: 'user2',
+    name: 'User 2 (belum diberi nama)',
+    passwordHash: '48e57d05b0024ea9a2ec1586e0718fcaef67f93334a62bb628f16bc81f5de774',
+    totpSecret: 'ZCL6LLF36WFFMH7TUHBHV3O6YHMUBIKQ',
+  },
+  {
+    username: 'user3',
+    name: 'User 3 (belum diberi nama)',
+    passwordHash: 'e84f56139aaa36f918e31f4e015ef90321f6ed3bf18b5f2e54cae02a98de92cc',
+    totpSecret: 'ZJLG3MOAXFLP7SSDUZRSEMLHQTAUYV4Q',
+  },
+  {
+    username: 'user4',
+    name: 'User 4 (belum diberi nama)',
+    passwordHash: 'e95d313b73e895cf56779852cf5b5bb8b004deea2df42c8b9388de0a82c82bd8',
+    totpSecret: '2LF4XSU2FUELAK5SXSMAMVJZBUEEL2IA',
+  },
+  {
+    username: 'user5',
+    name: 'User 5 (belum diberi nama)',
+    passwordHash: 'fc656145711584cb1e2f96aa853b950cc8229c71a7ea8d83ebab79efe7662365',
+    totpSecret: 'GLDNCWRNQLFKSPM4P443IRMVGLFVIUU3',
+  },
   // tambahkan akun lokal lain di sini kalau perlu, format sama seperti di atas
 ];
 const TOTP_ISSUER = 'IntegrasiHC3-Z11';
@@ -5234,21 +5285,47 @@ function buildOtpauthUri(acc){
 (function initLocalLoginUi(){
   const btnShowSetup = document.getElementById('btnShow2faSetup');
   if(btnShowSetup){
-    btnShowSetup.addEventListener('click', ()=>{
+    btnShowSetup.addEventListener('click', async ()=>{
       const box = document.getElementById('setup2faBox');
       const showing = box.style.display !== 'none';
-      box.style.display = showing ? 'none' : 'block';
-      if(!showing){
-        const acc = LOCAL_ACCOUNTS[0];
-        document.getElementById('totpManualCode').textContent = acc.totpSecret;
-        try{
-          const qr = qrcode(0, 'M');
-          qr.addData(buildOtpauthUri(acc));
-          qr.make();
-          document.getElementById('qrcodeContainer').innerHTML = qr.createSvgTag(4, 4);
-        }catch(e){
-          document.getElementById('qrcodeContainer').textContent = '(gagal membuat QR — pakai kode manual di atas)';
-        }
+      // Kalau lagi tampil -> tinggal sembunyikan, tidak perlu cek password lagi.
+      if(showing){ box.style.display = 'none'; return; }
+
+      // Pengaman: QR/secret 2FA cuma boleh dilihat kalau Username & Password
+      // yang diketik BENAR (dicocokkan ke passwordHash akun itu) -- supaya
+      // orang iseng yang cuma buka file ini tanpa tahu password tidak bisa
+      // langsung lihat/scan QR akun orang lain dari layar login.
+      // CATATAN JUJUR: ini pagar untuk orang awam, BUKAN proteksi mutlak --
+      // karena file ini statis, secret 2FA tetap tersimpan sbg teks biasa di
+      // kode (lihat LOCAL_ACCOUNTS), jadi orang yang paham teknis & buka
+      // "View Source" tetap bisa membacanya langsung. Solusi yang benar-benar
+      // menutup celah ini perlu backend sungguhan (secret tidak pernah
+      // dikirim ke browser setelah setup pertama).
+      const errBox = document.getElementById('localLoginError');
+      errBox.classList.remove('show'); errBox.textContent = '';
+      const typedUsername = (document.getElementById('localUsername').value || '').trim();
+      const typedPassword = document.getElementById('localPassword').value;
+      if(!typedUsername || !typedPassword){
+        errBox.textContent = '🔒 Ketik Username & Password Anda dulu di atas sebelum bisa lihat QR setup 2FA.';
+        errBox.classList.add('show');
+        return;
+      }
+      const acc = LOCAL_ACCOUNTS.find(a=>a.username.toLowerCase()===typedUsername.toLowerCase());
+      if(!acc){ errBox.textContent = '⛔ Username tidak ditemukan.'; errBox.classList.add('show'); return; }
+      const hash = await sha256Hex(typedPassword);
+      if(hash !== acc.passwordHash){ errBox.textContent = '⛔ Password salah — QR setup tidak ditampilkan.'; errBox.classList.add('show'); return; }
+
+      box.style.display = 'block';
+      const hint = document.getElementById('qrSetupAccountHint');
+      if(hint) hint.textContent = `Menampilkan QR untuk akun: ${acc.username}`;
+      document.getElementById('totpManualCode').textContent = acc.totpSecret;
+      try{
+        const qr = qrcode(0, 'M');
+        qr.addData(buildOtpauthUri(acc));
+        qr.make();
+        document.getElementById('qrcodeContainer').innerHTML = qr.createSvgTag(4, 4);
+      }catch(e){
+        document.getElementById('qrcodeContainer').textContent = '(gagal membuat QR — pakai kode manual di atas)';
       }
     });
   }
