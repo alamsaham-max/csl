@@ -7387,6 +7387,33 @@ function resolveKabupaten(kecName){
   return undefined; // benar-benar tidak dikenali (bukan kabupaten Papua Barat Daya, tapi nama kecamatan yg tak match sama sekali)
 }
 
+// Kecamatan -> Provinsi, dari KECAMATAN_COORDS (field provinsi-nya bahasa
+// Inggris hasil referensi Google, dinormalisasi ke nama Indonesia baku).
+// Dipakai utk menjamin representasi minimal per-provinsi di panel
+// rekomendasi lokasi baru (lihat renderPetaRekomendasi).
+const PROVINSI_EN_ID = {
+  'Papua':'Papua', 'Southwest Papua':'Papua Barat Daya', 'West Papua':'Papua Barat',
+  'Central Papua':'Papua Tengah', 'South Papua':'Papua Selatan', 'Highland Papua':'Papua Pegunungan',
+  'Papua Pegunungan':'Papua Pegunungan',
+};
+const KEC_PROVINSI_MAP = {};
+KECAMATAN_COORDS.forEach(k=>{
+  KEC_PROVINSI_MAP[k.nama.trim().toUpperCase()] = PROVINSI_EN_ID[k.provinsi] || k.provinsi;
+});
+const KEC_PROVINSI_KEYS = Object.keys(KEC_PROVINSI_MAP);
+const PROVINSI_PAPUA_LIST = ['Papua','Papua Barat','Papua Tengah','Papua Pegunungan','Papua Selatan','Papua Barat Daya'];
+
+function resolveProvinsi(kecName){
+  if(!kecName) return null;
+  const key = kecName.trim().toUpperCase();
+  if(key in KEC_PROVINSI_MAP) return KEC_PROVINSI_MAP[key];
+  for(let i=0;i<KEC_PROVINSI_KEYS.length;i++){
+    const ck = KEC_PROVINSI_KEYS[i];
+    if(ck.length>=4 && (key.includes(ck) || ck.includes(key))) return KEC_PROVINSI_MAP[ck];
+  }
+  return null;
+}
+
 // ============================================================
 // INSIGHT BISNIS PER KABUPATEN — menggabungkan histori transaksi CDB (locs,
 // hasil mktAggregateLocations, SUDAH mengikuti filter global aktif) dengan
@@ -7598,7 +7625,7 @@ function renderPetaRekomendasi(points){
 
   const withVol = points.filter(p=>p.count>0).map(p=>{
     const nd = nearestHondaNetwork(p.lat, p.lng);
-    return Object.assign({}, p, { distDealer: nd.dist, nearestDealer: nd.nearest });
+    return Object.assign({}, p, { distDealer: nd.dist, nearestDealer: nd.nearest, provinsi: resolveProvinsi(p.kec) || '-' });
   });
 
   if(!withVol.length){
@@ -7611,15 +7638,42 @@ function renderPetaRekomendasi(points){
 
   const avgCount = withVol.reduce((s,p)=>s+p.count,0) / withVol.length;
   const THRESH_KM = 40;
-  const candidates = withVol
+  const TOP_N = 15;   // "papan atas" nasional
+  const MIN_PER_PROVINSI = 2; // jaminan minimal tiap provinsi Papua ikut muncul
+
+  const qualified = withVol
     .filter(p=> p.distDealer >= THRESH_KM && p.count >= avgCount)
-    .sort((a,b)=> (b.count/b.distDealer) - (a.count/a.distDealer))
-    .slice(0, 10);
+    .sort((a,b)=> (b.count/b.distDealer) - (a.count/a.distDealer));
+
+  const topNational = qualified.slice(0, TOP_N).map(c=>Object.assign({}, c, { _src:'nasional' }));
+  const pickedIdx = new Set(topNational.map(c=>c.locIdx));
+
+  // Kuota per-provinsi: kalau provinsi belum punya >= MIN_PER_PROVINSI kandidat
+  // di papan atas nasional, tambahkan kandidat terbaiknya sendiri (tetap harus
+  // lolos kriteria volume & jarak yang sama — cuma dijamin representasinya,
+  // bukan dilonggarkan kriterianya).
+  const quotaAdds = [];
+  PROVINSI_PAPUA_LIST.forEach(pv=>{
+    const already = topNational.filter(c=>c.provinsi===pv).length;
+    if(already >= MIN_PER_PROVINSI) return;
+    const need = MIN_PER_PROVINSI - already;
+    const provCands = qualified.filter(c=> c.provinsi===pv && !pickedIdx.has(c.locIdx));
+    provCands.slice(0, need).forEach(c=>{
+      quotaAdds.push(Object.assign({}, c, { _src:'kuota' }));
+      pickedIdx.add(c.locIdx);
+    });
+  });
+
+  const candidates = topNational.concat(quotaAdds);
   _petaRekoCandidates = candidates;
 
+  const provCovered = new Set(candidates.map(c=>c.provinsi)).size;
+  const provTotal = PROVINSI_PAPUA_LIST.length;
+
   kpiEl.innerHTML = [
-    {label:'Kandidat Lokasi Teridentifikasi', value: candidates.length, delta: 'dari '+withVol.length.toLocaleString('id-ID')+' kecamatan/kelurahan ter-geocode'},
-    {label:'Kandidat Terjauh dari Jaringan', value: candidates.length ? candidates[0].distDealer.toFixed(0)+' km' : '-', delta: candidates.length ? (candidates[0].kec||'') : ''},
+    {label:'Kandidat Lokasi Teridentifikasi', value: candidates.length, delta: 'dari '+qualified.length.toLocaleString('id-ID')+' kecamatan/kelurahan lolos kriteria ('+withVol.length.toLocaleString('id-ID')+' ter-geocode)'},
+    {label:'Provinsi Terwakili', value: provCovered+' / '+provTotal, delta: quotaAdds.length ? quotaAdds.length+' kandidat ditambah via kuota provinsi (di luar papan atas nasional)' : 'semua provinsi sudah masuk papan atas nasional'},
+    {label:'Kandidat Terjauh dari Jaringan', value: candidates.length ? Math.max(...candidates.map(c=>c.distDealer)).toFixed(0)+' km' : '-', delta: candidates.length ? candidates.slice().sort((a,b)=>b.distDealer-a.distDealer)[0].kec : ''},
     {label:'Ambang Analisis', value: THRESH_KM+' km', delta:'jarak lurus ke dealer/AHASS aktif terdekat, volume ≥ rata-rata'},
   ].map(k=>`
     <div class="kpi good">
@@ -7631,16 +7685,31 @@ function renderPetaRekomendasi(points){
   if(!candidates.length){
     panelEl.innerHTML = '<div class="cardsub">Tidak ada kecamatan/kelurahan yang memenuhi kriteria (volume ≥ rata-rata &amp; jarak ≥ '+THRESH_KM+' km dari dealer/AHASS aktif terdekat) pada filter saat ini.</div>';
   } else {
+    // Urutkan tampilan: kelompokkan per provinsi (biar gampang di-scan "tiap
+    // provinsi ada apa"), di dalam grup diurutkan dari rasio volume/jarak
+    // terbaik. Baris yg masuk lewat kuota (bukan papan atas nasional) ditandai.
+    const display = candidates.slice().sort((a,b)=>{
+      if(a.provinsi !== b.provinsi) return a.provinsi.localeCompare(b.provinsi);
+      return (b.count/b.distDealer) - (a.count/a.distDealer);
+    });
     panelEl.innerHTML = `
       <div style="overflow-x:auto;">
       <table class="dt">
-        <thead><tr><th>#</th><th>Kecamatan</th><th>Kelurahan</th><th>Transaksi</th><th>Jarak ke Jaringan Terdekat</th><th>Dealer/AHASS Terdekat</th></tr></thead>
+        <thead><tr><th>Provinsi</th><th>Kecamatan</th><th>Kelurahan</th><th>Transaksi</th><th>Jarak ke Jaringan Terdekat</th><th>Dealer/AHASS Terdekat</th><th>Sumber</th></tr></thead>
         <tbody>
-          ${candidates.map((c,i)=>`<tr><td>${i+1}</td><td><b>${c.kec}</b></td><td>${c.kel||'-'}</td><td>${c.count.toLocaleString('id-ID')}</td><td>${c.distDealer.toFixed(0)} km</td><td>${c.nearestDealer||'-'}</td></tr>`).join('')}
+          ${display.map(c=>`<tr>
+            <td><b>${c.provinsi}</b></td>
+            <td>${c.kec}</td>
+            <td>${c.kel||'-'}</td>
+            <td>${c.count.toLocaleString('id-ID')}</td>
+            <td>${c.distDealer.toFixed(0)} km</td>
+            <td>${c.nearestDealer||'-'}</td>
+            <td>${c._src==='nasional' ? '<span style="color:#1E8E5A;">🏆 Papan Atas Nasional</span>' : '<span style="color:#B8860B;">📍 Kuota Provinsi</span>'}</td>
+          </tr>`).join('')}
         </tbody>
       </table>
       </div>
-      <div class="cardsub" style="margin-top:8px;">Diurutkan dari rasio volume transaksi terhadap jarak (banyak transaksi, tapi jauh dari layanan resmi = prioritas tertinggi). Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
+      <div class="cardsub" style="margin-top:8px;">Papan atas nasional = top ${TOP_N} kandidat dgn rasio volume transaksi/jarak tertinggi se-Papua. Krn wilayah operasional luas &amp; volume per provinsi timpang, kandidat murni ranking nasional cenderung numpuk di 2-3 provinsi saja — supaya tiap provinsi tetap kelihatan potensinya, ditambahkan minimal ${MIN_PER_PROVINSI} kandidat terbaik per provinsi (kalau ada yg lolos kriteria) walau tak masuk top ${TOP_N} nasional, ditandai "📍 Kuota Provinsi". <b>Kriteria kelolosannya sama persis</b> (volume ≥ rata-rata &amp; jarak ≥ ${THRESH_KM} km) — cuma jaminan keterwakilannya yg beda, bukan standarnya diturunkan. Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
     `;
   }
   renderPetaRekoLayer();
