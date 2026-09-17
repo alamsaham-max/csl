@@ -379,6 +379,44 @@ table.dt tr.row-active:hover td{ background:#DCE7F8 !important; }
 #loginGate #totpManualCode{ background:#F3E9C8; padding:2px 8px; border-radius:6px; font-weight:800; letter-spacing:.05em; }
 .app-shell{ display:none; }
 .app-shell.authorized{ display:flex; }
+
+/* ============================================================
+   Tabel yg bisa diciutkan — dipakai utk tabel panjang (kandidat
+   rekomendasi, insight kabupaten) biar nggak bikin layout njomplang
+   drpd kartu di sebelahnya. Default keadaan diciutkan (max-height),
+   tombol "Tampilkan Semua" buka penuh.
+   ============================================================ */
+.table-collapsible{ max-height:300px; overflow-y:auto; transition:max-height .25s ease; }
+.table-collapsible.expanded{ max-height:none; }
+.table-expand-toggle{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  width:100%; margin-top:8px; padding:8px 12px; border-radius:8px;
+  border:1.5px dashed var(--line,#D8DEE8); background:#F7F9FC;
+  font-size:12px; font-weight:700; color:var(--navy,#0B2545); cursor:pointer;
+}
+.table-expand-toggle:hover{ background:#EEF2F8; }
+
+/* ============================================================
+   Radar pulse — cincin berdenyut di belakang pin "Kandidat Lokasi
+   Baru" di peta, biar kelihatan "hidup"/menarik perhatian dibanding
+   pin dealer/AHASS yang statis.
+   ============================================================ */
+@keyframes radarPulse{
+  0%   { transform:scale(0.4); opacity:0.65; }
+  70%  { transform:scale(2.2); opacity:0; }
+  100% { transform:scale(2.2); opacity:0; }
+}
+.radar-pulse-wrap{ position:relative; width:100%; height:100%; }
+.radar-pulse-ring{
+  position:absolute; left:50%; top:50%; width:26px; height:26px;
+  margin-left:-13px; margin-top:-13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(30,142,90,0.55) 0%, rgba(30,142,90,0) 70%);
+  animation:radarPulse 1.8s ease-out infinite;
+  pointer-events:none;
+}
+.radar-pulse-ring.delay2{ animation-delay:.6s; }
+.radar-pulse-ring.delay3{ animation-delay:1.2s; }
+.radar-pulse-pin{ position:relative; z-index:2; }
 </style>
 <script>
 /* Leaflet.js (bundled) */
@@ -2067,19 +2105,34 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <section class="tab-content" id="tab-petakonsumen">
     <div class="section-title"><span class="bar"></span><h2>🗺️ Peta Sebaran Konsumen</h2><span class="tag">6 Provinsi Papua</span></div>
     <div class="methodnote">
-      Bubble map di bawah menampilkan sebaran transaksi CDB per-<b>kecamatan/kelurahan</b> (data agregat — hanya nama wilayah &amp; jumlah, tanpa data pribadi konsumen). Ukuran &amp; warna bubble sebanding dengan jumlah transaksi. Klik bubble untuk detail kecamatan &amp; top dealer. Peta ini juga menampilkan lokasi jaringan dealer/AHASS Honda resmi (dari Google Business Profile) dan kandidat lokasi ekspansi — nyalakan/matikan lewat kontrol lapisan di pojok kanan atas peta.
+      Bubble map di bawah menampilkan sebaran transaksi CDB per-<b>kecamatan/kelurahan</b> (data agregat — hanya nama wilayah &amp; jumlah, tanpa data pribadi konsumen). Ukuran &amp; warna bubble sebanding dengan jumlah transaksi. Klik bubble utk zoom &amp; lihat detail kecamatan &amp; top dealer. Peta ini juga menampilkan lokasi jaringan dealer/AHASS Honda resmi (dari Google Business Profile) dan kandidat lokasi ekspansi — nyalakan/matikan lewat kontrol lapisan di pojok kanan atas peta.
     </div>
-    <div class="kpi-row" id="petaKpiRow"></div>
+
+    <div class="section-title"><span class="bar"></span><h2>🌦️ Prakiraan Cuaca — Kota Operasional Dealer</h2>
+      <span class="tag" id="weatherStatusTag">Memuat…</span>
+    </div>
+    <div class="methodnote">
+      Data cuaca live dari <b>Open-Meteo</b> (sumber terbuka, tanpa API key) untuk 6 kota tempat dealer beroperasi. Diperbarui tiap kali tab ini dibuka.
+    </div>
+    <div class="grid" id="weatherCardsRow" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));"></div>
+    <div class="card" style="padding:8px; margin-top:10px;">
+      <div style="display:flex; align-items:center; gap:10px; padding:6px 10px;">
+        <span style="font-size:12px; color:#888;">Sumber: row-level CDB (3.091 kelurahan/kecamatan, 2.499 titik ter-geocode — koordinat tervalidasi berada di darat) · Lokasi dealer/AHASS: Google Business Profile</span>
+        <button id="btnRefreshWeather" type="button" style="margin-left:auto; height:30px; padding:0 12px; border-radius:7px; border:1.5px solid var(--line); background:#fff; font-weight:700; font-size:12px; color:var(--navy); cursor:pointer;">🔄 Refresh Cuaca</button>
+      </div>
+    </div>
+
+    <div class="kpi-row" id="petaKpiRow" style="margin-top:16px;"></div>
 
     <div class="section-title"><span class="bar"></span><h2>📍 Bubble Map per Kecamatan (Peta Geografis Riil)</h2><span class="tag" id="petaMapTag"></span></div>
     <div class="card" style="padding:10px;">
       <div id="petaKonsumenMap" style="height:520px; border-radius:10px; background:#EAF1F8;"></div>
-      <div class="cardsub" style="margin-top:8px;">Bubble ukuran = jumlah transaksi per kecamatan/kelurahan; warna kuning muda → amber = makin tinggi volumenya (peta OpenStreetMap, bisa di-zoom &amp; digeser). Titik tanpa koordinat tidak tergambar di peta (tetap terhitung di KPI total). Semua koordinat sudah divalidasi berada di darat (bukan di laut) — lihat catatan validasi di bawah.</div>
+      <div class="cardsub" style="margin-top:8px;">Bubble ukuran = jumlah transaksi per kecamatan/kelurahan; warna kuning muda → amber = makin tinggi volumenya (peta OpenStreetMap, bisa di-zoom &amp; digeser). Klik bubble utk zoom in ke titik tsb; klik lagi utk kembali. Titik tanpa koordinat tidak tergambar di peta (tetap terhitung di KPI total). Semua koordinat sudah divalidasi berada di darat (bukan di laut) — lihat catatan validasi di bawah.</div>
       <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:12px; color:#555;">
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#FFE066;border:1px solid #B8860B;margin-right:5px;vertical-align:-1px;"></span>Bubble konsumen (kuning muda–amber = volume transaksi)</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#C8102E;border:1.5px solid var(--navy);margin-right:5px;vertical-align:-1px;"></span>🔧 Dealer Honda resmi (GBP) — pin merah, cincin navy</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#C8102E;border:1.5px solid var(--green,#1E8E5A);margin-right:5px;vertical-align:-1px;"></span>🔧 AHASS resmi (GBP) — pin merah, cincin hijau</span>
-        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--green,#1E8E5A);margin-right:5px;vertical-align:-1px;"></span>💡 Kandidat lokasi baru</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--green,#1E8E5A);margin-right:5px;vertical-align:-1px;"></span>💡 Kandidat lokasi baru (berkedip radar)</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#8B5CF6;opacity:0.35;border:1px solid #8B5CF6;margin-right:5px;vertical-align:-1px;"></span>👥 Kepadatan penduduk (BPS 2026, per kabupaten)</span>
       </div>
       <div class="cardsub" style="margin-top:6px;">Pin dealer/AHASS memakai lencana merah bertema sayap buatan sendiri (bukan logo Honda resmi — trademark tidak bisa direproduksi otomatis di sini). Kirim file logo resmi kalau mau di-embed persis.</div>
@@ -2101,22 +2154,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <h3>🔍 Insight Otomatis</h3>
       <div id="kabInsightNarrative" class="cardsub"></div>
     </div>
-    <div class="grid" style="margin-top:12px; grid-template-columns: 1.1fr 1fr;">
+    <div class="grid" style="margin-top:12px; grid-template-columns: 1.1fr 1fr; align-items:start;">
       <div class="card">
         <h3>Prioritas Ekspansi — Populasi vs Penetrasi</h3>
         <div class="cardsub">Top 8 kabupaten: populasi ≥40rb, jarak ≥20km dari jaringan aktif, diurutkan dari penetrasi terendah</div>
         <div class="chart-wrap" style="height:340px;"><canvas id="kabInsightChart"></canvas></div>
       </div>
-      <div class="card" style="overflow-x:auto;">
+      <div class="card">
         <h3>Seluruh Kabupaten (Data Lengkap)</h3>
         <div class="cardsub">Diurutkan dari penetrasi terendah ke tertinggi</div>
-        <table class="dt" id="kabInsightTable"></table>
+        <div class="table-collapsible" id="kabInsightTableWrap" style="overflow-x:auto;">
+          <table class="dt" id="kabInsightTable"></table>
+        </div>
+        <button type="button" class="table-expand-toggle" id="kabInsightExpandBtn" data-target="kabInsightTableWrap">Tampilkan Semua ▾</button>
       </div>
     </div>
 
     <div class="section-title"><span class="bar"></span><h2>🔎 Detail Lokasi Terpilih</h2><span class="tag" id="petaSelTag" style="background:var(--navy);"></span></div>
     <div class="methodnote">
-      Klik salah satu bubble di peta di atas untuk menampilkan rincian dealer, cash/credit, generasi, pekerjaan, pendidikan, pengeluaran, serta rata-rata tenor &amp; cicilan khusus lokasi tersebut. Klik lagi (atau centang "Tampilkan Semua") untuk kembali ke tampilan gabungan sesuai filter global.
+      Klik salah satu bubble di peta di atas untuk zoom in &amp; menampilkan rincian dealer, cash/credit, generasi, pekerjaan, pendidikan, pengeluaran, serta rata-rata tenor &amp; cicilan khusus lokasi tersebut. Klik lagi (atau centang "Tampilkan Semua") untuk kembali ke tampilan gabungan sesuai filter global.
     </div>
     <div class="card" id="petaDetailPanel"></div>
 
@@ -2148,21 +2204,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="card">
         <h3>Pekerjaan (Top 8)</h3>
         <div class="chart-wrap" style="height:280px;"><canvas id="petaChartPekerjaan"></canvas></div>
-      </div>
-    </div>
-
-    <div class="section-title"><span class="bar"></span><h2>🌦️ Prakiraan Cuaca — Kota Operasional Dealer</h2>
-      <span class="tag" id="weatherStatusTag">Memuat…</span>
-    </div>
-    <div class="methodnote">
-      Data cuaca live dari <b>Open-Meteo</b> (sumber terbuka, tanpa API key) untuk 6 kota tempat dealer beroperasi. Diperbarui tiap kali tab ini dibuka.
-    </div>
-    <div class="grid" id="weatherCardsRow" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));"></div>
-
-    <div class="card" style="padding:8px; margin-top:14px;">
-      <div style="display:flex; align-items:center; gap:10px; padding:6px 10px;">
-        <span style="font-size:12px; color:#888;">Sumber: row-level CDB (3.091 kelurahan/kecamatan, 2.499 titik ter-geocode — koordinat tervalidasi berada di darat) · Lokasi dealer/AHASS: Google Business Profile</span>
-        <button id="btnRefreshWeather" type="button" style="margin-left:auto; height:30px; padding:0 12px; border-radius:7px; border:1.5px solid var(--line); background:#fff; font-weight:700; font-size:12px; color:var(--navy); cursor:pointer;">🔄 Refresh Cuaca</button>
       </div>
     </div>
 
@@ -6860,6 +6901,21 @@ function svgMarkerIcon(color, size){
   return L.divIcon({ html: svg, className:'', iconSize:[size,size], iconAnchor:[size/2,size], popupAnchor:[0,-size] });
 }
 
+// Pin "kandidat lokasi baru" dgn cincin radar berdenyut di belakangnya —
+// biar peluang ekspansi kelihatan "hidup"/menarik perhatian dibanding pin
+// dealer/AHASS yg statis. CSS animasinya ada di <style> (.radar-pulse-*).
+function radarMarkerIcon(color, size){
+  size = size || 28;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="${color}" stroke="#fff" stroke-width="1" d="M12 0C7 0 3 4 3 9c0 6.5 9 15 9 15s9-8.5 9-15c0-5-4-9-9-9z"/><circle cx="12" cy="9" r="3.4" fill="#fff"/></svg>`;
+  const html = `<div class="radar-pulse-wrap" style="width:${size}px;height:${size}px;">` +
+    `<div class="radar-pulse-ring"></div>` +
+    `<div class="radar-pulse-ring delay2"></div>` +
+    `<div class="radar-pulse-ring delay3"></div>` +
+    `<div class="radar-pulse-pin">${svg}</div>` +
+    `</div>`;
+  return L.divIcon({ html, className:'', iconSize:[size,size], iconAnchor:[size/2,size], popupAnchor:[0,-size] });
+}
+
 // ============================================================
 // PIN JARINGAN HONDA — pin merah bertema "sayap" utk tiap titik Dealer &
 // AHASS resmi di peta. CATATAN: ini BUKAN logo Honda resmi (trademark) —
@@ -7249,7 +7305,17 @@ function renderPetaKonsumenMap(points){
       renderPetaKonsumenTab(getFilters());
     });
   });
-  if(bounds.length) petaKonsumenMapInstance.fitBounds(bounds, {padding:[24,24], maxZoom:12});
+  // Klik satu titik -> zoom IN ke titik itu (bukan fit-semua yg malah kerasa
+  // zoom out). Klik lagi titik yg sama -> petaSelectedLocIdx balik null, jadi
+  // otomatis balik ke fitBounds semua titik (tampilan gabungan).
+  if(bounds.length){
+    const selPoint = petaSelectedLocIdx!=null ? points.find(p=>p.locIdx===petaSelectedLocIdx) : null;
+    if(selPoint){
+      petaKonsumenMapInstance.flyTo([selPoint.lat, selPoint.lng], 13, { animate:true, duration:0.6 });
+    } else {
+      petaKonsumenMapInstance.fitBounds(bounds, {padding:[24,24], maxZoom:12});
+    }
+  }
   setTimeout(()=>{ if(petaKonsumenMapInstance) petaKonsumenMapInstance.invalidateSize(); }, 60);
 }
 
@@ -7640,10 +7706,23 @@ function renderPetaRekomendasi(points){
   const THRESH_KM = 40;
   const TOP_N = 15;   // "papan atas" nasional
   const MIN_PER_PROVINSI = 2; // jaminan minimal tiap provinsi Papua ikut muncul
+  const MIN_SEP_KM = 15; // jarak minimum ANTAR kandidat rekomendasi itu sendiri
 
-  const qualified = withVol
+  const qualifiedRaw = withVol
     .filter(p=> p.distDealer >= THRESH_KM && p.count >= avgCount)
     .sort((a,b)=> (b.count/b.distDealer) - (a.count/a.distDealer));
+
+  // Dedup jarak-antar-kandidat: kalau 2 kandidat cuma berjarak < MIN_SEP_KM,
+  // itu praktis titik yg sama (sering krn keduanya masih koordinat estimasi
+  // level-kecamatan yg identik, belum presisi per-kelurahan) — nampilin
+  // keduanya sbg "2 peluang beda" menyesatkan. Yg dipertahankan cuma yg
+  // rasio volume/jaraknya lebih baik (greedy, karena qualifiedRaw sudah
+  // terurut dari rasio tertinggi).
+  const qualified = [];
+  qualifiedRaw.forEach(p=>{
+    const tooClose = qualified.some(q=> haversineKm(p.lat, p.lng, q.lat, q.lng) < MIN_SEP_KM);
+    if(!tooClose) qualified.push(p);
+  });
 
   const topNational = qualified.slice(0, TOP_N).map(c=>Object.assign({}, c, { _src:'nasional' }));
   const pickedIdx = new Set(topNational.map(c=>c.locIdx));
@@ -7693,7 +7772,7 @@ function renderPetaRekomendasi(points){
       return (b.count/b.distDealer) - (a.count/a.distDealer);
     });
     panelEl.innerHTML = `
-      <div style="overflow-x:auto;">
+      <div class="table-collapsible" id="petaRekoTableWrap" style="overflow-x:auto;">
       <table class="dt">
         <thead><tr><th>Provinsi</th><th>Kecamatan</th><th>Kelurahan</th><th>Transaksi</th><th>Jarak ke Jaringan Terdekat</th><th>Dealer/AHASS Terdekat</th><th>Sumber</th></tr></thead>
         <tbody>
@@ -7709,7 +7788,8 @@ function renderPetaRekomendasi(points){
         </tbody>
       </table>
       </div>
-      <div class="cardsub" style="margin-top:8px;">Papan atas nasional = top ${TOP_N} kandidat dgn rasio volume transaksi/jarak tertinggi se-Papua. Krn wilayah operasional luas &amp; volume per provinsi timpang, kandidat murni ranking nasional cenderung numpuk di 2-3 provinsi saja — supaya tiap provinsi tetap kelihatan potensinya, ditambahkan minimal ${MIN_PER_PROVINSI} kandidat terbaik per provinsi (kalau ada yg lolos kriteria) walau tak masuk top ${TOP_N} nasional, ditandai "📍 Kuota Provinsi". <b>Kriteria kelolosannya sama persis</b> (volume ≥ rata-rata &amp; jarak ≥ ${THRESH_KM} km) — cuma jaminan keterwakilannya yg beda, bukan standarnya diturunkan. Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
+      <button type="button" class="table-expand-toggle" data-target="petaRekoTableWrap">Tampilkan Semua ▾</button>
+      <div class="cardsub" style="margin-top:8px;">Papan atas nasional = top ${TOP_N} kandidat dgn rasio volume transaksi/jarak tertinggi se-Papua. Krn wilayah operasional luas &amp; volume per provinsi timpang, kandidat murni ranking nasional cenderung numpuk di 2-3 provinsi saja — supaya tiap provinsi tetap kelihatan potensinya, ditambahkan minimal ${MIN_PER_PROVINSI} kandidat terbaik per provinsi (kalau ada yg lolos kriteria) walau tak masuk top ${TOP_N} nasional, ditandai "📍 Kuota Provinsi". <b>Kriteria kelolosannya sama persis</b> (volume ≥ rata-rata &amp; jarak ≥ ${THRESH_KM} km) — cuma jaminan keterwakilannya yg beda, bukan standarnya diturunkan. Kandidat yg jaraknya &lt; ${MIN_SEP_KM} km satu sama lain (praktis titik yg sama) sudah di-dedup, cuma yg rasionya terbaik yg ditampilkan. Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
     `;
   }
   renderPetaRekoLayer();
@@ -7719,7 +7799,7 @@ function renderPetaRekoLayer(){
   if(!petaKonsumenMapInstance) return;
   petaKonsumenMapInstance._rekoLayer.clearLayers();
   _petaRekoCandidates.forEach((c,i)=>{
-    const marker = L.marker([c.lat, c.lng], { icon: svgMarkerIcon(COLORS.green, 26) }).addTo(petaKonsumenMapInstance._rekoLayer);
+    const marker = L.marker([c.lat, c.lng], { icon: radarMarkerIcon(COLORS.green, 28) }).addTo(petaKonsumenMapInstance._rekoLayer);
     marker.bindPopup(
       `<b>💡 Kandidat #${i+1}: ${c.kec}</b><br>Kelurahan: ${c.kel||'-'}` +
       `<br>Volume: <b>${c.count.toLocaleString('id-ID')}</b> transaksi` +
@@ -11434,6 +11514,20 @@ document.getElementById('btnRefreshWeather').addEventListener('click', function(
   loadAllWeather(true).then(weather=>{
     renderWeatherCards(weather);
   }).catch(err=>console.error('Gagal refresh cuaca:', err));
+});
+
+// Toggle generik utk tabel yg bisa diciutkan (.table-collapsible +
+// .table-expand-toggle[data-target]) — dipasang via delegasi krn sebagian
+// tombol di-generate ulang oleh JS (mis. panel rekomendasi lokasi), jadi
+// listener langsung akan lepas tiap kali innerHTML-nya diganti.
+document.addEventListener('click', function(ev){
+  const btn = ev.target.closest('.table-expand-toggle');
+  if(!btn) return;
+  const targetId = btn.getAttribute('data-target');
+  const wrap = targetId && document.getElementById(targetId);
+  if(!wrap) return;
+  const nowExpanded = wrap.classList.toggle('expanded');
+  btn.textContent = nowExpanded ? 'Ciutkan ▴' : 'Tampilkan Semua ▾';
 });
 
 document.getElementById('radarA').addEventListener('change', ()=>renderRadarTab(getFilters()));
