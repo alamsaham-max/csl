@@ -7854,7 +7854,7 @@ function renderPetaRekomendasi(points){
     panelEl.innerHTML = `
       <div class="table-collapsible" id="petaRekoTableWrap" style="overflow-x:auto;">
       <table class="dt">
-        <thead><tr><th>Provinsi</th><th>Kecamatan</th><th>Kelurahan</th><th>Transaksi</th><th>Jarak ke Jaringan Terdekat</th><th>Dealer/AHASS Terdekat</th><th>Sumber</th></tr></thead>
+        <thead><tr><th>Provinsi</th><th>Kecamatan</th><th>Kelurahan</th><th>Transaksi</th><th>Jarak ke Jaringan Terdekat</th><th>Dealer/AHASS Terdekat</th></tr></thead>
         <tbody>
           ${display.map(c=>`<tr>
             <td><b>${c.provinsi}</b></td>
@@ -7863,13 +7863,12 @@ function renderPetaRekomendasi(points){
             <td>${c.count.toLocaleString('id-ID')}</td>
             <td>${c.distDealer.toFixed(0)} km</td>
             <td>${c.nearestDealer||'-'}</td>
-            <td>${c._src==='nasional' ? '<span style="color:#1E8E5A;">🏆 Papan Atas Nasional</span>' : '<span style="color:#B8860B;">📍 Kuota Provinsi</span>'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
       </div>
       <button type="button" class="table-expand-toggle" data-target="petaRekoTableWrap">Tampilkan Semua ▾</button>
-      <div class="cardsub" style="margin-top:8px;">Papan atas nasional = top ${TOP_N} kandidat dgn rasio volume transaksi/jarak tertinggi se-Papua. Krn wilayah operasional luas &amp; volume per provinsi timpang, kandidat murni ranking nasional cenderung numpuk di 2-3 provinsi saja — supaya tiap provinsi tetap kelihatan potensinya, ditambahkan minimal ${MIN_PER_PROVINSI} kandidat terbaik per provinsi (kalau ada yg lolos kriteria) walau tak masuk top ${TOP_N} nasional, ditandai "📍 Kuota Provinsi". <b>Kriteria kelolosannya sama persis</b> (volume ≥ rata-rata &amp; jarak ≥ ${THRESH_KM} km) — cuma jaminan keterwakilannya yg beda, bukan standarnya diturunkan. Kandidat yg jaraknya &lt; ${MIN_SEP_KM} km satu sama lain (praktis titik yg sama) sudah di-dedup, cuma yg rasionya terbaik yg ditampilkan. Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
+      <div class="cardsub" style="margin-top:8px;">Papan atas nasional = top ${TOP_N} kandidat dgn rasio volume transaksi/jarak tertinggi se-Papua. Krn wilayah operasional luas &amp; volume per provinsi timpang, kandidat murni ranking nasional cenderung numpuk di 2-3 provinsi saja — supaya tiap provinsi tetap kelihatan potensinya, ditambahkan minimal ${MIN_PER_PROVINSI} kandidat terbaik per provinsi (kalau ada yg lolos kriteria) walau tak masuk top ${TOP_N} nasional. <b>Kriteria kelolosannya sama persis</b> (volume ≥ rata-rata &amp; jarak ≥ ${THRESH_KM} km) — cuma jaminan keterwakilannya yg beda, bukan standarnya diturunkan. Kandidat yg jaraknya &lt; ${MIN_SEP_KM} km satu sama lain (praktis titik yg sama) sudah di-dedup, cuma yg rasionya terbaik yg ditampilkan. Jarak dihitung garis lurus (bukan jarak jalan riil) dari titik kelurahan (sudah divalidasi berada di darat) ke lokasi dealer/AHASS aktif — sumber lokasi: Google Business Profile. <b>Belum memperhitungkan kepadatan penduduk</b> — begitu data kependudukan per wilayah tersedia, ranking ini akan diperhalus jadi analisis sensing market yang lebih akurat (lihat catatan <code>POPULATION_DATA</code> di kode).</div>
     `;
   }
   renderPetaRekoLayer();
