@@ -170,6 +170,27 @@ main{ padding:22px 28px 60px; max-width:1500px; margin:0 auto; width:100%; posit
   color:var(--navy); background:#F8F9FC; min-width:112px; height:30px; cursor:pointer;
 }
 .filterbar select:focus{ outline:2px solid var(--navy3); }
+/* ---- Filter checkbox multi-pilih (msel) ---- */
+.msel{ position:relative; }
+.msel-btn{
+  border:1.5px solid var(--line); border-radius:7px; padding:5px 26px 5px 9px; font-size:11.5px; font-weight:600;
+  color:var(--navy); background:#F8F9FC; min-width:112px; height:30px; cursor:pointer; text-align:left;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; position:relative; display:block;
+}
+.msel-btn:after{ content:'▾'; position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:9px; color:var(--grey); }
+.msel-btn:focus{ outline:2px solid var(--navy3); }
+.msel-btn.active{ border-color:var(--navy3); box-shadow:0 0 0 2px rgba(30,73,159,.12); }
+.msel-panel{
+  display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:40; background:#fff;
+  border:1.5px solid var(--line); border-radius:9px; box-shadow:0 8px 24px rgba(20,30,50,.14);
+  padding:6px; min-width:200px; max-width:280px; max-height:260px; overflow-y:auto;
+}
+.msel-panel.open{ display:block; }
+.msel-opt{ display:flex; align-items:center; gap:7px; padding:5px 7px; border-radius:6px; cursor:pointer; font-size:12px; color:#2A3444; }
+.msel-opt:hover{ background:#F0F3F9; }
+.msel-opt input[type=checkbox]{ margin:0; cursor:pointer; accent-color:var(--navy); width:14px; height:14px; flex:0 0 auto; }
+.msel-opt span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.msel-opt.msel-all{ font-weight:800; border-bottom:1px solid var(--line); border-radius:0; margin-bottom:3px; padding-bottom:7px; }
 .alert-chip{ margin-left:auto; background:var(--red-soft); color:var(--red-dark); border:1px solid #F5C6CF; border-radius:20px; padding:5px 13px; font-size:11.5px; font-weight:800; display:flex; align-items:center; gap:6px; }
 
 .kpi-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
@@ -1331,11 +1352,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 
 <div class="filterbar">
-  <div class="fitem"><label>Tahun</label>
-    <select id="fTahun"><option value="ALL">Semua Tahun (All Time)</option><option value="2026" selected>2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option></select>
+  <div class="fitem msel" data-fid="fTahun"><label>Tahun</label>
+    <select id="fTahun" multiple style="display:none;"><option value="ALL" selected>Semua Tahun (All Time)</option><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option></select>
   </div>
-  <div class="fitem"><label>Bulan</label>
-    <select id="fBulan">
+  <div class="fitem msel" data-fid="fBulan"><label>Bulan</label>
+    <select id="fBulan" multiple style="display:none;">
       <option value="ALL" selected>Semua Bulan</option>
       <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
       <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
@@ -1343,12 +1364,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
     </select>
   </div>
-  <div class="fitem"><label>Semester</label>
-    <select id="fSemester"><option value="SMT1">Semester 1</option><option value="SMT2">Semester 2</option></select>
+  <div class="fitem msel" data-fid="fSemester"><label>Semester</label>
+    <select id="fSemester" multiple style="display:none;"><option value="SMT1" selected>Semester 1</option><option value="SMT2">Semester 2</option></select>
   </div>
-  <div class="fitem"><label>Wilayah</label>
-    <select id="fWilayah">
-      <option value="ALL">Z11 — Semua Wilayah</option>
+  <div class="fitem msel" data-fid="fWilayah"><label>Wilayah</label>
+    <select id="fWilayah" multiple style="display:none;">
+      <option value="ALL" selected>Z11 — Semua Wilayah</option>
       <option value="Jayapura">Jayapura</option>
       <option value="Sorong">Sorong</option>
       <option value="Manokwari">Manokwari</option>
@@ -1357,29 +1378,29 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <option value="Nabire">Nabire</option>
     </select>
   </div>
-  <div class="fitem"><label>Dealer</label>
-    <select id="fDealer"><option value="ALL">Semua Dealer</option></select>
+  <div class="fitem msel" data-fid="fDealer"><label>Dealer</label>
+    <select id="fDealer" multiple style="display:none;"><option value="ALL" selected>Semua Dealer</option></select>
   </div>
-  <div class="fitem"><label>Layer</label>
-    <select id="fLayer">
-      <option value="H123">H123 — Gabungan (H1+H2+H3)</option>
+  <div class="fitem msel" data-fid="fLayer"><label>Layer</label>
+    <select id="fLayer" multiple style="display:none;">
+      <option value="H123" selected>H123 — Gabungan (H1+H2+H3)</option>
       <option value="H1">H1 — Sales</option>
       <option value="H2">H2 — Service (AHASS)</option>
       <option value="H3">H3 — Spare Part</option>
     </select>
   </div>
-  <div class="fitem"><label>Tipe Layer / Channel</label>
-    <select id="fTipe">
-      <option value="ALL">Semua Tipe</option>
+  <div class="fitem msel" data-fid="fTipe"><label>Tipe Layer / Channel</label>
+    <select id="fTipe" multiple style="display:none;">
+      <option value="ALL" selected>Semua Tipe</option>
       <option value="ASTRA">Astra Motor</option>
       <option value="REGULER">Reguler (CV)</option>
       <option value="WING">Wing</option>
       <option value="AHASS">AHASS H23</option>
     </select>
   </div>
-  <div class="fitem"><label>Group Dealer</label>
-    <select id="fGroup">
-      <option value="ALL">Semua Group</option>
+  <div class="fitem msel" data-fid="fGroup"><label>Group Dealer</label>
+    <select id="fGroup" multiple style="display:none;">
+      <option value="ALL" selected>Semua Group</option>
       <option value="ASMO">Group Asmo</option>
       <option value="FTB">Group FTB</option>
       <option value="SINAR_PAGI">Group Sinar Pagi</option>
@@ -5751,6 +5772,7 @@ function isAhass(d){ return d.toUpperCase().startsWith('AHASS'); }
 function isAstra(d){ return !isWing(d) && d.toUpperCase().startsWith('ASTRA MOTOR'); }
 function isReguler(d){ return !isAhass(d) && !isWing(d) && !isAstra(d); }
 function matchesTipe(d, tipe){
+  if(Array.isArray(tipe)) return tipe.length===0 || tipe.includes('ALL') || tipe.some(t=>matchesTipe(d,t));
   if(tipe==='ALL') return true;
   if(tipe==='AHASS') return isAhass(d);
   if(tipe==='WING') return isWing(d);
@@ -5776,8 +5798,16 @@ function getGroupForDealer(d){
   return g ? g.key : null;
 }
 function matchesGroup(d, group){
+  if(Array.isArray(group)) return group.length===0 || group.includes('ALL') || group.some(g=>matchesGroup(d,g));
   if(!group || group==='ALL') return true;
   return getGroupForDealer(d) === group;
+}
+// Multi-select-aware wilayah matcher: wilayahSel bisa 'ALL', satu nama kota (string),
+// atau array nama kota (hasil checkbox multi-pilih) -> union (OR).
+function matchesWilayah(city, wilayahSel){
+  if(wilayahSel==null) return true;
+  if(Array.isArray(wilayahSel)) return wilayahSel.length===0 || wilayahSel.includes('ALL') || wilayahSel.includes(city);
+  return wilayahSel==='ALL' || wilayahSel===city;
 }
 function mean(arr){ const v=(arr||[]).filter(x=>typeof x==='number'); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null; }
 function pct(x){ return x==null? '-' : (x*100).toFixed(1)+'%'; }
@@ -5795,18 +5825,21 @@ function rdFinal(x){ return x==null ? null : Math.round(x*1000)/1000; }
 
 // ---- Dealer set resolution based on filters ----
 function getDealerSet(wilayah, dealerSel, tipe){
-  if(dealerSel !== 'ALL') return (RAW.dealers[dealerSel]) ? [dealerSel] : [];
+  // dealerSel: 'ALL', satu nama dealer (string), atau array nama dealer (checkbox multi-pilih)
+  const dealerIsAll = dealerSel==='ALL' || (Array.isArray(dealerSel) && (dealerSel.length===0 || dealerSel.includes('ALL')));
+  if(!dealerIsAll){
+    if(Array.isArray(dealerSel)) return Object.keys(RAW.dealers).filter(d=> dealerSel.some(sel=>matchesDealerFilter(d, sel)));
+    return (RAW.dealers[dealerSel]) ? [dealerSel] : [];
+  }
   // Filter Group dibaca langsung dari dropdown di sini (bukan parameter baru) supaya
   // otomatis berlaku ke SEMUA fungsi yang sudah memanggil getDealerSet tanpa perlu
   // mengubah signature/ke-19 titik pemanggilannya satu per satu.
-  const groupEl = document.getElementById('fGroup');
-  const group = groupEl ? groupEl.value : 'ALL';
+  const group = selArr('fGroup');
   // Pakai daftar dealer dari RAW YANG SEDANG AKTIF (bisa RAW_SMT1_2026 atau
   // RAW_SMT2_2025 — roster dealernya sedikit beda antar periode), bukan
   // ALL_DEALERS statis, supaya tidak mengacu ke dealer yang tak ada di periode ini.
   return Object.keys(RAW.dealers).filter(d=>{
-    const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
-    return cityOk && matchesTipe(d, tipe) && matchesGroup(d, group);
+    return matchesWilayah(RAW.dealers[d].city, wilayah) && matchesTipe(d, tipe) && matchesGroup(d, group);
   });
 }
 
@@ -5884,16 +5917,50 @@ let charts = {};
 function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
 let currentTab = 'overview';
 
+// ---- Filter checkbox multi-pilih: helper baca & normalisasi ----
+// selArr(id): baca semua opsi yang dicentang pada <select multiple id="..."> (backing
+// store asli di balik UI checkbox custom) -> array nilai. ['ALL'] kalau tak ada yg dicentang.
+function selArr(id){
+  const el = document.getElementById(id);
+  if(!el) return ['ALL'];
+  const vals = Array.from(el.selectedOptions || []).map(o=>o.value);
+  return vals.length ? vals : ['ALL'];
+}
+// normalizeFilterVal: konversi array hasil checkbox -> bentuk scalar yang dipakai kode
+// lama (backward compatible): 'ALL' kalau ALL/none dicentang, string tunggal kalau cuma
+// 1 yg dicentang, atau ARRAY itu sendiri kalau >1 dicentang (digabung/"OR" oleh
+// matchesWilayah/matchesTipe/matchesGroup/matchesDealerFilter/getDealerSet yang sudah
+// array-aware) — supaya kode lama yg masih baca f.wilayah dkk sbg scalar tetap jalan,
+// sekaligus genuinely multi-select utk kode yg sudah lewat gatekeeper2 itu.
+function normalizeFilterVal(arr){
+  if(!arr || arr.includes('ALL') || arr.length===0) return 'ALL';
+  if(arr.length===1) return arr[0];
+  return arr;
+}
 function getFilters(){
+  const tahunArr = selArr('fTahun');
+  const bulanArr = selArr('fBulan');
+  const semesterArr = selArr('fSemester');
+  const wilayahArr = selArr('fWilayah');
+  const dealerArr = selArr('fDealer');
+  const layerArr = selArr('fLayer');
+  const tipeArr = selArr('fTipe');
+  const groupArr = selArr('fGroup');
+  // Layer: pilih >1 layer spesifik (atau H123 dicentang) = sama dgn "H123 Gabungan" (semua
+  // 3 layer digabung) — H123 memang SUDAH berarti gabungan H1+H2+H3, jadi tak ada konsep
+  // "gabung 2 dari 3 layer" terpisah di metodologi CSL aslinya.
+  let layer;
+  if(layerArr.includes('H123') || layerArr.length!==1) layer = 'H123';
+  else layer = layerArr[0];
   return {
-    tahun: document.getElementById('fTahun').value,
-    bulan: document.getElementById('fBulan').value,
-    semester: document.getElementById('fSemester').value,
-    wilayah: document.getElementById('fWilayah').value,
-    dealer: document.getElementById('fDealer').value,
-    layer: document.getElementById('fLayer').value,
-    tipe: document.getElementById('fTipe').value,
-    group: document.getElementById('fGroup').value,
+    tahun: normalizeFilterVal(tahunArr), tahunArr,
+    bulan: normalizeFilterVal(bulanArr), bulanArr,
+    semester: semesterArr.includes('SMT2') && !semesterArr.includes('SMT1') ? 'SMT2' : (semesterArr[0] || 'SMT1'), semesterArr,
+    wilayah: normalizeFilterVal(wilayahArr), wilayahArr,
+    dealer: normalizeFilterVal(dealerArr), dealerArr,
+    layer, layerArr,
+    tipe: normalizeFilterVal(tipeArr), tipeArr,
+    group: normalizeFilterVal(groupArr), groupArr,
   };
 }
 
@@ -6155,7 +6222,7 @@ function renderOvPerTipeTable(f){
   function dealerSetReguler123(wilayah){
     return ALL_DEALERS.filter(d=>{
       if(!RAW.dealers[d]) return false;
-      const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
+      const cityOk = matchesWilayah(RAW.dealers[d].city, wilayah);
       return cityOk && !isWing(d) && !isAhass(d); // Astra Motor + CV digabung
     });
   }
@@ -6192,7 +6259,7 @@ function renderOvPerTipeTable(f){
 function dealerSetForGroup(wilayah, tipe, group){
   return ALL_DEALERS.filter(d=>{
     if(!RAW.dealers[d]) return false;
-    const cityOk = (wilayah==='ALL') || (RAW.dealers[d].city === wilayah);
+    const cityOk = matchesWilayah(RAW.dealers[d].city, wilayah);
     return cityOk && matchesTipe(d, tipe) && matchesGroup(d, group);
   });
 }
@@ -6947,7 +7014,7 @@ function renderRadarOptions(f){
   const group = groupEl ? groupEl.value : 'ALL';
   const opts = ALL_DEALERS.filter(d=>{
     if(!RAW.dealers[d] || !RAW.dealers[d][l]) return false;
-    if(f.wilayah!=='ALL' && RAW.dealers[d].city !== f.wilayah) return false;
+    if(!matchesWilayah(RAW.dealers[d].city, f.wilayah)) return false;
     if(f.dealer!=='ALL' && !matchesDealerFilter(d, f.dealer)) return false;
     if(!matchesTipe(d, f.tipe)) return false;
     if(!matchesGroup(d, group)) return false;
@@ -7232,7 +7299,7 @@ function mktDealerOkArray(f){
   if(MKT_DEALER_OK_CACHE[key]) return MKT_DEALER_OK_CACHE[key];
   const arr = MARKETING_ROWLEVEL.dealers.map(name=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(name, f.dealer)) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(name) !== f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(name), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(name, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(name, f.group)) return false;
     return true;
@@ -7247,16 +7314,16 @@ function mktFilterRows(f, locIdxFilter){
   const rows = MARKETING_ROWLEVEL.rows;
   const dealerOk = mktDealerOkArray(f);
   const anyDealerScopeFilter = (f.dealer && f.dealer!=='ALL') || (f.wilayah && f.wilayah!=='ALL') || (f.tipe && f.tipe!=='ALL') || (f.group && f.group!=='ALL');
-  const selYear = f.tahun && f.tahun!=='ALL' ? Number(f.tahun) : null;
-  const selMonth = f.bulan && f.bulan!=='ALL' ? Number(f.bulan) : null;
+  const selYears = (f.tahunArr && !f.tahunArr.includes('ALL')) ? f.tahunArr.map(Number) : null;
+  const selMonths = (f.bulanArr && !f.bulanArr.includes('ALL')) ? f.bulanArr.map(Number) : null;
   const out = [];
   for(let i=0;i<rows.length;i++){
     const r = rows[i];
     const di = r[3];
     if(di<0){ if(anyDealerScopeFilter) continue; }
     else if(!dealerOk[di]) continue;
-    if(selYear!=null && r[0]!==selYear) continue;
-    if(selMonth!=null && r[1]!==selMonth) continue;
+    if(selYears!=null && !selYears.includes(r[0])) continue;
+    if(selMonths!=null && !selMonths.includes(r[1])) continue;
     if(locIdxFilter!=null && r[2]!==locIdxFilter) continue;
     out.push(r);
   }
@@ -8320,19 +8387,21 @@ function renderMarketingDemografiTab(f){
 
 function renderCdbTab(f){
   f = f || getFilters();
-  const selYear = f.tahun && f.tahun!=='ALL' ? Number(f.tahun) : null;
-  const selMonth = f.bulan && f.bulan!=='ALL' ? Number(f.bulan) : null;
+  const selYears = (f.tahunArr && !f.tahunArr.includes('ALL')) ? f.tahunArr.map(Number) : null;
+  const selMonths = (f.bulanArr && !f.bulanArr.includes('ALL')) ? f.bulanArr.map(Number) : null;
+  const selYear = selYears ? selYears[0] : null;
+  const selMonth = selMonths ? selMonths[0] : null;
 
   const scoped = CDB_DATA.filter(r=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.d, f.dealer)) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.d) !== f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.d), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.d, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(r.d, f.group)) return false;
     return true;
   });
   const periodFiltered = scoped.filter(r=>{
-    if(selYear && r.y !== selYear) return false;
-    if(selMonth && r.m !== selMonth) return false;
+    if(selYears && !selYears.includes(r.y)) return false;
+    if(selMonths && !selMonths.includes(r.m)) return false;
     return true;
   });
 
@@ -8458,7 +8527,7 @@ function renderCdbTab(f){
   // ============================================================
   const valScoped = CDB_VALIDATION.filter(r=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.dealer, f.dealer)) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer) !== f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(selYear && selYear!==2026) return false; // data validasi individual cuma tersedia utk 2026
@@ -9884,6 +9953,7 @@ function get2026Actual(historyName){
 // ============================================================
 function nosNameMatchesDealerFilter(nosName, selectedDealer){
   if(!selectedDealer || selectedDealer==='ALL') return true;
+  if(Array.isArray(selectedDealer)) return selectedDealer.length===0 || selectedDealer.includes('ALL') || selectedDealer.some(s=>nosNameMatchesDealerFilter(nosName, s));
   const a = normName(nosName), b = normName(selectedDealer);
   return a===b || a.includes(b) || b.includes(a);
 }
@@ -9910,12 +9980,12 @@ function filterNosList(list, f, channelOf){
   return list.filter(d=>{
     if(f.dealer && f.dealer!=='ALL' && !nosNameMatchesDealerFilter(d.name, f.dealer)) return false;
     if(f.tipe && f.tipe!=='ALL'){
-      const wanted = nosChannelForTipe(f.tipe);
-      if(channelOf(d) !== wanted) return false;
+      const wantedList = (Array.isArray(f.tipe)?f.tipe:[f.tipe]).map(nosChannelForTipe).filter(Boolean);
+      if(wantedList.length && !wantedList.includes(channelOf(d))) return false;
     }
     if(f.wilayah && f.wilayah!=='ALL'){
       const city = nosCityFor(d.name);
-      if(city !== f.wilayah) return false;
+      if(!matchesWilayah(city, f.wilayah)) return false;
     }
     // Group (Asmo/FTB/Sinar Pagi) dicocokkan lewat nama dealer, sama seperti tab-tab
     // lain — supaya tab NOS/People/Demografi FLP juga ikut ter-filter oleh Group.
@@ -10006,7 +10076,7 @@ function renderNosTab(f){
   ensureNosLiveData();
   f = f || getFilters();
   const BULAN_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  const selectedYear = (f && f.tahun) || 'ALL';
+  const selectedYear = (f && (Array.isArray(f.tahun) ? f.tahun[0] : f.tahun)) || 'ALL';
   const HIST_YEAR_KEY = {'2023':'a2023','2024':'a2024','2025':'a2025'};
   const nosNote = document.getElementById('nosPeriodNote');
   const detailMsg = document.getElementById('nosDetailMsg');
@@ -10081,12 +10151,14 @@ function renderNosTab(f){
   setHistMsg('nosH1BreakdownChart','nosH1Msg', false);
   setHistMsg('nosH23BreakdownChart','nosH23Msg', false);
 
+  const bulanSel = (f.bulanArr && !f.bulanArr.includes('ALL')) ? f.bulanArr.map(Number) : null;
   const nosFiltered = filterNosList(NOS_DATA, f, d=>d.channel)
-    .filter(d => (f.bulan==='ALL') || (d.bulanAudit === Number(f.bulan)));
+    .filter(d => (bulanSel===null) || bulanSel.includes(d.bulanAudit));
 
-  if(f.bulan !== 'ALL'){
+  if(bulanSel!==null){
     nosNote.style.display = 'block';
-    nosNote.innerHTML = `📌 Menampilkan <b>${nosFiltered.length} dealer</b> yang benar-benar diaudit di bulan <b>${BULAN_NAMES[Number(f.bulan)-1]} 2026</b> (dari data real "Bulan Kunjungan" assessor). Bulan tanpa audit akan tampil kosong — bukan bug.`;
+    const bulanNames = bulanSel.map(m=>BULAN_NAMES[m-1]).join(', ');
+    nosNote.innerHTML = `📌 Menampilkan <b>${nosFiltered.length} dealer</b> yang benar-benar diaudit di bulan <b>${bulanNames} 2026</b> (dari data real "Bulan Kunjungan" assessor). Bulan tanpa audit akan tampil kosong — bukan bug.`;
   }
 
   // KPI: jumlah dealer per Final Grade
@@ -10477,7 +10549,7 @@ function flpMatches(r, f, skipDim){
   const tipe = document.getElementById('flpFTipe').value;
   const tenureBinSel = document.getElementById('flpFTenureBin').value;
   return (!f.dealer || f.dealer==='ALL' || matchesDealerFilter(r.dealer, f.dealer)) &&
-    (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(r.dealer)===f.wilayah) &&
+    (!f.wilayah || f.wilayah==='ALL' || matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) &&
     (!f.tipe || f.tipe==='ALL' || matchesTipe(r.dealer, f.tipe)) &&
     (!f.group || f.group==='ALL' || matchesGroup(r.dealer, f.group)) &&
     (skipDim==='group' || group==='ALL' || r.group===group) &&
@@ -10561,7 +10633,7 @@ function renderKomposisiTab(f){
     if(skipDim!=='tenure' && tenureFilter!=='ALL' && tenureBucketOf(r.usiaKerja)!==tenureFilter) return false;
     if(groupFilter!=='ALL' && r.group!==groupFilter) return false;
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(r.dealer, f.dealer)) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer) !== f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
     // Group dealer (Asmo/FTB/Sinar Pagi) dari filterbar utama — beda dari filter
     // "Group" lokal tab ini (kategori HR internal, field r.group di atas).
@@ -10975,7 +11047,7 @@ function renderPeopleDevTab(f){
   // via matchesDealerFilter/cityForDealerName, sama seperti tab NOS).
   const scopedData = PEOPLE_DEV_DATA.filter(d=>{
     if(f.dealer && f.dealer!=='ALL' && !matchesDealerFilter(d.dealer, f.dealer)) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(d.dealer) !== f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(d.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(d.dealer, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(d.dealer, f.group)) return false;
     return true;
@@ -11268,7 +11340,7 @@ function renderGmbTab(f){
     (selectedDealer==='ALL' || h.dealer===selectedDealer) &&
     (selectedTahun==='ALL' || h.tanggal.slice(0,4)===selectedTahun) &&
     (selectedBulan==='ALL' || h.tanggal.slice(5,7)===selectedBulan) &&
-    (!f.wilayah || f.wilayah==='ALL' || cityForDealerName(h.dealer)===f.wilayah) &&
+    (!f.wilayah || f.wilayah==='ALL' || matchesWilayah(cityForDealerName(h.dealer), f.wilayah)) &&
     (!f.tipe || f.tipe==='ALL' || matchesTipe(h.dealer, f.tipe)) &&
     (!f.group || f.group==='ALL' || matchesGroup(h.dealer, f.group))
   );
@@ -11283,7 +11355,7 @@ function renderGmbTab(f){
   // ============================================================
   const reviewsForPeriodKpi = GMB_REVIEWS.filter(r=>{
     if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(!r.periodeTahun) return false; // periode tidak diketahui -> tidak ikut dihitung ke breakdown periode
@@ -11314,7 +11386,7 @@ function renderGmbTab(f){
   // the Dealer filter) — sorted chronologically for the two period charts.
   const reviewsForChart = GMB_REVIEWS.filter(r=>{
     if(selectedDealer!=='ALL' && r.dealer!==selectedDealer) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     return !!r.periodeTahun;
@@ -11488,7 +11560,7 @@ function renderGmbTab(f){
   const filteredReviews = GMB_REVIEWS.filter(r => {
     if(bintangFilter!=='ALL' && String(r.bintang)!==bintangFilter) return false;
     if(reviewDealerFilter!=='ALL' && r.dealer!==reviewDealerFilter) return false;
-    if(f.wilayah && f.wilayah!=='ALL' && cityForDealerName(r.dealer)!==f.wilayah) return false;
+    if(f.wilayah && f.wilayah!=='ALL' && !matchesWilayah(cityForDealerName(r.dealer), f.wilayah)) return false;
     if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.dealer, f.tipe)) return false;
     if(f.group && f.group!=='ALL' && !matchesGroup(r.dealer, f.group)) return false;
     if(periodActive){
@@ -11579,26 +11651,108 @@ const CSL_CORE_TABS = ['overview','wilayah','dealer','atribut','diagnostik','pre
 // (datanya sudah gabungan FY), jadi berlaku untuk SMT1 maupun SMT2.
 const CSL_HIST_FY_RAW = { '2019': RAW_FY2019, '2020': RAW_FY2020 };
 
+function periodRawForSingle(tahun, semester){
+  if(tahun==='2026') return RAW_SMT1_2026;
+  if(CSL_HIST_FY_RAW[tahun]) return CSL_HIST_FY_RAW[tahun];
+  if(tahun==='2025') return semester==='SMT2' ? RAW_SMT2_2025 : RAW_SMT1_2025;
+  return null; // tahun lain (2021-2024) belum ada data CSL-nya
+}
+
+// Daftar RAW periode yg dipilih via checkbox Tahun x Semester (bisa >1 kalau multi-pilih),
+// dedup berdasarkan periode unik yg sama (mis. pilih 2019+2020 -> 2 raw; pilih 2025 dgn
+// SMT1+SMT2 dicentang -> 2 raw; pilih 2026 -> 1 raw, semester diabaikan krn datanya FY tunggal).
+function selectedPeriodRaws(f){
+  const tahunArr = f.tahunArr.includes('ALL') ? ['2026'] : f.tahunArr;
+  const semArr = (f.semesterArr && f.semesterArr.length) ? f.semesterArr.filter(s=>s!=='ALL') : ['SMT1'];
+  const semArrUse = semArr.length ? semArr : ['SMT1'];
+  const raws = []; const seen = new Set(); const skipped = [];
+  tahunArr.forEach(ty=>{
+    if(ty==='2026'){
+      if(!seen.has('2026')){ raws.push(RAW_SMT1_2026); seen.add('2026'); }
+      return;
+    }
+    if(CSL_HIST_FY_RAW[ty]){
+      if(!seen.has(ty)){ raws.push(CSL_HIST_FY_RAW[ty]); seen.add(ty); }
+      return;
+    }
+    if(ty==='2025'){
+      semArrUse.forEach(sm=>{
+        const key = '2025_'+sm;
+        if(seen.has(key)) return;
+        const r = periodRawForSingle('2025', sm);
+        if(r){ raws.push(r); seen.add(key); }
+      });
+      return;
+    }
+    skipped.push(ty); // 2021-2024, belum ada data CSL utk tahun ini
+  });
+  return {raws, skipped};
+}
+
+// Gabung >1 periode (rata-rata berbobot jumlah responden per item/pertanyaan, sama
+// seperti metodologi penggabungan dealer duplikat & SMT1+SMT2 2020 yg sudah dipakai
+// saat membangun RAW_FY2019/RAW_FY2020) jadi satu RAW sintetis. Roster dealer = union
+// semua periode; target pakai acuan target terkini (sama seperti pendekatan FY2019/2020).
+function mergeRawPeriods(raws){
+  const labels = (raws[0] && raws[0].labels) || RAW_SMT1_2026.labels;
+  const names = new Set();
+  raws.forEach(r=> Object.keys(r.dealers).forEach(nm=>names.add(nm)));
+  const dealers = {}, cnt = {}, n = {};
+  names.forEach(name=>{
+    let city = 'Papua';
+    for(const r of raws){ if(r.dealers[name] && r.dealers[name].city){ city = r.dealers[name].city; break; } }
+    const entry = {city}, cntEntry = {}, nEntry = {};
+    ['H1','H2','H3'].forEach(layer=>{
+      const itemCount = (labels[layer]||[]).length;
+      const sums = new Array(itemCount).fill(0);
+      const weights = new Array(itemCount).fill(0);
+      let any = false;
+      raws.forEach(r=>{
+        const d = r.dealers[name];
+        if(!d || !d[layer]) return;
+        const c = (r.cnt && r.cnt[name] && r.cnt[name][layer]) || null;
+        for(let i=0;i<itemCount;i++){
+          const v = d[layer][i];
+          if(typeof v !== 'number') continue;
+          const w = (c && typeof c[i]==='number' && c[i]>0) ? c[i] : 1;
+          sums[i] += v*w; weights[i] += w; any = true;
+        }
+      });
+      if(!any){ entry[layer] = null; cntEntry[layer] = null; return; }
+      const arr = [], carr = [];
+      for(let i=0;i<itemCount;i++){
+        if(weights[i]>0){ arr.push(Math.round((sums[i]/weights[i])*1e6)/1e6); carr.push(weights[i]); }
+        else { arr.push(null); carr.push(0); }
+      }
+      entry[layer] = arr; cntEntry[layer] = carr;
+      const nz = carr.filter(x=>x>0);
+      nEntry[layer] = nz.length ? Math.max.apply(null, nz) : 0;
+    });
+    dealers[name] = entry; cnt[name] = cntEntry; n[name] = nEntry;
+  });
+  return { dealers, cnt, n, labels, targets: RAW_SMT1_2026.targets, _targetApprox: true };
+}
+
 function isPeriodDataAvailable(f, tab){
-  if(f.tahun === 'ALL' || f.tahun === '2026') return true;
-  if(f.tahun === '2025' && (f.semester === 'SMT2' || f.semester === 'SMT1') && CSL_CORE_TABS.includes(tab)) return true;
-  if(CSL_HIST_FY_RAW[f.tahun] && CSL_CORE_TABS.includes(tab)) return true;
-  return false;
+  if(f.tahunArr.includes('ALL')) return true;
+  if(f.tahunArr.length===1 && f.tahunArr[0]==='2026') return true;
+  if(!CSL_CORE_TABS.includes(tab)) return false;
+  return selectedPeriodRaws(f).raws.length > 0;
 }
 
 function resolvePeriodRaw(f){
-  if(CSL_CORE_TABS.includes(currentTab)){
-    if(CSL_HIST_FY_RAW[f.tahun]) return CSL_HIST_FY_RAW[f.tahun];
-    if(f.tahun === '2025' && f.semester === 'SMT2') return RAW_SMT2_2025;
-    if(f.tahun === '2025' && f.semester === 'SMT1') return RAW_SMT1_2025;
-  }
-  return RAW_SMT1_2026;
+  if(!CSL_CORE_TABS.includes(currentTab)) return RAW_SMT1_2026;
+  const {raws} = selectedPeriodRaws(f);
+  if(raws.length===0) return RAW_SMT1_2026;
+  if(raws.length===1) return raws[0];
+  return mergeRawPeriods(raws);
 }
 
 function renderAll(){
   const f = getFilters();
   // Pilih dataset sesuai periode aktif. Tab non-CSL-core selalu pakai SMT1 2026
-  // (satu-satunya sumber datanya), CSL-core tab ikut ganti ke SMT2 2025 / FY2019 / FY2020 kalau dipilih.
+  // (satu-satunya sumber datanya), CSL-core tab ikut ganti ke SMT2 2025 / FY2019 / FY2020
+  // kalau dipilih, atau DIGABUNG (rata-rata berbobot responden) kalau >1 periode dicentang.
   RAW = resolvePeriodRaw(f);
   renderAlertChip(f);
   const overlay = document.getElementById('periodGateOverlay');
@@ -11607,10 +11761,27 @@ function renderAll(){
   const gated = !PERIOD_INDEPENDENT_TABS.includes(currentTab) && !isPeriodDataAvailable(f, currentTab);
   if(overlay) overlay.style.display = gated ? 'flex' : 'none';
   if(monthNote) monthNote.style.display = (!gated && f.bulan!=='ALL' && !PERIOD_INDEPENDENT_TABS.includes(currentTab)) ? 'block' : 'none';
-  if(targetApproxNote) targetApproxNote.style.display = (!gated && !!RAW._targetApprox) ? 'block' : 'none';
+  if(targetApproxNote && CSL_CORE_TABS.includes(currentTab)){
+    const periodInfo = selectedPeriodRaws(f);
+    const multiPeriod = periodInfo.raws.length > 1;
+    const hasSkipped = periodInfo.skipped.length > 0;
+    if(!gated && (!!RAW._targetApprox || multiPeriod || hasSkipped)){
+      targetApproxNote.style.display = 'block';
+      let msg = '📌 ';
+      if(multiPeriod) msg += `Data dari <b>${periodInfo.raws.length} periode digabung</b> (rata-rata berbobot jumlah responden per item). `;
+      if(hasSkipped) msg += `Tahun <b>${periodInfo.skipped.join(', ')}</b> belum ada data CSL-nya, jadi diabaikan dari gabungan. `;
+      if(RAW._targetApprox) msg += `Kolom target/threshold tidak tersedia untuk data historis (2019/2020) atau gabungan multi-periode, sehingga garis target yang ditampilkan memakai acuan target terkini sebagai approksimasi — bukan target resmi periode tsb.`;
+      targetApproxNote.innerHTML = msg;
+    } else {
+      targetApproxNote.style.display = 'none';
+    }
+  } else if(targetApproxNote){
+    targetApproxNote.style.display = 'none';
+  }
   if(!gated){
     TAB_RENDERERS[currentTab](f);
   }
+  syncFilterButtonLabels();
   initFocusModeButtons();
 }
 
@@ -11694,16 +11865,142 @@ document.addEventListener('keydown', (e)=>{
 // dealer dropdown population (grouped visually by city via label prefix)
 function refreshDealerDropdown(){
   const sel = document.getElementById('fDealer');
-  const prevVal = sel.value;
+  // Simpan SEMUA nilai yg lagi dicentang (bukan cuma yg pertama) supaya multi-pilih
+  // dealer tidak kolaps jadi 1 saat dropdown di-rebuild (mis. tiap buka tab Prediktif).
+  const prevVals = Array.from(sel.selectedOptions || []).map(o=>o.value);
   const opts = ALL_DEALERS.filter(d=>RAW.dealers[d]).map(d=>`<option value="${d}">${d} (${RAW.dealers[d].city})</option>`).join('');
   sel.innerHTML = '<option value="ALL">Semua Dealer</option>' + opts;
-  if(ALL_DEALERS.includes(prevVal)) sel.value = prevVal;
+  const keep = prevVals.filter(v=> v==='ALL' || ALL_DEALERS.includes(v));
+  if(keep.length){
+    Array.from(sel.options).forEach(o=>{ o.selected = keep.includes(o.value); });
+  } else {
+    sel.value = 'ALL';
+  }
+  if(typeof rebuildMselPanel === 'function') rebuildMselPanel('fDealer');
 }
 refreshDealerDropdown();
 
 ['fTahun','fBulan','fSemester','fWilayah','fDealer','fLayer','fTipe','fGroup'].forEach(id=>{
   document.getElementById(id).addEventListener('change', renderAll);
 });
+
+// ============================================================
+// FILTER CHECKBOX MULTI-PILIH — widget generik: setiap <select multiple>
+// disembunyikan (tetap jadi "source of truth" supaya semua kode lama yang baca
+// .value / .selectedOptions / cross-filter via .value='X' tetap jalan apa adanya),
+// lalu di sampingnya dipasang tombol + panel checkbox custom yang membaca/menulis
+// ke select tsb. Centang >1 opsi = filter digabung (OR/union) oleh
+// matchesWilayah/matchesTipe/matchesGroup/matchesDealerFilter/getDealerSet yang
+// semuanya sudah array-aware (lihat definisinya di atas).
+// ============================================================
+const MSEL_IDS = ['fTahun','fBulan','fSemester','fWilayah','fDealer','fLayer','fTipe','fGroup'];
+let mselOpenId = null;
+
+function mselAllOptionValue(sel){
+  // Opsi "ALL"/"Semua ..." di select ini, kalau ada (Semester tidak punya).
+  const opt = Array.from(sel.options).find(o=>o.value==='ALL');
+  return opt ? opt.value : null;
+}
+
+function mselLabelFor(id){
+  const sel = document.getElementById(id);
+  if(!sel) return '';
+  const selected = Array.from(sel.selectedOptions || []);
+  const allVal = mselAllOptionValue(sel);
+  if(selected.length===0) return allVal ? (sel.querySelector(`option[value="${allVal}"]`)||{}).textContent||'Semua' : (sel.options[0]||{}).textContent||'';
+  if(allVal && selected.some(o=>o.value===allVal)) return selected.find(o=>o.value===allVal).textContent;
+  if(selected.length===1) return selected[0].textContent;
+  return selected.length + ' dipilih';
+}
+
+function syncFilterButtonLabels(){
+  MSEL_IDS.forEach(id=>{
+    const btn = document.querySelector(`.msel[data-fid="${id}"] .msel-btn`);
+    if(btn) btn.textContent = mselLabelFor(id);
+  });
+}
+
+function mselCloseAll(){
+  document.querySelectorAll('.msel-panel.open').forEach(p=>p.classList.remove('open'));
+  document.querySelectorAll('.msel-btn.active').forEach(b=>b.classList.remove('active'));
+  mselOpenId = null;
+}
+
+function mselToggleOption(sel, optValue, checked){
+  const allVal = mselAllOptionValue(sel);
+  const opts = Array.from(sel.options);
+  if(allVal && optValue===allVal){
+    if(checked){ opts.forEach(o=> o.selected = (o.value===allVal)); }
+    else { /* mencegah ALL jadi ter-uncheck tanpa pengganti -> abaikan (biarkan tetap ALL) */
+      const allOpt = opts.find(o=>o.value===allVal);
+      if(allOpt) allOpt.selected = true;
+    }
+  } else {
+    const target = opts.find(o=>o.value===optValue);
+    if(target) target.selected = checked;
+    if(allVal){
+      const allOpt = opts.find(o=>o.value===allVal);
+      if(checked && allOpt) allOpt.selected = false; // pilih spesifik -> otomatis lepas "ALL"
+    }
+    // Minimal 1 opsi harus tetap tercentang. Kalau user lepas centang terakhir:
+    const anySelected = opts.some(o=>o.selected);
+    if(!anySelected){
+      if(allVal){ const allOpt = opts.find(o=>o.value===allVal); if(allOpt) allOpt.selected = true; }
+      else if(target) target.selected = true; // select tanpa opsi ALL (mis. Semester) -> jangan biarkan kosong
+    }
+  }
+  sel.dispatchEvent(new Event('change', {bubbles:true}));
+}
+
+function rebuildMselPanel(id){
+  const wrap = document.querySelector(`.msel[data-fid="${id}"]`);
+  const sel = document.getElementById(id);
+  if(!wrap || !sel) return;
+  let btn = wrap.querySelector('.msel-btn');
+  let panel = wrap.querySelector('.msel-panel');
+  if(!btn){
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'msel-btn';
+    wrap.appendChild(btn);
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const isOpen = panel.classList.contains('open');
+      mselCloseAll();
+      if(!isOpen){ panel.classList.add('open'); btn.classList.add('active'); mselOpenId = id; }
+    });
+  }
+  if(!panel){
+    panel = document.createElement('div');
+    panel.className = 'msel-panel';
+    wrap.appendChild(panel);
+  }
+  const allVal = mselAllOptionValue(sel);
+  panel.innerHTML = Array.from(sel.options).map(o=>{
+    const cls = (allVal && o.value===allVal) ? 'msel-opt msel-all' : 'msel-opt';
+    return `<label class="${cls}"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''}><span>${o.textContent}</span></label>`;
+  }).join('');
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', (e)=>{
+      e.stopPropagation();
+      mselToggleOption(sel, cb.getAttribute('data-val'), cb.checked);
+      // refresh centang semua checkbox di panel ini (ALL-logic bisa mengubah lebih dari 1)
+      const selectedVals = new Set(Array.from(sel.selectedOptions).map(o=>o.value));
+      panel.querySelectorAll('input[type=checkbox]').forEach(c2=> c2.checked = selectedVals.has(c2.getAttribute('data-val')));
+      syncFilterButtonLabels();
+    });
+  });
+  btn.textContent = mselLabelFor(id);
+}
+
+function initMultiSelectFilters(){
+  MSEL_IDS.forEach(id=> rebuildMselPanel(id));
+  document.addEventListener('click', (e)=>{
+    if(mselOpenId && !e.target.closest('.msel')) mselCloseAll();
+  });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') mselCloseAll(); });
+}
+initMultiSelectFilters();
 
 // --- Week range filter (S1 2026, Week 1-17) ---
 // ============================================================
@@ -11737,6 +12034,10 @@ function crossFilterFlash(filterId){
 const XF_DIM = '#DCE1EA';
 function xfIsDimmed(name, activeVal){
   if(!activeVal || activeVal==='ALL') return false;
+  if(Array.isArray(activeVal)){
+    if(activeVal.length===0 || activeVal.includes('ALL')) return false;
+    return !activeVal.some(v=>normName(String(name))===normName(String(v)));
+  }
   return normName(String(name)) !== normName(String(activeVal));
 }
 // Bungkus array warna normal: kalau filter aktif & item tsb bukan yg dipilih -> abu-abu.
