@@ -1291,6 +1291,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         </button>
         <div class="nav-subgroup" id="navGroupCrm">
           <button data-tab="cdb" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 4v5"/></svg></span> Achievement CDB</button>
+          <button data-tab="areaach" class="nav-sub-btn"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7z"/><path d="M9 12l2 2 4-4"/></svg></span> Achievement per Area</button>
         </div>
       </div>
 
@@ -2476,6 +2477,26 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </section>
 
   <!-- ========== TAB: CRM — ACHIEVEMENT CDB ========== -->
+    <section class="tab-content" id="tab-areaach">
+    <div class="section-title"><span class="bar"></span><h2>🎯 Achievement per Area</h2><span class="tag">Dominan · Battle · Fighter</span><span class="tag" style="background:var(--grey);">CDB + NOS + CSL</span></div>
+    <div class="methodnote" id="areaNote"></div>
+    <div class="kpi-row" id="areaKpiRow"></div>
+    <div class="grid">
+      <div class="card"><h3>Achievement per Area</h3><div class="cardsub">CDB %Validitas · NOS Result% · CSL %Index (H123)</div><div class="chart-wrap"><canvas id="areaChart"></canvas></div></div>
+      <div class="card"><h3>Achievement per Kota</h3><div class="cardsub">Dikelompokkan menurut Area</div><div class="chart-wrap"><canvas id="areaCityChart"></canvas></div></div>
+    </div>
+    <div class="section-title"><span class="bar"></span><h2>Ringkasan per Area</h2></div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="areaSumTable"></table></div></div>
+    <div class="section-title"><span class="bar"></span><h2>Detail per Kota</h2></div>
+    <div class="card"><div style="overflow-x:auto;"><table class="dt" id="areaCityTable"></table></div></div>
+    <div class="section-title"><span class="bar"></span><h2>Achievement CSL SMT1'26 per Dealer &amp; Kota</h2><span class="tag">Format tabel acuan</span></div>
+    <div class="methodnote">Angka <b>Target, FY 2025, YTD SMT1'26 dan H123</b> mengikuti tabel acuan Anda. <b>†</b> = sel yang kosong di tabel acuan, diisi dari data CSL SMT1 2026 di dashboard. <b>Gap = YTD − Target</b> dihitung ulang (di tabel acuan, Gap sel kosong berisi −95% dst. akibat YTD kosong; Gap kota juga tidak konsisten). Dealer tanpa data sama sekali (Sentani, Aimas, Sulawesi Manokwari) tetap kosong. Nilai Area = rata-rata sederhana H123 kota-kota di dalamnya.</div>
+    <div class="card"><div style="overflow-x:auto; max-height:640px;"><table class="dt" id="areaCslSheetTable"></table></div></div>
+    <div class="section-title"><span class="bar"></span><h2>Detail per Dealer</h2></div>
+    <div class="methodnote" id="areaDealerNote"></div>
+    <div class="card"><div style="overflow-x:auto; max-height:560px;"><table class="dt" id="areaDealerTable"></table></div></div>
+  </section>
+
   <section class="tab-content" id="tab-cdb">
     <div class="section-title"><span class="bar"></span><h2>🗂️ Achievement CDB</h2><span class="tag">Customer Database Validity</span><span class="tag" style="background:var(--grey);">2024–2026 · Real Data</span></div>
     <div class="methodnote">
@@ -11609,6 +11630,203 @@ function renderGmbTab(f){
       </tr>`).join('') || `<tr><td colspan="8" style="text-align:center; color:var(--grey); font-style:italic; padding:20px;">Belum ada data harian diinput.</td></tr>`);
 }
 
+
+// ============================================================
+// ACHIEVEMENT PER AREA (v152): Dominan / Battle / Fighter
+// Metrik: CDB %Validitas (target 95%), NOS Result% (2026), CSL %Index H123 (SMT1 2026).
+// ============================================================
+const AREA_MAP = {
+  'Dominan':['Jayapura','Sentani'],
+  'Battle':['Merauke','Nabire','Sorong','Timika','Manokwari'],
+  'Fighter':['Biak','Serui','Wamena','Fakfak','Kaimana']
+};
+const AREA_COLORS = {Dominan:'#1F3A93', Battle:'#E67E22', Fighter:'#27AE60'};
+const AREA_CITY_LABEL = {Fakfak:'Fak-Fak'};
+// Dealer (nama dinormalisasi) -> kota. Hanya yang pasti; sisanya "Belum terpetakan".
+const AREA_DEALER_CITY = {
+  'ARUIMAKMUR':'Serui','ASTRAMOTORENTROP':'Jayapura','ASTRAMOTORMANOKWARI':'Manokwari','ASTRAMOTORMERAUKE':'Merauke',
+  'ASTRAMOTORNABIRE':'Nabire','ASTRAMOTORSENTANI':'Sentani','ASTRAMOTORSORONG':'Sorong','ASTRAMOTORSORONG1':'Sorong','ASTRAMOTORSORONG2':'Sorong',
+  'ASTRAMOTORTANAHHITAM':'Jayapura','ASTRAMOTORTIMIKA':'Timika','BUDIJAYAWAMENA':'Wamena',
+  'PTFAJARTERUSBERSINARJAYAPURA':'Jayapura','PTFAJARTERUSBERSINARTIMIKA':'Timika','SENJAINDAHKAIMANA':'Kaimana',
+  'SINARPAGIBIAK':'Biak','SINARPAGINABIRE':'Nabire','SULAWESIMANOKWARI':'Manokwari','SINARWAGOMINTIRAYA':'Fakfak',
+  'CENDRAWASIHMOTOR3':'Jayapura','TURBOMOTOR':'Jayapura','METROMOTOR':'Nabire'
+};
+function areaOfCity(c){ for(const a in AREA_MAP){ if(AREA_MAP[a].includes(c)) return a; } return null; }
+function areaCityOfDealer(name){
+  const k = normName(name);
+  if(k in AREA_DEALER_CITY) return AREA_DEALER_CITY[k];
+  const c = nosCityFor(name); // fallback ke kota di data CSL
+  return (c && areaOfCity(c)) ? c : null;
+}
+function areaMeanOf(a){ const v=a.filter(x=>typeof x==='number'&&isFinite(x)); return v.length? v.reduce((s,x)=>s+x,0)/v.length : null; }
+function areaFmt(v){ return v==null ? 'n/a' : (v*100).toFixed(1)+'%'; }
+function areaCslIdx(dealers){
+  if(!dealers.length) return null;
+  const vals = ['H1','H2','H3'].map(l=>{
+    const arr = getAttrsForScope(l, dealers);
+    const m = mean(arr); return (m==null||!isFinite(m)) ? null : rd3(m);
+  }).filter(v=>v!=null);
+  return vals.length ? rdFinal(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+}
+const AREA_CSL_SHEET = [{"k": "d", "no": 1, "name": "Astra Motor Tanah Hitam", "city": "Jayapura", "raw": "ASTRA MOTOR TANAH HITAM", "t": [94.8, 95.5, 95.3], "fy": [93.0, 92.4, 93.2], "y": [93.8, 92.1, 91.6], "h": 92.5}, {"k": "d", "no": 2, "name": "Astra Motor Entrop", "city": "Jayapura", "raw": "ASTRA MOTOR ENTROP", "t": [94.8, 96.0, 95.6], "fy": [93.3, 94.8, 94.8], "y": [94.7, 96.3, 96.4], "h": 95.8}, {"k": "d", "no": 3, "name": "FTB Jayapura", "city": "Jayapura", "raw": "CV FAJAR BARU JAYAPURA", "t": [94.8, 95.7, 95.4], "fy": [93.3, 94.1, 94.5], "y": [93.5, 95.6, 96.7], "h": 95.3}, {"k": "d", "no": 4, "name": "Astra Motor Sentani", "city": "Sentani", "raw": null, "t": [93.7, 95.5, null], "fy": [null, null, null], "y": [null, null, null], "h": null}, {"k": "d", "no": 5, "name": "Turbo Motor", "city": "Jayapura", "raw": "AHASS Turbo Motor", "t": [null, 95.7, 94.8], "fy": [null, 93.3, 93.8], "y": [null, null, null], "h": null}, {"k": "d", "no": 6, "name": "Cenderawasih Motor", "city": "Jayapura", "raw": "AHASS Cenderawasih Motor 3", "t": [null, 95.5, 95.3], "fy": [null, null, null], "y": [null, null, null], "h": null}, {"k": "c", "name": "Jayapura", "city": "Jayapura", "t": [94.5, 95.7, 95.3], "fy": [93.2, 93.7, 94.1], "y": [94.0, 94.7, 94.9], "h": 94.5}, {"k": "d", "no": 7, "name": "Astra Motor Merauke", "city": "Merauke", "raw": "ASTRA MOTOR MERAUKE", "t": [94.6, 96.0, 95.5], "fy": [93.3, 94.4, 93.9], "y": [94.5, 95.8, 95.7], "h": 95.3}, {"k": "c", "name": "Merauke", "city": "Merauke", "t": [94.6, 96.0, 95.5], "fy": [93.3, 94.4, 93.9], "y": [94.5, 95.8, 95.7], "h": 95.3}, {"k": "d", "no": 8, "name": "Astra Motor Sorong 1", "city": "Sorong", "raw": "ASTRA MOTOR SORONG 1", "t": [94.8, 95.4, 96.1], "fy": [94.8, 95.0, 94.0], "y": [91.5, 94.7, 95.7], "h": 94.0}, {"k": "d", "no": 9, "name": "Astra Motor Sorong 2", "city": "Sorong", "raw": "ASTRA MOTOR SORONG 2", "t": [94.7, 95.6, 95.4], "fy": [94.0, 94.3, 96.6], "y": [93.9, 93.7, 95.2], "h": 94.3}, {"k": "d", "no": 10, "name": "Astra Motor Aimas", "city": "Sorong", "raw": null, "t": [95.3, 95.7, 95.4], "fy": [95.2, 96.6, 94.6], "y": [null, null, null], "h": null}, {"k": "c", "name": "Sorong", "city": "Sorong", "t": [94.9, 95.6, 95.6], "fy": [94.7, 95.3, 95.1], "y": [92.7, 94.2, 95.5], "h": 94.1}, {"k": "d", "no": 11, "name": "Astra Motor Manokwari", "city": "Manokwari", "raw": "ASTRA MOTOR MANOKWARI", "t": [94.4, 95.5, 95.4], "fy": [94.2, 93.7, 94.6], "y": [94.3, 96.1, 95.5], "h": 95.3}, {"k": "d", "no": 12, "name": "CV Sulawesi Manokwari", "city": "Manokwari", "raw": null, "t": [93.7, 95.9, 95.7], "fy": [92.7, 92.9, 94.0], "y": [null, null, null], "h": null}, {"k": "c", "name": "Manokwari", "city": "Manokwari", "t": [94.1, 95.7, 95.6], "fy": [93.5, 93.3, 94.3], "y": [94.3, 96.1, 95.5], "h": 95.3}, {"k": "d", "no": 13, "name": "Astra Motor Timika", "city": "Timika", "raw": "ASTRA MOTOR TIMIKA", "t": [96.1, 95.6, 95.4], "fy": [null, null, null], "y": [null, null, null], "h": null}, {"k": "d", "no": 14, "name": "FTB Timika", "city": "Timika", "raw": "CV FAJAR BARU TIMIKA", "t": [96.1, 96.1, 94.7], "fy": [96.1, 95.8, 94.4], "y": [95.7, null, 95.5], "h": 95.6}, {"k": "d", "no": 15, "name": "Harkat Abadi", "city": "Timika", "raw": "AHASS Harkat Abadi Motor", "t": [null, 95.4, 95.8], "fy": [null, 91.1, 94.8], "y": [null, null, null], "h": null}, {"k": "c", "name": "Timika", "city": "Timika", "t": [96.1, 95.7, 95.3], "fy": [96.1, 93.5, 94.6], "y": [95.7, null, 95.5], "h": 95.6}, {"k": "d", "no": 16, "name": "Astra Motor Nabire", "city": "Nabire", "raw": "ASTRA MOTOR NABIRE", "t": [94.5, 95.7, 95.4], "fy": [94.5, 93.9, 90.4], "y": [94.2, 97.1, 96.4], "h": 95.9}, {"k": "d", "no": 17, "name": "SP Nabire", "city": "Nabire", "raw": "CV SINAR PAGI NABIRE", "t": [94.5, 95.7, 95.5], "fy": [null, null, null], "y": [95.6, 97.8, 96.5], "h": 96.6}, {"k": "d", "no": 18, "name": "Metro Motor", "city": "Nabire", "raw": "AHASS Metro Motor", "t": [null, 95.3, 95.2], "fy": [null, 95.9, 96.9], "y": [null, null, null], "h": null}, {"k": "c", "name": "Nabire", "city": "Nabire", "t": [94.5, 95.6, 95.4], "fy": [94.5, 94.9, 93.7], "y": [94.9, 97.5, 96.5], "h": 96.3}, {"k": "t", "name": "Total", "city": null, "t": [94.8, 95.7, 95.4], "fy": [94.2, 94.2, 94.3], "y": [94.4, 95.6, 95.6], "h": 95.2}];
+
+// ---- Tabel Achievement CSL SMT1'26 (angka acuan dari tabel user, per dealer/kota/Total) ----
+// Sel yang kosong di tabel user diisi dari data CSL SMT1 2026 di dashboard dan ditandai †.
+function areaCslSheetResolved(){
+  const L=['H1','H2','H3'];
+  return AREA_CSL_SHEET.map(r=>{
+    const y = r.y.map(v=>v==null?null:v); const filled=[false,false,false];
+    if(r.k==='d' && r.raw && RAW.dealers[r.raw]){
+      L.forEach((l,i)=>{ if(y[i]==null){ const v=overallForDealer(r.raw,l); if(v!=null){ y[i]=+(v*100).toFixed(1); filled[i]=true; } } });
+    }
+    if(r.k==='c' && y.some(v=>v==null)){
+      L.forEach((l,i)=>{ if(y[i]==null){ const v=overallWilayah(r.city,l,'ALL'); if(v!=null){ y[i]=+(v*100).toFixed(1); filled[i]=true; } } });
+    }
+    let h = r.h, hFilled=false;
+    if(h==null || filled.some(Boolean)){
+      const av=y.filter(v=>v!=null);
+      if(av.length && (h==null)){ h=+(av.reduce((a,b)=>a+b,0)/av.length).toFixed(1); hFilled=true; }
+    }
+    return Object.assign({}, r, {y, filled, h, hFilled, gap: y.map((v,i)=> (v!=null && r.t[i]!=null) ? +(v-r.t[i]).toFixed(1) : null)});
+  });
+}
+function areaCslSheetCityH123(){ const m={}; areaCslSheetResolved().forEach(r=>{ if(r.k==='c') m[r.city]=r.h; }); return m; }
+function renderAreaCslSheet(){
+  const rows = areaCslSheetResolved();
+  const f1 = v=> v==null ? '<span style="color:#999">–</span>' : v.toFixed(1)+'%';
+  const f2 = v=> v==null ? '<span style="color:#999">–</span>' : (v>0?'+':'')+v.toFixed(1)+'%';
+  let html = '<thead><tr><th rowspan="2">No</th><th rowspan="2">Dealer / Kota</th><th rowspan="2">Area</th><th colspan="3">Target</th><th colspan="3">FY 2025</th><th colspan="3">YTD SMT1\'26</th><th colspan="3">Gap vs Target</th><th rowspan="2">H123 YTD SMT1\'26</th></tr><tr>'+
+    ['H1','H2','H3','H1','H2','H3','H1','H2','H3','H1','H2','H3'].map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{
+    const area = r.city ? (areaOfCity(r.city)||'') : '';
+    const bg = r.k==='c' ? 'background:#DCEBF7;font-weight:700' : r.k==='t' ? 'background:#FFF200;font-weight:700' : '';
+    const ytd = r.y.map((v,i)=>{ const ok = v!=null && r.t[i]!=null ? v>=r.t[i] : null; const col = ok==null?'':ok?'color:#1E8449;background:#D5F0DD':'color:#C0392B;background:#FADBD8';
+      return `<td style="${col}">${f1(v)}${r.filled[i]?'†':''}</td>`; }).join('');
+    html += `<tr style="${bg}"><td>${r.no||''}</td><td style="text-align:left">${r.name}</td><td>${area}</td>`+
+      r.t.map(v=>`<td>${f1(v)}</td>`).join('')+ r.fy.map(v=>`<td>${f1(v)}</td>`).join('')+ ytd +
+      r.gap.map(v=>`<td style="${v==null?'':v>=0?'color:#1E8449':'color:#C0392B'}">${f2(v)}</td>`).join('')+
+      `<td><b>${r.h==null?'n/a':r.h.toFixed(1)+'%'}${r.hFilled?'†':''}</b></td></tr>`;
+  });
+  document.getElementById('areaCslSheetTable').innerHTML = html+'</tbody>';
+}
+
+function computeAreaAchievement(f){
+  const selYears = (f.tahunArr && !f.tahunArr.includes('ALL')) ? f.tahunArr.map(Number) : null;
+  const selMonths = (f.bulanArr && !f.bulanArr.includes('ALL')) ? f.bulanArr.map(Number) : null;
+  const okDealer = n => !(f.dealer && f.dealer!=='ALL') || matchesDealerFilter(n, f.dealer);
+  // CDB
+  const cdbRows = CDB_DATA.filter(r=>{
+    if(r.p==null) return false;
+    if(selYears && !selYears.includes(r.y)) return false;
+    if(selMonths && !selMonths.includes(r.m)) return false;
+    if(!okDealer(r.d)) return false;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(r.d, f.tipe)) return false;
+    if(f.group && f.group!=='ALL' && !matchesGroup(r.d, f.group)) return false;
+    return true;
+  });
+  const cdbBy = {}; const unmapped = {cdb:new Set(), nos:new Set()};
+  cdbRows.forEach(r=>{
+    const c = areaCityOfDealer(r.d); if(!c){ unmapped.cdb.add(r.d); return; }
+    (cdbBy[r.d] = cdbBy[r.d] || {city:c, p:[]}).p.push(r.p);
+  });
+  // NOS (Result% 2026). Entri kembar (kota sama & Result% identik) dihitung sekali.
+  const nosBy = {}; const seen = new Set(); const nosDup = [];
+  NOS_DATA.forEach(d=>{
+    if(d.resultPct==null || !okDealer(d.name)) return;
+    const c = areaCityOfDealer(d.name);
+    if(!c){ unmapped.nos.add(d.name); return; }
+    const key = c+'|'+d.resultPct;
+    if(seen.has(key)){ nosDup.push(d.name); return; }
+    seen.add(key);
+    nosBy[d.name] = {city:c, v:d.resultPct, grade:d.finalResult};
+  });
+  // CSL (RAW aktif = SMT1 2026 untuk tab ini)
+  const cslBy = {};
+  Object.keys(RAW.dealers).forEach(n=>{
+    if(!okDealer(n)) return;
+    if(f.tipe && f.tipe!=='ALL' && !matchesTipe(n, f.tipe)) return;
+    if(f.group && f.group!=='ALL' && !matchesGroup(n, f.group)) return;
+    const c = areaCityOfDealer(n) || RAW.dealers[n].city; if(!areaOfCity(c)) return;
+    const v = areaCslIdx([n]); if(v==null) return;
+    cslBy[n] = {city:c, v};
+  });
+  // Dealer table
+  const names = new Set([...Object.keys(cdbBy), ...Object.keys(nosBy), ...Object.keys(cslBy)]);
+  const dealerRows = [...names].map(n=>({
+    name:n, city:(cdbBy[n]||nosBy[n]||cslBy[n]).city,
+    cdb: cdbBy[n] ? areaMeanOf(cdbBy[n].p) : null,
+    nos: nosBy[n] ? nosBy[n].v : null, nosGrade: nosBy[n]?nosBy[n].grade:null,
+    csl: cslBy[n] ? cslBy[n].v : null
+  }));
+  const cityRows = [];
+  Object.keys(AREA_MAP).forEach(a=>AREA_MAP[a].forEach(c=>{
+    const cdbP = Object.values(cdbBy).filter(x=>x.city===c).flatMap(x=>x.p);
+    const nosV = Object.values(nosBy).filter(x=>x.city===c).map(x=>x.v);
+    const cslD = Object.keys(cslBy).filter(n=>cslBy[n].city===c);
+    cityRows.push({area:a, city:c, nDealer: dealerRows.filter(d=>d.city===c).length,
+      cdb: areaMeanOf(cdbP), nos: areaMeanOf(nosV), csl: areaCslIdx(cslD), nCdb:Object.values(cdbBy).filter(x=>x.city===c).length, nNos:nosV.length, nCsl:cslD.length});
+  }));
+  const areaRows = Object.keys(AREA_MAP).map(a=>{
+    const cs = AREA_MAP[a];
+    const cdbP = Object.values(cdbBy).filter(x=>cs.includes(x.city)).flatMap(x=>x.p);
+    const nosV = Object.values(nosBy).filter(x=>cs.includes(x.city)).map(x=>x.v);
+    const cslD = Object.keys(cslBy).filter(n=>cs.includes(cslBy[n].city));
+    return {area:a, cities:cs, cdb:areaMeanOf(cdbP), nos:areaMeanOf(nosV), csl:areaCslIdx(cslD),
+      nCdb:Object.values(cdbBy).filter(x=>cs.includes(x.city)).length, nNos:nosV.length, nCsl:cslD.length,
+      cdbOk:Object.values(cdbBy).filter(x=>cs.includes(x.city) && areaMeanOf(x.p)>=0.95).length};
+  });
+  // CSL per kota/area/dealer mengikuti tabel acuan user (v153)
+  const sheetRows = areaCslSheetResolved();
+  const cityH = {}; sheetRows.forEach(r=>{ if(r.k==='c') cityH[r.city]=r.h; });
+  cityRows.forEach(c=>{ c.csl = (c.city in cityH && cityH[c.city]!=null) ? cityH[c.city]/100 : null; c.nCsl = sheetRows.filter(r=>r.k==='d' && r.city===c.city && r.h!=null).length; });
+  areaRows.forEach(a=>{ const vs = cityRows.filter(c=>a.cities.includes(c.city)).map(c=>c.csl).filter(v=>v!=null);
+    a.csl = vs.length ? vs.reduce((x,y)=>x+y,0)/vs.length : null; a.nCsl = cityRows.filter(c=>a.cities.includes(c.city)).reduce((s,c)=>s+c.nCsl,0); });
+  dealerRows.forEach(d=>{ const s = sheetRows.find(r=>r.k==='d' && r.raw && normName(r.raw)===normName(d.name)); if(s && s.h!=null) d.csl = s.h/100; });
+  return {areaRows, cityRows, dealerRows, unmapped:{cdb:[...unmapped.cdb], nos:[...unmapped.nos]}, nosDup, selYears, selMonths};
+}
+function renderAreaAchTab(f){
+  f = f || getFilters();
+  const R = computeAreaAchievement(f);
+  const per = (R.selMonths?R.selMonths.map(m=>CDB_BULAN_NAMES[m-1]).join('+')+' ':'') + (R.selYears?R.selYears.join('+'):'Semua Tahun (2024–2026)');
+  const miss = [];
+  if(R.unmapped.nos.length) miss.push('NOS belum terpetakan ke kota (tidak dihitung): <b>'+R.unmapped.nos.join(', ')+'</b>');
+  if(R.unmapped.cdb.length) miss.push('CDB belum terpetakan: <b>'+R.unmapped.cdb.join(', ')+'</b>');
+  if(R.nosDup.length) miss.push('NOS entri kembar (kota &amp; Result% identik) dihitung sekali: '+R.nosDup.join(', '));
+  document.getElementById('areaNote').innerHTML =
+    '<b>Pengelompokan Area:</b> Dominan = Jayapura &amp; Sentani · Battle = Merauke, Nabire, Sorong, Timika, Manokwari · Fighter = Biak, Serui, Wamena, Fak-Fak, Kaimana.'+
+    '<br><b>Metrik:</b> <b>CDB</b> = rata-rata %Validitas bulanan (target 95%), periode <b>'+per+'</b> mengikuti filter Tahun/Bulan. <b>NOS</b> = Result% 2026 (snapshot). <b>CSL</b> = H123 YTD SMT1\'26 sesuai tabel acuan (per kota; Area = rata-rata kota). Kota tanpa data CSL (Sentani, Fighter) tampil <b>n/a</b>.'+
+    '<br>Filter Dealer/Tipe/Group berlaku (Tipe/Group tidak berlaku di NOS); filter Wilayah &amp; Semester diabaikan karena Area sendiri adalah pengelompokannya. Area = rata-rata sederhana antar dealer/bulan terpilih.'+
+    (miss.length? '<br>⚠️ '+miss.join('<br>⚠️ '):'');
+  document.getElementById('areaKpiRow').innerHTML = R.areaRows.map(a=>`
+    <div class="kpi good" style="border-left:4px solid ${AREA_COLORS[a.area]}">
+      <div class="label">${a.area} — ${a.cities.map(c=>AREA_CITY_LABEL[c]||c).join(', ')}</div>
+      <div class="value">CDB ${areaFmt(a.cdb)}</div>
+      <div class="delta good">NOS ${areaFmt(a.nos)} · CSL ${areaFmt(a.csl)}</div>
+      <div class="delta good">${a.nCdb} dealer CDB (${a.cdbOk} ≥95%)</div>
+    </div>`).join('');
+  const th = cols=>'<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
+  const tr = cells=>'<tr>'+cells.map(c=>`<td>${c}</td>`).join('')+'</tr>';
+  const cdbCell = v=> v==null ? 'n/a' : `<b style="color:${v>=0.95?'#27AE60':'#C0392B'}">${areaFmt(v)}</b>`;
+  document.getElementById('areaSumTable').innerHTML = th(['Area','Kota','CDB %Valid (target 95%)','Dealer CDB ≥95%','NOS Result%','Dealer NOS','CSL %Index H123','Dealer CSL'])+
+    '<tbody>'+R.areaRows.map(a=>tr([`<b style="color:${AREA_COLORS[a.area]}">${a.area}</b>`, a.cities.map(c=>AREA_CITY_LABEL[c]||c).join(', '), cdbCell(a.cdb), `${a.cdbOk} / ${a.nCdb}`, areaFmt(a.nos), a.nNos, areaFmt(a.csl), a.nCsl])).join('')+'</tbody>';
+  document.getElementById('areaCityTable').innerHTML = th(['Area','Kota','Dealer (data)','CDB %Valid','NOS Result%','CSL %Index H123'])+
+    '<tbody>'+R.cityRows.map(c=>tr([`<span style="color:${AREA_COLORS[c.area]}">${c.area}</span>`, AREA_CITY_LABEL[c.city]||c.city, c.nDealer, cdbCell(c.cdb), areaFmt(c.nos), areaFmt(c.csl)])).join('')+'</tbody>';
+  document.getElementById('areaDealerNote').innerHTML = 'Dealer tanpa data pada metrik tertentu ditampilkan <b>n/a</b>. Grade NOS = hasil akhir resmi (finalResult).';
+  const order = Object.keys(AREA_MAP);
+  const dRows = R.dealerRows.slice().sort((a,b)=> order.indexOf(areaOfCity(a.city))-order.indexOf(areaOfCity(b.city)) || a.city.localeCompare(b.city) || a.name.localeCompare(b.name));
+  document.getElementById('areaDealerTable').innerHTML = th(['Area','Kota','Dealer','CDB %Valid','NOS Result%','Grade NOS','CSL %Index H123'])+
+    '<tbody>'+dRows.map(d=>tr([areaOfCity(d.city), AREA_CITY_LABEL[d.city]||d.city, d.name, cdbCell(d.cdb), areaFmt(d.nos), d.nosGrade||'n/a', areaFmt(d.csl)])).join('')+'</tbody>';
+  renderAreaCslSheet();
+  // charts
+  const pct = v=> v==null?null:+(v*100).toFixed(1);
+  const ds = (label,key,color,rows)=>({label, data: rows.map(r=>pct(r[key])), backgroundColor:color});
+  const opts = {responsive:true, maintainAspectRatio:false, scales:{y:{min:50,max:100,ticks:{callback:v=>v+'%'}}}, plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.raw==null?'n/a':c.raw+'%')}}}};
+  destroyChart('areaChart');
+  charts.areaChart = new Chart(document.getElementById('areaChart'), {type:'bar', data:{labels:R.areaRows.map(r=>r.area), datasets:[ds('CDB %Valid','cdb','#1F3A93',R.areaRows), ds('NOS Result%','nos','#E67E22',R.areaRows), ds('CSL %Index','csl','#27AE60',R.areaRows)]}, options:opts});
+  destroyChart('areaCityChart');
+  charts.areaCityChart = new Chart(document.getElementById('areaCityChart'), {type:'bar', data:{labels:R.cityRows.map(r=>(AREA_CITY_LABEL[r.city]||r.city)+' ('+r.area[0]+')'), datasets:[ds('CDB %Valid','cdb','#1F3A93',R.cityRows), ds('NOS Result%','nos','#E67E22',R.cityRows), ds('CSL %Index','csl','#27AE60',R.cityRows)]}, options:Object.assign({},opts,{plugins:Object.assign({},opts.plugins,{datalabels:{display:false}})})});
+}
+
 const TAB_RENDERERS = {
   beranda: ()=>{},
   overview: renderOverview,
@@ -11636,6 +11854,7 @@ const TAB_RENDERERS = {
   petakonsumen: renderPetaKonsumenTab,
   marketingdemografi: renderMarketingDemografiTab,
   cdb: renderCdbTab,
+  areaach: renderAreaAchTab,
   alerts: renderAlertsTab,
   rankingmd: renderRankingMdTab,
   fokusz11: renderFokusZ11Tab,
@@ -11644,7 +11863,7 @@ const TAB_RENDERERS = {
 
 // Tab yang tidak perlu di-gate oleh filter Tahun (karena tidak
 // bergantung snapshot 2026, atau punya logic periode sendiri):
-const PERIOD_INDEPENDENT_TABS = ['beranda','gmb','nos','cdb','petakonsumen','marketingdemografi','ca','rankingmd','fokusz11','cekbulanan'];
+const PERIOD_INDEPENDENT_TABS = ['beranda','gmb','nos','cdb','areaach','petakonsumen','marketingdemografi','ca','rankingmd','fokusz11','cekbulanan'];
 // Tab yang datanya murni dari RAW.dealers (Result CSL H1/H2/H3) — inilah yang
 // benar-benar bisa berpindah ke RAW_SMT2_2025 karena strukturnya identik.
 // Tab lain (demografi survei, NPS, Demografi Konsumen/CDB, People, dll) TIDAK
